@@ -1,0 +1,64 @@
+{% extends 'products/management_base.html' %}
+
+{% block management_content %}
+<style>
+    .messaging-container { display: flex; height: 75vh; gap: 20px; }
+    
+    /* Left: Contacts List */
+    .contacts-list { width: 350px; background: var(--header-green); border-radius: 15px; padding: 20px; border: 1px solid var(--sidebar-brown); }
+    .contact-item { background: #dceecb; border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid transparent; cursor: pointer; }
+    .contact-item.active { background: white; border-color: var(--sidebar-brown); }
+    .contact-avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--sidebar-brown); margin-right: 12px; border: 2px solid white; }
+    
+    /* Right: Chat Window */
+    .chat-window { flex-grow: 1; border: 1px solid #ddd; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header { background: var(--sidebar-brown); color: white; padding: 15px; text-align: center; }
+    .chat-body { flex-grow: 1; padding: 20px; background: #fff; display: flex; flex-direction: column; gap: 15px; }
+    .msg-bubble { background: #e0e0e0; padding: 15px 25px; border-radius: 10px; width: fit-content; max-width: 70%; }
+    .msg-sent { align-self: flex-end; }
+    .chat-footer { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
+    .message-input { background: var(--header-green); border: 1px solid var(--sidebar-brown); border-radius: 25px; padding: 10px 20px; flex-grow: 1; outline: none; }
+</style>
+
+<div class="messaging-container">
+    <!-- Contacts Sidebar -->
+    <div class="contacts-list shadow-sm">
+        <div class="input-group mb-3 px-2">
+            <input type="text" class="form-control border-secondary rounded-pill" placeholder="Search...">
+            <button class="btn btn-sm ms-2 rounded-circle" style="background:var(--sidebar-brown); color:white;"><i class="fas fa-plus"></i></button>
+        </div>
+        
+        <div class="contact-item active">
+            <div class="contact-avatar"></div>
+            <div>
+                <div class="fw-bold small">John</div>
+                <div class="text-muted" style="font-size: 0.7rem;">orem ipsum tak tak tak...</div>
+            </div>
+        </div>
+        {% for i in "12345" %}
+        <div class="contact-item">
+            <div class="contact-avatar"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Main Chat -->
+    <div class="chat-window shadow-sm">
+        <div class="chat-header">
+            <img src="https://via.placeholder.com/50" class="rounded-circle mb-1" style="border: 2px solid white;">
+            <div class="fw-bold">John</div>
+            <div class="small opacity-75">@john_doe</div>
+        </div>
+        <div class="chat-body">
+            <div class="msg-bubble"></div>
+            <div class="msg-bubble"></div>
+            <div class="msg-bubble msg-sent"></div>
+        </div>
+        <div class="chat-footer">
+            <i class="far fa-file-alt text-muted fa-lg"></i>
+            <input type="text" class="message-input" placeholder="Type a Message">
+            <i class="fas fa-paper-plane" style="color:var(--sidebar-brown); cursor:pointer;"></i>
+        </div>
+    </div>
+</div>
+{% endblock %}

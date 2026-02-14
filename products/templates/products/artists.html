@@ -1,0 +1,127 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<style>
+    .artists-container {
+        position: relative;
+        padding: 0 60px;
+        margin-top: 50px;
+        min-height: 500px;
+    }
+
+    /* Arrow Buttons */
+    .nav-arrow {
+        position: absolute;
+        top: 40%;
+        transform: translateY(-50%);
+        font-size: 3.5rem;
+        color: var(--nav-brown);
+        background: none;
+        border: none;
+        cursor: pointer;
+        z-index: 10;
+        transition: 0.3s;
+    }
+    .nav-arrow:disabled { opacity: 0.2; cursor: default; }
+    .nav-arrow:hover:not(:disabled) { transform: translateY(-50%) scale(1.2); color: var(--text-brown); }
+    .left-arrow { left: 0; }
+    .right-arrow { right: 0; }
+
+    /* Artist Card Styling */
+    .artist-item { display: none; } /* Hidden by default, shown by JS */
+
+    .artist-card {
+        text-align: center;
+        text-decoration: none;
+        color: var(--text-brown);
+        display: block;
+        margin-bottom: 30px;
+    }
+
+    .artist-avatar {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background-color: var(--card-grey);
+        border: 2px solid var(--nav-brown);
+        border-radius: 45px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .artist-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .artist-name { margin-top: 12px; font-weight: 700; font-size: 1.1rem; }
+</style>
+
+<div class="container text-center mb-4">
+    <h2 class="fw-bold text-uppercase" style="letter-spacing: 2px;">Featured Artists</h2>
+    <p class="text-muted">Page <span id="page-num">1</span> of <span id="total-pages"></span></p>
+</div>
+
+<div class="artists-container">
+    <!-- Navigation Arrows -->
+    <button class="nav-arrow left-arrow" id="prevBtn" onclick="changePage(-1)">
+        <i class="fas fa-caret-left"></i>
+    </button>
+    
+    <div class="row g-4 justify-content-center" id="artist-grid">
+        {% for artist in artists %}
+        <div class="col-6 col-md-4 col-lg-3 artist-item">
+            <a href="#" class="artist-card">
+                <div class="artist-avatar">
+                    {% if artist.image %}
+                        <img src="{{ artist.image.url }}" alt="{{ artist.artist_name }}">
+                    {% else %}
+                        <span style="font-size: 3rem; color: #ccc;"><i class="fas fa-user"></i></span>
+                    {% endif %}
+                </div>
+                <div class="artist-name">{{ artist.artist_name }}</div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button class="nav-arrow right-arrow" id="nextBtn" onclick="changePage(1)">
+        <i class="fas fa-caret-right"></i>
+    </button>
+</div>
+
+<!-- JAVASCRIPT FOR PAGINATION -->
+<script>
+    let currentPage = 0;
+    const pageSize = 8;
+    const artistItems = document.querySelectorAll('.artist-item');
+    const totalPages = Math.ceil(artistItems.length / pageSize);
+
+    function showPage(page) {
+        // Calculate start and end indices
+        const start = page * pageSize;
+        const end = start + pageSize;
+
+        // Hide all, show only the current 8
+        artistItems.forEach((item, index) => {
+            item.style.display = (index >= start && index < end) ? 'block' : 'none';
+        });
+
+        // Update UI
+        document.getElementById('page-num').innerText = page + 1;
+        document.getElementById('total-pages').innerText = totalPages;
+        
+        // Disable arrows if at the start or end
+        document.getElementById('prevBtn').disabled = (page === 0);
+        document.getElementById('nextBtn').disabled = (page === totalPages - 1);
+    }
+
+    function changePage(step) {
+        currentPage += step;
+        showPage(currentPage);
+    }
+
+    // Initialize first page on load
+    document.addEventListener('DOMContentLoaded', () => {
+        showPage(0);
+    });
+</script>
+{% endblock %}

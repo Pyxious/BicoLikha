@@ -1,0 +1,40 @@
+{% extends 'products/management_base.html' %}
+
+{% block management_content %}
+<h2 class="fw-bold mb-0">Order Management</h2>
+<p class="text-muted mb-4">Real-time Transaction Monitoring</p>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Order ID</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="ps-4">#BK-{{ order.order_id }}</td>
+                    <td>{{ order.user.username }}</td>
+                    <td class="fw-bold">₱{{ order.order_total_amount }}</td>
+                    <td>
+                        <select class="form-select form-select-sm w-75">
+                            <option {% if order.order_status == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option {% if order.order_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                        </select>
+                    </td>
+                    <td class="small text-muted">Feb 11, 2026</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center py-5 text-muted">No orders found in the database.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

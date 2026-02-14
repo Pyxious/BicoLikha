@@ -1,0 +1,15 @@
+{% extends 'products/management_base.html' %}
+{% block management_content %}
+    <h3 class="fw-bold">Administrative Accounts</h3>
+    <table class="table align-middle mt-4">
+        <thead class="table-light"><tr><th>Admin User</th><th>Last Login</th></tr></thead>
+        <tbody>
+            {% for admin in admins %}
+            <tr>
+                <td><i class="fas fa-crown text-warning me-2"></i> {{ admin.username }}</td>
+                <td>{{ admin.last_login|date:"M d, Y" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

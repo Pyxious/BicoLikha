@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% if user.is_staff %}
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-outline-dark ms-2">
+        <i class="fas fa-lock me-1"></i> Admin Panel
+    </a>
+{% endif %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bicolikha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --header-green: #e9fcd9; --nav-brown: #8d5e4a; --text-brown: #5d3a2d; --card-grey: #e6e6e6; }
+        body { font-family: 'Inter', sans-serif; color: var(--text-brown); }
+        .top-header { background-color: var(--header-green); padding: 15px 0; }
+        .header-logo { font-size: 1.8rem; font-weight: 800; color: var(--text-brown); text-decoration: none; }
+        .sub-nav { background-color: var(--nav-brown); padding: 12px 0; text-align: center; }
+        .sub-nav a { color: rgba(255, 255, 255, 0.8); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin: 0 25px; text-transform: uppercase; }
+        .sub-nav a:hover { color: #ffffff; }
+        .header-icons a { color: var(--text-brown); text-decoration: none; margin-left: 15px; text-align: center; font-size: 1.1rem; }
+        .icon-label { font-size: 0.6rem; display: block; font-weight: bold; }
+    </style>
+
+    
+</head>
+<body>
+    <!-- COMMON HEADER -->
+    <header class="top-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <i class="fas fa-bars fa-lg"></i>
+            <a href="{% url 'catalog' %}" class="header-logo">bicolikha</a>
+            <div class="header-icons d-flex align-items-center">
+                <a href="#"><i class="fas fa-magnifying-glass"></i></a>
+                {% if user.is_authenticated %}
+                    <a href="#"><i class="fas fa-user-circle"></i><span class="icon-label">{{user.username}}</span></a>
+                {% else %}
+                    <a href="{% url 'login' %}"><i class="fas fa-right-to-bracket"></i><span class="icon-label">Login</span></a>
+                {% endif %}
+                <a href="#"><i class="fas fa-bag-shopping"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <!-- COMMON NAV (Updated links to actual URLs) -->
+    <nav class="sub-nav sticky-top">
+        <div class="container">
+            <a href="{% url 'catalog' %}">CATALOG</a>
+            <a href="{% url 'artists' %}">ARTISTS</a>
+            <a href="{% url 'popular' %}">POPULAR</a>
+            <a href="{% url 'about' %}">ABOUT</a>
+        </div>
+    </nav>
+
+    <!-- UNIQUE CONTENT GOES HERE -->
+    <div class="container mt-5">
+        {% block content %}{% endblock %}
+    </div>
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

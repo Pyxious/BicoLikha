@@ -1,0 +1,33 @@
+{% extends 'products/management_base.html' %}
+
+{% block management_content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="fw-bold mb-0">Product Management</h2>
+        <p class="text-muted">Inventory and Catalog Control</p>
+    </div>
+    <button class="btn btn-brown text-white" style="background:var(--sidebar-brown)">+ Add New Artwork</button>
+</div>
+
+<div class="row g-4">
+    {% for artwork in products %}
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div style="height: 150px; background: #eee;">
+                {% if artwork.image %}
+                    <img src="{{ artwork.image.url }}" class="w-100 h-100" style="object-fit:cover;">
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-1">{{ artwork.title }}</h6>
+                <small class="text-muted d-block mb-2">by {{ artwork.artist_ref.artist_name }}</small>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-danger">₱{{ artwork.price }}</span>
+                    <button class="btn btn-sm btn-light border"><i class="fas fa-edit"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
