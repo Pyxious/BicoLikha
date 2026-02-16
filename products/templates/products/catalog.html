@@ -1,17 +1,122 @@
 {% extends 'products/base.html' %}
+
 {% block content %}
-    <h3 class="text-center mb-5 fw-bold">OUR CATALOG</h3>
-    <div class="row g-4">
-        {% for artwork in artworks %}
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <img src="{{ artwork.image.url }}" class="card-img-top" style="aspect-ratio:1/1; object-fit:cover;">
-                <div class="card-body text-center">
-                    <div class="fw-bold">{{ artwork.title }}</div>
-                    <div class="text-muted small">₱{{ artwork.price }}</div>
+<style>
+    :root {
+        --bicol-green: #5f9e40; /* The green from your screenshot */
+    }
+
+    /* Category Title Styling */
+    .cat-title {
+        color: var(--bicol-green);
+        font-weight: 900;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        text-transform: lowercase;
+    }
+
+    /* The Gray Placeholder Boxes */
+    .artwork-placeholder {
+        background-color: #e6e6e6;
+        aspect-ratio: 1/1;
+        border-radius: 5px;
+        display: block;
+        transition: 0.3s;
+    }
+    .artwork-placeholder:hover { opacity: 0.8; }
+
+    /* Navigation Arrow */
+    .arrow-btn {
+        background-color: var(--bicol-green);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 60px;
+        clip-path: polygon(0% 0%, 100% 50%, 0% 100%); /* Creates the triangle shape */
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    /* Dashed Separator */
+    .dashed-separator {
+        border: none;
+        border-top: 3px dashed var(--nav-brown);
+        margin: 50px 0;
+        opacity: 1;
+    }
+
+    /* Bottom Green Block */
+    .green-footer-block {
+        background-color: var(--bicol-green);
+        height: 150px;
+        margin-top: 50px;
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+    }
+</style>
+
+<div class="container mt-5">
+
+    {% if view_all %}
+        <!-- --- VIEW ALL MODE --- -->
+        <a href="{% url 'catalog' %}" class="btn btn-sm mb-3" style="color: var(--nav-brown); font-weight: bold;">
+            <i class="fas fa-arrow-left"></i> Back to Overview
+        </a>
+        <h1 class="cat-title">{{ category.category_name }}</h1>
+        <div class="row g-4">
+            {% for artwork in artworks %}
+            <div class="col-6 col-md-3">
+                <div class="artwork-placeholder">
+                    {% if artwork.image %}<img src="{{ artwork.image.url }}" class="w-100 h-100 rounded" style="object-fit:cover;">{% endif %}
+                </div>
+                <div class="mt-2 text-center fw-bold">{{ artwork.title }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <!-- --- OVERVIEW MODE (Row Format) --- -->
+        {% for item in category_data %}
+        <div class="category-row-section">
+            <h1 class="cat-title">{{ item.category.category_name }}</h1>
+            
+            <div class="row align-items-center g-3">
+                <div class="col-11">
+                    <div class="row g-3">
+                        {% for prod in item.products %}
+                        <div class="col-3">
+                            <div class="artwork-placeholder">
+                                {% if prod.image %}<img src="{{ prod.image.url }}" class="w-100 h-100 rounded" style="object-fit:cover;">{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- The Play/Arrow Button leads to the "Show All" view -->
+                <div class="col-1 d-flex justify-content-center">
+                    <a href="{% url 'catalog' %}?category={{ item.category.category_id }}" class="arrow-btn"></a>
                 </div>
             </div>
+
+            <!-- Dashed Separator (Hidden after the last row) -->
+            {% if not forloop.last %}
+            <hr class="dashed-separator">
+            {% endif %}
         </div>
         {% endfor %}
-    </div>
+    {% endif %}
+
+</div>
+
+<!-- The big green block at the bottom -->
+<div class="green-footer-block"></div>
+
 {% endblock %}
