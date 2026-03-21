@@ -34,6 +34,19 @@
         </div>
 
         <button type="submit" class="btn-bicol mt-4">Sign Up</button>
+        {% if form.errors %}
+        <div class="alert alert-danger p-2 small">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <strong>{{ field.label }}:</strong> {{ error }}<br>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
     </form>
 </div>
 {% endblock %}

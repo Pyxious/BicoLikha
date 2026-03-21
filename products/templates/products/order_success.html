@@ -1,0 +1,15 @@
+{% extends 'products/base.html' %}
+{% block content %}
+<div class="container mt-5 text-center py-5">
+    <div class="mb-4">
+        <i class="fas fa-check-circle fa-5x text-success"></i>
+    </div>
+    <h2 class="fw-bold" style="color: var(--text-brown);">Order Placed Successfully!</h2>
+    <p class="text-muted">Your order <strong>#BK-{{ order.order_id }}</strong> is now being processed.</p>
+    <div class="mt-4">
+        <a href="{% url 'profile' %}?tab=to_pay" class="btn btn-brown text-white px-5 py-2" style="background: var(--nav-brown); border-radius: 20px;">VIEW MY PURCHASES</a>
+        <br>
+        <a href="{% url 'catalog' %}" class="btn btn-link mt-2 text-decoration-none" style="color: var(--nav-brown);">Continue Shopping</a>
+    </div>
+</div>
+{% endblock %}

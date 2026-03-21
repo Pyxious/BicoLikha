@@ -1,93 +1,105 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# 1. Matches your 'categories' table exactly
+# --- 1. BASE TABLES ---
 class Category(models.Model):
     category_id = models.AutoField(primary_key=True)
     category_name = models.CharField(max_length=100)
+    class Meta: db_table = 'categories'
+    def __str__(self): return self.category_name
 
-    class Meta:
-        db_table = 'categories'
-        verbose_name_plural = "Categories"
-
-    def __str__(self):
-        return self.category_name
-
-# 2. Matches your 'artist' table
 class Artist(models.Model):
     artist_id = models.AutoField(primary_key=True)
     artist_name = models.CharField(max_length=150)
-    artist_description = models.TextField(blank=True, null=True)
     artist_municipality = models.CharField(max_length=100)
-
-    class Meta:
-        db_table = 'artist'
-
-    def __str__(self):
-        return self.artist_name
-
+    class Meta: db_table = 'artist'
+    def __str__(self): return self.artist_name
 
 class Stock(models.Model):
     stock_id = models.AutoField(primary_key=True)
-    stock_quantity = models.IntegerField(default=0)
+    stock_quantity = models.IntegerField(default=1)
     stock_status = models.CharField(max_length=50, default='In Stock')
+    class Meta: db_table = 'stock'
+    def __str__(self): return f"Stock {self.stock_id}"
 
-    class Meta:
-        db_table = 'stock' # Matches your SQL table name
-
-    def __str__(self):
-        return f"Stock ID: {self.stock_id} ({self.stock_quantity})"
-
-# 3. Matches your 'product' table
-# products/models.py
-
-class Artwork(models.Model):
-    prod_id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=150, db_column='prod_name')
-    price = models.DecimalField(max_digits=10, decimal_places=2, db_column='prod_price')
-    description = models.TextField(db_column='prod_description', blank=True, null=True)
-    image = models.ImageField(upload_to='artwork_pics/', db_column='prod_image_path', null=True, blank=True)
-    
-    # Foreign Keys
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, db_column='category_id')
-    artist_ref = models.ForeignKey(Artist, on_delete=models.CASCADE, db_column='artist_id')
-    
-    # ADD OR CHECK THIS LINE:
-    stock = models.ForeignKey('Stock', on_delete=models.CASCADE, db_column='stock_id')
-    
-    # In your SQL, there is a user_id for the admin who added it
-    user_id = models.IntegerField(default=1) 
-
-    class Meta:
-        db_table = 'product'
-
-        # Add this to products/models.py
-
+# --- 2. USER & PROFILE TABLES ---
 class CustomUser(models.Model):
-    # Use IntegerField so we can force it to match your Django Login ID
-    user_id = models.IntegerField(primary_key=True) 
-    user_role = models.CharField(max_length=1, default='A')
+    user_id = models.IntegerField(primary_key=True)
+    user_role = models.CharField(max_length=1, default='C')
     user_lname = models.CharField(max_length=100)
     user_fname = models.CharField(max_length=100)
     user_email = models.EmailField(max_length=150)
-    user_password_hash = models.CharField(max_length=255, default='django_managed')
+    user_contact_num = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    user_password_hash = models.CharField(max_length=255, default='managed_by_django')
 
     class Meta:
         db_table = 'users'
 
+class CustomerProfile(models.Model):
+    user_id = models.IntegerField(primary_key=True)
+    cust_municipality = models.CharField(max_length=100, default='Bicol')
+    class Meta: db_table = 'customer'
+
 class AdminProfile(models.Model):
-    # This must match the user_id above
     user_id = models.IntegerField(primary_key=True)
     admin_access = models.CharField(max_length=45, default='Full Access')
 
     class Meta:
         db_table = 'admin'
 
-
+    def __str__(self):
+        return f"Admin {self.user_id}"
+    
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=15, unique=True) # Enforcement: 1 account per number
+    phone_number = models.CharField(max_length=15, unique=True)
     is_verified = models.BooleanField(default=False)
 
-    def __clstr__(self):
-        return f"{self.user.username}'s Profile"
+# --- 3. CORE E-COMMERCE TABLES ---
+class Timeline(models.Model):
+    timeline_id = models.AutoField(primary_key=True)
+    order_time = models.DateTimeField(auto_now_add=True)
+    class Meta: db_table = 'timeline'
+
+class Order(models.Model):
+    order_id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(CustomerProfile, on_delete=models.CASCADE, db_column='user_id')
+    timeline = models.ForeignKey(Timeline, on_delete=models.CASCADE, db_column='timeline_id')
+    order_total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    order_total_quantity = models.IntegerField(default=0)
+    order_status = models.CharField(max_length=20, default='Pending')
+    order_delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    class Meta: db_table = 'order'
+
+class Artwork(models.Model):
+    prod_id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=150, db_column='prod_name')
+    description = models.TextField(db_column='prod_description', blank=True, null=True) # Field is named 'description'
+    price = models.DecimalField(max_digits=10, decimal_places=2, db_column='prod_price')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, db_column='category_id')
+    artist_ref = models.ForeignKey(Artist, on_delete=models.CASCADE, db_column='artist_id')
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE, db_column='stock_id')
+    user_id = models.IntegerField(default=2) 
+    image = models.ImageField(upload_to='artwork_pics/', db_column='prod_image_path', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta: db_table = 'product'
+    def __str__(self): return self.title
+
+class CartItem(models.Model):
+    id = models.AutoField(primary_key=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, db_column='order_id')
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='prod_id')
+    op_quantity = models.IntegerField(db_column='op_quantity', default=1)
+    op_subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='op_subtotal_amount')
+    class Meta: db_table = 'op_cart'
+
+class Payment(models.Model):
+    payment_id = models.AutoField(primary_key=True)
+    # This links the payment to your order
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, db_column='order_id')
+    payment_method = models.CharField(max_length=50)
+    payment_reference = models.CharField(max_length=100, null=True, blank=True)
+    payment_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'payment' # Matches your SQL table

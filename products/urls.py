@@ -10,8 +10,15 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('popular/', views.popular, name='popular'),
     path('profile/', views.profile_view, name='profile'),
-    path('cart/', views.view_cart, name='view_cart'), 
-    
+    path('cart/', views.view_cart, name='view_cart'),
+    path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('checkout/', views.checkout_view, name='checkout'),
+    path('place-order/', views.place_order, name='place_order'),
+    # --- Product ---
+    path('product/<int:prod_id>/', views.product_detail, name='product_detail'),
+   
+
     # --- Authentication ---
     path('signup/', views.signup, name='signup'),
     path('accounts/login/', views.CustomLoginView.as_view(), name='login'),

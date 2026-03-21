@@ -3,120 +3,159 @@
 {% block content %}
 <style>
     :root {
-        --bicol-green: #5f9e40; /* The green from your screenshot */
+        --bicol-green: #5f9e40; /* The brand green from your screenshot */
+        --light-grey: #e6e6e6;
     }
 
-    /* Category Title Styling */
+    /* Category Title (Bold, Green, Lowercase) */
     .cat-title {
         color: var(--bicol-green);
         font-weight: 900;
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         margin-bottom: 20px;
         text-transform: lowercase;
+        letter-spacing: -1px;
     }
 
-    /* The Gray Placeholder Boxes */
-    .artwork-placeholder {
-        background-color: #e6e6e6;
-        aspect-ratio: 1/1;
-        border-radius: 5px;
+    /* Artwork Container Styling */
+    .artwork-item {
+        text-decoration: none;
+        color: inherit;
         display: block;
-        transition: 0.3s;
+        transition: transform 0.2s;
     }
-    .artwork-placeholder:hover { opacity: 0.8; }
+    .artwork-item:hover { transform: translateY(-5px); }
 
-    /* Navigation Arrow */
-    .arrow-btn {
-        background-color: var(--bicol-green);
-        color: white;
-        border: none;
-        width: 40px;
-        height: 60px;
-        clip-path: polygon(0% 0%, 100% 50%, 0% 100%); /* Creates the triangle shape */
-        cursor: pointer;
+    .artwork-box {
+        background-color: var(--light-grey);
+        aspect-ratio: 1/1;
+        border-radius: 10px;
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        text-decoration: none;
     }
+
+    .artwork-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Navigation Arrow (Triangle Shape) */
+    .arrow-btn {
+        background-color: var(--bicol-green);
+        width: 45px;
+        height: 60px;
+        clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+        cursor: pointer;
+        display: block;
+        transition: opacity 0.2s;
+        border: none;
+    }
+    .arrow-btn:hover { opacity: 0.8; }
 
     /* Dashed Separator */
     .dashed-separator {
         border: none;
         border-top: 3px dashed var(--nav-brown);
-        margin: 50px 0;
-        opacity: 1;
+        margin: 60px 0;
+        opacity: 0.6;
     }
 
-    /* Bottom Green Block */
-    .green-footer-block {
-        background-color: var(--bicol-green);
-        height: 150px;
-        margin-top: 50px;
-        width: 100vw;
-        position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw;
-        margin-right: -50vw;
+    /* Text info below box */
+    .art-info { margin-top: 10px; text-align: center; }
+    .art-name { font-weight: bold; font-size: 0.9rem; color: var(--text-brown); }
+    .art-price { color: var(--nav-brown); font-weight: 800; font-size: 1rem; }
+
+    /* Back Button for View All */
+    .btn-back {
+        color: var(--nav-brown);
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 20px;
     }
 </style>
 
-<div class="container mt-5">
+<div class="container mt-5 mb-5">
 
     {% if view_all %}
-        <!-- --- VIEW ALL MODE --- -->
-        <a href="{% url 'catalog' %}" class="btn btn-sm mb-3" style="color: var(--nav-brown); font-weight: bold;">
-            <i class="fas fa-arrow-left"></i> Back to Overview
+        <!-- --- VIEW ALL MODE (Full Grid for One Category) --- -->
+        <a href="{% url 'catalog' %}" class="btn-back">
+            <i class="fas fa-chevron-left me-1"></i> BACK TO CATALOG
         </a>
         <h1 class="cat-title">{{ category.category_name }}</h1>
+        
         <div class="row g-4">
             {% for artwork in artworks %}
-            <div class="col-6 col-md-3">
-                <div class="artwork-placeholder">
-                    {% if artwork.image %}<img src="{{ artwork.image.url }}" class="w-100 h-100 rounded" style="object-fit:cover;">{% endif %}
-                </div>
-                <div class="mt-2 text-center fw-bold">{{ artwork.title }}</div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'product_detail' artwork.prod_id %}" class="artwork-item">
+                    <div class="artwork-box shadow-sm">
+                        {% if artwork.image %}
+                            <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}">
+                        {% else %}
+                            <i class="fas fa-palette fa-3x text-white opacity-50"></i>
+                        {% endif %}
+                    </div>
+                    <div class="art-info">
+                        <div class="art-name text-truncate">{{ artwork.title }}</div>
+                        <div class="art-price">₱{{ artwork.price }}</div>
+                    </div>
+                </a>
             </div>
             {% endfor %}
         </div>
 
     {% else %}
-        <!-- --- OVERVIEW MODE (Row Format) --- -->
+        <!-- --- OVERVIEW MODE (Row by Row Format) --- -->
         {% for item in category_data %}
-        <div class="category-row-section">
+        <div class="category-section mb-5">
             <h1 class="cat-title">{{ item.category.category_name }}</h1>
             
             <div class="row align-items-center g-3">
+                <!-- 1. The Products (Limit 4) -->
                 <div class="col-11">
                     <div class="row g-3">
                         {% for prod in item.products %}
                         <div class="col-3">
-                            <div class="artwork-placeholder">
-                                {% if prod.image %}<img src="{{ prod.image.url }}" class="w-100 h-100 rounded" style="object-fit:cover;">{% endif %}
-                            </div>
+                            <a href="{% url 'product_detail' prod.prod_id %}" class="artwork-item">
+                                <div class="artwork-box shadow-sm">
+                                    {% if prod.image %}
+                                        <img src="{{ prod.image.url }}" alt="{{ prod.title }}">
+                                    {% else %}
+                                        <i class="fas fa-image fa-2x text-white opacity-50"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
                 
-                <!-- The Play/Arrow Button leads to the "Show All" view -->
-                <div class="col-1 d-flex justify-content-center">
-                    <a href="{% url 'catalog' %}?category={{ item.category.category_id }}" class="arrow-btn"></a>
+                <!-- 2. The Green Triangle Button -->
+                <div class="col-1 text-center">
+                    <a href="{% url 'catalog' %}?category={{ item.category.category_id }}" 
+                       class="arrow-btn" title="View all {{ item.category.category_name }}"></a>
                 </div>
             </div>
 
-            <!-- Dashed Separator (Hidden after the last row) -->
+            <!-- Dashed line between categories (except the last one) -->
             {% if not forloop.last %}
-            <hr class="dashed-separator">
+                <hr class="dashed-separator">
             {% endif %}
         </div>
+        {% empty %}
+            <div class="text-center py-5">
+                <i class="fas fa-paint-brush fa-3x mb-3 opacity-25"></i>
+                <p class="text-muted">No artworks found. Start adding some in the Admin Panel!</p>
+            </div>
         {% endfor %}
     {% endif %}
 
 </div>
 
-<!-- The big green block at the bottom -->
-<div class="green-footer-block"></div>
+<!-- Footer Decorative Block -->
+<div style="background-color: var(--bicol-green); height: 120px; width: 100%;"></div>
 
 {% endblock %}

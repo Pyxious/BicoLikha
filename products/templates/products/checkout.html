@@ -1,0 +1,104 @@
+{% extends 'products/base.html' %}
+{% block content %}
+<style>
+    .checkout-wrapper { max-width: 1100px; margin: 10px auto 50px; background: #f5f5f5; padding: 20px; border-radius: 10px; }
+    .c-section { background: white; border-radius: 4px; padding: 20px; margin-bottom: 12px; border: 1px solid #e8e8e8; }
+    
+    /* Artist Header */
+    .seller-header { display: flex; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #f2f2f2; margin-bottom: 15px; }
+    .seller-name { font-weight: bold; font-size: 0.95rem; color: #333; }
+    .chat-btn { color: #5f9e40; font-size: 0.8rem; text-decoration: none; margin-left: 15px; }
+    
+    /* Product Row */
+    .product-row { display: flex; align-items: center; margin-bottom: 15px; font-size: 0.9rem; }
+    .prod-img { width: 50px; height: 50px; object-fit: cover; border-radius: 2px; background: #eee; }
+    
+    /* Shipping Box (Light Green/Grey) */
+    .shipping-box { background: #fafafa; border-top: 1px dashed #ddd; border-bottom: 1px dashed #ddd; padding: 15px 20px; margin: 10px -20px; display: flex; justify-content: space-between; align-items: center; }
+    .msg-input { border: 1px solid #ddd; padding: 6px 12px; font-size: 0.85rem; width: 250px; border-radius: 2px; }
+    
+    /* Artist Total Row */
+    .artist-footer { background: #fffcf5; padding: 15px 20px; margin: 0 -20px -20px -20px; text-align: right; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+    .order-total-text { color: #888; font-size: 0.9rem; }
+    .order-total-amount { color: #8d5e4a; font-size: 1.3rem; font-weight: bold; margin-left: 10px; }
+</style>
+
+<div class="checkout-wrapper">
+    <h2 class="fw-bold mb-4" style="color: #5d3a2d; text-transform: lowercase;">checkout</h2>
+
+    <!-- 1. Delivery Address -->
+    <div class="c-section" style="border-top: 4px solid #8d5e4a;">
+        <div class="mb-2" style="color: #8d5e4a; font-weight: bold;"><i class="fas fa-map-marker-alt me-2"></i> Delivery Address</div>
+        <div class="row align-items-center">
+            <div class="col-md-3 fw-bold">{{ user.first_name }} {{ user.last_name }} (+63) {{ customer.cust_contact_num }}</div>
+            <div class="col-md-9 text-muted small">{{ customer.cust_brgy }}, {{ customer.cust_municipality }}, {{ customer.cust_zipcode }}</div>
+        </div>
+    </div>
+
+    <form action="{% url 'place_order' %}" method="POST">
+        {% csrf_token %}
+
+        <!-- 2. Grouped Items by Artist -->
+        {% for artist, data in artist_groups.items %}
+        <div class="c-section">
+            <!-- Seller Info -->
+            <div class="seller-header">
+                <span class="badge bg-danger me-2" style="font-size: 0.6rem;">ARTIST</span>
+                <span class="seller-name">{{ artist.artist_name }}</span>
+                <a href="#" class="chat-btn"><i class="far fa-comments"></i> chat now</a>
+            </div>
+
+            <!-- Products from this artist -->
+            {% for item in data.items %}
+            <div class="product-row">
+                <div class="col-6 d-flex align-items-center">
+                    <img src="{{ item.product.image.url }}" class="prod-img me-3">
+                    <div class="text-truncate">{{ item.product.title }}</div>
+                </div>
+                <div class="col-2 text-center text-muted">₱{{ item.product.price }}</div>
+                <div class="col-2 text-center">{{ item.op_quantity }}</div>
+                <div class="col-2 text-end fw-bold">₱{{ item.op_subtotal_amount }}</div>
+            </div>
+            {% endfor %}
+
+            <!-- Shipping Section for THIS artist -->
+            <div class="shipping-box">
+                <div class="d-flex align-items-center">
+                    <span class="small me-3">Message:</span>
+                    <input type="text" class="msg-input" placeholder="Leave a note for {{ artist.artist_name }}...">
+                </div>
+                <div class="text-end">
+                    <div class="text-success small fw-bold"><i class="fas fa-truck me-1"></i> Shipping Option (Standard)</div>
+                    <div class="fw-bold">₱60.00</div>
+                </div>
+            </div>
+
+            <!-- Artist subtotal + shipping -->
+            <div class="artist-footer">
+                <span class="order-total-text">Order Total ({% with data.items|length as count %}{{ count }}{% endwith %} Item):</span>
+                <span class="order-total-amount">₱{{ data.subtotal|add:60 }}</span>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 3. Final Payment Section -->
+        <div class="c-section p-0">
+            <div class="p-4 border-bottom d-flex justify-content-between">
+                <div><i class="fas fa-wallet text-danger me-2"></i> Payment Method</div>
+                <div class="fw-bold">Cash on Delivery (COD)</div>
+            </div>
+            <div class="p-4 bg-light text-end">
+                <div class="mb-2 text-muted">Merchandise Subtotal: ₱{{ items_subtotal }}</div>
+                <div class="mb-2 text-muted">Total Shipping Fee: ₱{{ total_shipping }}</div>
+                <div class="mb-4">
+                    <span class="fs-5">Total Payment:</span>
+                    <span class="fs-2 fw-bold" style="color: #8d5e4a; margin-left: 15px;">₱{{ grand_total }}</span>
+                </div>
+                <button type="submit" class="btn btn-lg text-white fw-bold px-5" style="background: #8d5e4a; border-radius: 2px;">
+                    PLACE ORDER
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

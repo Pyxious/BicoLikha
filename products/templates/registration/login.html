@@ -1,22 +1,82 @@
 {% extends 'products/base.html' %}
+
 {% block content %}
 <div class="auth-card shadow-sm">
-    <h1 style="color: var(--bicol-brown); font-weight: 300;">Log In</h1>
+    <h1 style="color: var(--nav-brown); font-weight: 300;">Log In</h1>
     <p class="small text-muted mb-4">Hi there! Sign in to access your bicolikha account for a better shopping experience.</p>
     
     <form method="post">
-    {% csrf_token %}
-    <label class="small fw-bold text-muted">Email or Phone Number</label>
-    <input type="text" name="username" class="bicol-input" required>
-    
-    <label class="small fw-bold text-muted">Password</label>
-    <input type="password" name="password" class="bicol-input" required>
+        {% csrf_token %}
+        
+        <!-- Field for Email or Phone Number -->
+        <div class="mb-3 text-start">
+            <label class="small fw-bold text-muted">Email or Phone Number</label>
+            <input type="text" name="username" class="bicol-input" required placeholder="Enter your email or phone">
+        </div>
+        
+        <!-- Field for Password -->
+        <div class="mb-1 text-start">
+            <label class="small fw-bold text-muted">Password</label>
+            <div class="position-relative">
+                <input type="password" name="password" class="bicol-input" required placeholder="Enter your password">
+                <i class="far fa-eye-slash position-absolute" style="right:15px; top:15px; color:var(--nav-brown); cursor: pointer;"></i>
+            </div>
+        </div>
 
-    <button type="submit" class="btn-bicol mt-3">Log In</button>
-
-        <div class="text-end mt-2">
+        <!-- Forgot Password Link -->
+        <div class="text-end mb-4">
             <a href="#" class="small text-muted text-decoration-none">Forgot password?</a>
         </div>
+
+        <!-- Login Button -->
+        <button type="submit" class="btn-bicol">Log In</button>
     </form>
+
+    <!-- THE NEW SIGN UP SECTION -->
+    <div class="mt-5 pt-3 border-top text-center">
+        <p class="small text-muted mb-3">New to BikoLikha?</p>
+        <a href="{% url 'signup' %}" class="btn btn-sm px-5 py-2" 
+           style="border: 2px solid var(--nav-brown); color: var(--nav-brown); border-radius: 10px; font-weight: bold; width: 100%;">
+            CREATE AN ACCOUNT
+        </a>
+    </div>
 </div>
+
+<style>
+    /* Styling to match your previous screenshot */
+    .auth-card {
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid #eee;
+        padding: 40px;
+        max-width: 450px;
+        margin: 60px auto;
+        text-align: center;
+    }
+    .bicol-input {
+        border-radius: 10px;
+        border: 1.5px solid #ddd;
+        padding: 12px;
+        width: 100%;
+        outline: none;
+        transition: 0.3s;
+    }
+    .bicol-input:focus {
+        border-color: var(--nav-brown);
+    }
+    .btn-bicol {
+        background: var(--nav-brown);
+        color: white;
+        border-radius: 10px;
+        padding: 12px;
+        width: 100%;
+        font-weight: bold;
+        border: none;
+        transition: 0.3s;
+    }
+    .btn-bicol:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+</style>
 {% endblock %}
