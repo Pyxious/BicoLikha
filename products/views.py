@@ -4,10 +4,19 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import user_passes_test
 from .models import Artwork, Category, Artist, Stock, AdminProfile, CustomUser
-from .forms import ProductForm, CategoryForm
+from .forms import ProductForm, CategoryForm, BicolikhaSignupForm
 from django.db import transaction
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.decorators import login_required
 
 # --- ADMINISTRATIVE / MANAGEMENT VIEWS ---
+
+
+@login_required
+def profile_view(request):
+    # This renders the profile page we designed earlier
+    # Make sure the file is in: templates/products/profile.html
+    return render(request, 'products/profile.html')
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_dashboard(request):
@@ -161,11 +170,30 @@ def popular(request):
 
 def signup(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = BicolikhaSignupForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
+            user = form.save(commit=False)
+            # Use email as the username so Django is happy
+            user.username = form.cleaned_data['email'] 
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            
+            Profile.objects.create(
+                user=user, 
+                phone_number=form.cleaned_data['phone_number']
+            )
+            
+            login(request, user, backend='products.backends.EmailOrPhoneBackend')
             return redirect('catalog')
     else:
-        form = UserCreationForm()
+        form = BicolikhaSignupForm()
     return render(request, 'registration/signup.html', {'form': form})
+
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'
+    
+
+def view_cart(request):
+    return render(request, 'products/cart.html')
+
+    

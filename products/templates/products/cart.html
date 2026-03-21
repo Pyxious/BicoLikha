@@ -1,0 +1,7 @@
+{% extends 'products/base.html' %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <h2 class="fw-bold" style="color: var(--text-brown);">Your Shopping Bag</h2>
+    <p class="text-muted">Looks like your bag is empty. Go back to the <a href="{% url 'catalog' %}">Shop</a> to add some art!</p>
+</div>
+{% endblock %}

@@ -1,11 +1,39 @@
-<div class="container mt-5" style="max-width: 400px;">
-    <div class="card p-4 shadow-sm">
-        <h3 class="text-center mb-4" style="color: #ee4d2d;">Sign Up</h3>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn w-100 text-white" style="background-color: #ee4d2d;">Register</button>
-        </form>
-        <p class="mt-3 text-center">Already have an account? <a href="{% url 'login' %}">Login</a></p>
-    </div>
+{% extends 'products/base.html' %}
+{% block content %}
+<div class="auth-card shadow-sm" style="max-width: 600px;">
+    <h1 style="color: var(--bicol-brown); font-weight: 300;">Sign Up</h1>
+    <p class="small text-muted mb-4">Create an account and enjoy shopping with bicolikha.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-6">
+                <label class="small fw-bold text-muted">First Name</label>
+                <input type="text" name="first_name" class="bicol-input">
+            </div>
+            <div class="col-6">
+                <label class="small fw-bold text-muted">Last Name</label>
+                <input type="text" name="last_name" class="bicol-input">
+            </div>
+        </div>
+
+        <label class="small fw-bold text-muted">Email</label>
+        <input type="email" name="email" class="bicol-input">
+
+        <label class="small fw-bold text-muted">Phone Number</label>
+        <input type="text" name="phone_number" class="bicol-input" placeholder="09xxxxxxxxx">
+
+        <label class="small fw-bold text-muted">Password</label>
+        <input type="password" name="password" class="bicol-input">
+
+        <div class="form-check small mt-3">
+            <input class="form-check-input" type="checkbox" name="agree_policy" id="policy" required>
+            <label class="form-check-label text-muted" for="policy">
+                I have read and understood the <a href="#" style="color:var(--bicol-brown)">Privacy Policy</a>, and I agree.
+            </label>
+        </div>
+
+        <button type="submit" class="btn-bicol mt-4">Sign Up</button>
+    </form>
 </div>
+{% endblock %}

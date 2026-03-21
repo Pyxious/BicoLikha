@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # 1. Matches your 'categories' table exactly
 class Category(models.Model):
@@ -81,3 +82,12 @@ class AdminProfile(models.Model):
 
     class Meta:
         db_table = 'admin'
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15, unique=True) # Enforcement: 1 account per number
+    is_verified = models.BooleanField(default=False)
+
+    def __clstr__(self):
+        return f"{self.user.username}'s Profile"

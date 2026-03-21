@@ -134,3 +134,9 @@ LOGOUT_REDIRECT_URL = 'catalog'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTHENTICATION_BACKENDS = [
+    'products.backends.EmailOrPhoneBackend', # Your new custom logic
+    'django.contrib.auth.backends.ModelBackend', # Default backup
+]

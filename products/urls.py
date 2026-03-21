@@ -9,9 +9,12 @@ urlpatterns = [
     path('artists/', views.artists, name='artists'),
     path('about/', views.about, name='about'),
     path('popular/', views.popular, name='popular'),
+    path('profile/', views.profile_view, name='profile'),
+    path('cart/', views.view_cart, name='view_cart'), 
     
     # --- Authentication ---
     path('signup/', views.signup, name='signup'),
+    path('accounts/login/', views.CustomLoginView.as_view(), name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
 
     # --- Administrative / Management Hub ---
