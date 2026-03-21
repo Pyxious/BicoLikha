@@ -140,3 +140,9 @@ AUTHENTICATION_BACKENDS = [
     'products.backends.EmailOrPhoneBackend', # Your new custom logic
     'django.contrib.auth.backends.ModelBackend', # Default backup
 ]
+
+# config/settings.py (around the bottom)
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]

@@ -1,145 +1,244 @@
 {% extends 'products/base.html' %}
 {% block content %}
 <style>
-    .profile-container { max-width: 1200px; border: 2px solid #8d5e4a; border-radius: 20px; overflow: hidden; margin: 10px auto 50px; background: white; display: flex; min-height: 650px; }
+    /* 1. Layout & Theme */
+    .profile-container { 
+        max-width: 1200px; 
+        border: 2px solid #8d5e4a; 
+        border-radius: 25px; 
+        overflow: hidden; 
+        margin: 10px auto 50px; 
+        background: white; 
+        display: flex; 
+        min-height: 700px; 
+    }
     
     /* Sidebar */
-    .profile-sidebar { width: 280px; background: #e9fcd9; border-right: 2px solid #8d5e4a; padding: 30px 20px; flex-shrink: 0; }
-    .sidebar-link { display: flex; align-items: center; padding: 12px 15px; color: #5d3a2d; text-decoration: none; font-weight: 600; border-radius: 10px; transition: 0.2s; margin-bottom: 5px; }
+    .profile-sidebar { 
+        width: 280px; 
+        background: #e9fcd9; 
+        border-right: 2px solid #8d5e4a; 
+        padding: 40px 20px; 
+        flex-shrink: 0; 
+    }
+    .sidebar-link { 
+        display: flex; 
+        align-items: center; 
+        padding: 12px 15px; 
+        color: #5d3a2d; 
+        text-decoration: none; 
+        font-weight: 600; 
+        border-radius: 10px; 
+        transition: 0.2s; 
+        margin-bottom: 5px; 
+    }
     .sidebar-link i { width: 25px; font-size: 1.1rem; margin-right: 12px; color: #8d5e4a; }
-    .sidebar-link.active { background: rgba(141, 94, 74, 0.1); color: #8d5e4a; }
+    .sidebar-link:hover { background: rgba(141, 94, 74, 0.1); }
+    .sidebar-link.active { color: #8d5e4a; background: rgba(255, 255, 255, 0.5); }
 
-    /* Tabs */
+    /* Photo Edit Overlay */
+    .profile-pix-wrapper { 
+        position: relative; 
+        width: 120px; 
+        height: 120px; 
+        margin: 0 auto; 
+        border-radius: 50%; 
+        overflow: hidden; 
+        cursor: pointer; 
+        border: 3px solid #8d5e4a; 
+    }
+    .profile-pix-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+    .pix-overlay { 
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.4); display: flex; align-items: center; 
+        justify-content: center; color: white; opacity: 0; transition: 0.3s; 
+    }
+    .profile-pix-wrapper:hover .pix-overlay { opacity: 1; }
+
+    /* Top Tabs for Purchases */
     .purchase-tabs { display: flex; border-bottom: 1px solid #eee; background: white; }
     .p-tab { flex: 1; text-align: center; padding: 15px 5px; color: #333; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-bottom: 2px solid transparent; }
     .p-tab.active { color: #8d5e4a; border-bottom: 2px solid #8d5e4a; font-weight: 700; }
 
-    /* --- THE FIX: Order Card Styling --- */
-    .order-card { background: white; margin-bottom: 15px; border-radius: 4px; padding: 20px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    /* Order Cards */
+    .order-card { background: white; margin-bottom: 15px; border-radius: 4px; padding: 20px; border: 1px solid #f0f0f0; }
+    .order-item-img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #eee; border-radius: 2px; flex-shrink: 0; }
     
-    .order-item { 
-        display: flex; 
-        align-items: flex-start; 
-        padding: 15px 0;
-        border-bottom: 1px solid #f9f9f9;
-    }
-
-    /* Fixed Image size like Shopee */
-    .order-item-img { 
-        width: 80px; 
-        height: 80px; 
-        object-fit: cover; 
-        border: 1px solid #eee; 
-        border-radius: 2px;
-        flex-shrink: 0; /* Prevents shrinking */
-    }
-
-    .order-item-details { flex-grow: 1; padding-left: 15px; }
-    .order-item-title { font-size: 0.95rem; font-weight: 500; color: #333; margin-bottom: 4px; }
-    .order-item-sub { font-size: 0.85rem; color: #888; }
-
-    .order-item-price { text-align: right; min-width: 100px; }
-    .price-old { text-decoration: line-through; color: #ccc; font-size: 0.85rem; }
-    .price-current { color: #8d5e4a; font-weight: 600; }
-
-    /* Footer buttons */
-    .order-footer { text-align: right; padding-top: 15px; }
-    .btn-shopee { background: #8d5e4a; color: white; border: none; padding: 8px 20px; border-radius: 2px; font-size: 0.9rem; }
-    .btn-outline-shopee { background: white; color: #555; border: 1px solid #ddd; padding: 8px 20px; border-radius: 2px; font-size: 0.9rem; margin-right: 8px; }
+    /* Form Styling */
+    .form-section-title { color: #8d5e4a; font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 20px; display: block; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .bicol-input { border-radius: 8px; border: 1.5px solid #ddd; padding: 10px; font-size: 0.9rem; margin-bottom: 15px; width: 100%; outline: none; }
+    .bicol-input:focus { border-color: #8d5e4a; }
 </style>
 
 <div class="container-fluid">
     <div class="profile-container shadow-sm">
         
         <!-- SIDEBAR -->
-        <div class="profile-sidebar">
-            <div class="text-center mb-4">
-                <div style="width: 80px; height: 80px; background: #5f9e40; border-radius: 50%; border: 3px solid #8d5e4a; margin: 0 auto;"></div>
-                <h5 class="mt-3 fw-bold mb-0">{{ user.username }}</h5>
-                <a href="#" class="small text-muted text-decoration-none"><i class="fas fa-pen fa-xs"></i> Edit Profile</a>
+        <div class="profile-sidebar text-center">
+            <div class="profile-pix-wrapper" onclick="document.getElementById('profile_pix_input').click()">
+                {% if custom_user.profile_pix %}
+                    <img src="{{ custom_user.profile_pix.url }}" id="sidePreview">
+                {% else %}
+                    <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="fas fa-user fa-3x"></i></div>
+                {% endif %}
+                <div class="pix-overlay"><i class="fas fa-camera"></i></div>
             </div>
+            <h5 class="mt-3 fw-bold mb-0">{{ user.username }}</h5>
 
-            <nav class="mt-4">
-                <a href="#" class="sidebar-link"><i class="far fa-user"></i> My Account</a>
-                <a href="{% url 'profile' %}" class="sidebar-link active"><i class="fas fa-shopping-bag"></i> My Purchases</a>
+
+            <nav class="mt-5 text-start">
+                <a href="?tab=account" class="sidebar-link {% if active_tab == 'account' %}active{% endif %}">
+                    <i class="far fa-user"></i> My Account
+                </a>
+                <a href="?tab=all" class="sidebar-link {% if active_tab != 'account' %}active{% endif %}">
+                    <i class="fas fa-shopping-bag"></i> My Purchases
+                </a>
                 <a href="#" class="sidebar-link"><i class="far fa-bell"></i> Notifications</a>
                 <a href="#" class="sidebar-link"><i class="fas fa-ticket-alt"></i> My Vouchers</a>
             </nav>
 
-            <div class="text-center mt-5">
-                <form action="{% url 'logout' %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn px-4 py-1 fw-bold" style="border: 2px solid #8d5e4a; border-radius: 20px; color: #8d5e4a; background: white; font-size: 0.8rem;">LOGOUT</button>
-                </form>
-            </div>
+            <form action="{% url 'logout' %}" method="post" class="mt-5">
+                {% csrf_token %}
+                <button type="submit" class="btn px-4 py-1 fw-bold" style="border: 2px solid #8d5e4a; border-radius: 20px; color: #8d5e4a; background: white; font-size: 0.8rem;">LOGOUT</button>
+            </form>
         </div>
 
-        <!-- MAIN CONTENT -->
-        <div class="flex-grow-1 bg-light">
-            <div class="purchase-tabs">
-                <a href="?tab=all" class="p-tab {% if active_tab == 'all' %}active{% endif %}">All</a>
-                <a href="?tab=to_pay" class="p-tab {% if active_tab == 'to_pay' %}active{% endif %}">To Pay</a>
-                <a href="?tab=to_ship" class="p-tab {% if active_tab == 'to_ship' %}active{% endif %}">To Ship</a>
-                <a href="?tab=to_receive" class="p-tab {% if active_tab == 'to_receive' %}active{% endif %}">To Receive</a>
-                <a href="?tab=completed" class="p-tab {% if active_tab == 'completed' %}active{% endif %}">Completed</a>
-                <a href="?tab=cancelled" class="p-tab {% if active_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
-            </div>
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-grow-1 bg-white">
+            
+            {% if active_tab == 'account' %}
+                <!-- --- SECTION: MY ACCOUNT SETTINGS --- -->
+                <div class="p-5">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="file" name="profile_pix" id="profile_pix_input" style="display:none;" onchange="previewProfile(this)">
 
-            <div class="p-4">
-                {% for order in orders %}
-                <div class="order-card shadow-sm">
-                    <!-- Order Header -->
-                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-                        <div class="fw-bold small"><i class="fas fa-store me-1"></i> Bicolikha Official</div>
-                        <div class="text-danger fw-bold small text-uppercase">{{ order.order_status }}</div>
+                        <div class="d-flex justify-content-between align-items-center mb-5">
+                            <h3 class="fw-bold m-0" style="color: #5d3a2d;">Account Settings</h3>
+                            <button type="submit" name="update_account" class="btn text-white px-5 rounded-pill" style="background: #8d5e4a; font-weight: bold;">Save Changes</button>
+                        </div>
+
+                        <div class="row">
+                            <!-- Left Column: Personal Info -->
+                            <div class="col-md-6">
+                                <span class="form-section-title">PERSONAL INFORMATION</span>
+                                <label class="small text-muted fw-bold">First Name</label>
+                                <input type="text" name="fname" value="{{ custom_user.user_fname }}" class="bicol-input">
+                                
+                                <label class="small text-muted fw-bold">Last Name</label>
+                                <input type="text" name="lname" value="{{ custom_user.user_lname }}" class="bicol-input">
+                                
+                                <label class="small text-muted fw-bold">Email Address</label>
+                                <input type="email" value="{{ custom_user.user_email }}" class="bicol-input bg-light" readonly>
+                                
+                                <label class="small text-muted fw-bold">Phone Number</label>
+                                <input type="text" name="phone" value="{{ custom_user.user_contact_num }}" class="bicol-input">
+                            </div>
+
+                            <!-- Right Column: Address -->
+                            <div class="col-md-6 border-start ps-4">
+                                <span class="form-section-title">ADDRESS</span>
+                                <label class="small text-muted fw-bold">Municipality</label>
+                                <select name="municipality" class="bicol-input" onchange="updateZip(this)">
+                                    <option value="{{ customer.cust_municipality }}" selected>{{ customer.cust_municipality }}</option>
+                                    <option value="Legazpi">Legazpi</option>
+                                    <option value="Daraga">Daraga</option>
+                                    <option value="Tabaco">Tabaco</option>
+                                    <option value="Naga">Naga</option>
+                                </select>
+
+                                <label class="small text-muted fw-bold">Barangay</label>
+                                <input type="text" name="brgy" value="{{ customer.cust_brgy }}" class="bicol-input">
+
+                                <label class="small text-muted fw-bold">Zip Code</label>
+                                <input type="text" name="zipcode" id="zip_field" value="{{ customer.cust_zipcode }}" class="bicol-input bg-light" readonly>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            {% else %}
+                <!-- --- SECTION: MY PURCHASES (SHOPEE STYLE) --- -->
+                <div class="purchase-tabs">
+                    <a href="?tab=all" class="p-tab {% if active_tab == 'all' %}active{% endif %}">All</a>
+                    <a href="?tab=to_pay" class="p-tab {% if active_tab == 'to_pay' %}active{% endif %}">To Pay</a>
+                    <a href="?tab=to_ship" class="p-tab {% if active_tab == 'to_ship' %}active{% endif %}">To Ship</a>
+                    <a href="?tab=to_receive" class="p-tab {% if active_tab == 'to_receive' %}active{% endif %}">To Receive</a>
+                    <a href="?tab=completed" class="p-tab {% if active_tab == 'completed' %}active{% endif %}">Completed</a>
+                    <a href="?tab=cancelled" class="p-tab {% if active_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
+                </div>
+
+                <div class="p-4 bg-light" style="min-height: 600px;">
+                    <!-- Search Bar -->
+                    <div class="input-group mb-4 shadow-sm bg-white rounded overflow-hidden">
+                        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0 py-2" placeholder="Search by Order ID or Product name">
                     </div>
 
-                    <!-- Order Items -->
-                    {% for item in order.items %}
-                    <div class="order-item">
-                        {% if item.product.image %}
-                            <img src="{{ item.product.image.url }}" class="order-item-img">
-                        {% else %}
-                            <div class="order-item-img bg-light d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
-                        {% endif %}
-                        
-                        <div class="order-item-details">
-                            <div class="order-item-title">{{ item.product.title }}</div>
-                            <div class="order-item-sub">Category: {{ item.product.category.category_name }}</div>
-                            <div class="small">x{{ item.op_quantity }}</div>
+                    <!-- ORDERS LIST -->
+                    {% for order in orders %}
+                    <div class="order-card shadow-sm mb-3">
+                        <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
+                            <div class="fw-bold small"><i class="fas fa-store me-1"></i> Bicolikha Official Store</div>
+                            <div class="text-danger fw-bold small text-uppercase"><i class="fas fa-truck me-1"></i> {{ order.order_status }}</div>
                         </div>
 
-                        <div class="order-item-price">
-                            <div class="price-current">₱{{ item.product.price }}</div>
+                        {% for item in order.items %}
+                        <div class="d-flex align-items-center mb-3">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" class="order-item-img">
+                            {% else %}
+                                <div class="order-item-img bg-light d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
+                            {% endif %}
+                            
+                            <div class="flex-grow-1 ps-3">
+                                <div class="fw-bold" style="font-size: 0.95rem;">{{ item.product.title }}</div>
+                                <div class="text-muted small">Category: {{ item.product.category.category_name }}</div>
+                                <div class="small fw-bold mt-1">x{{ item.op_quantity }}</div>
+                            </div>
+
+                            <div class="text-end">
+                                <div class="price-current" style="color: #8d5e4a; font-weight: 700;">₱{{ item.product.price }}</div>
+                            </div>
                         </div>
+                        {% endfor %}
+
+                        <div class="text-end border-top pt-3 mt-2">
+                            <span class="text-muted small me-2"><i class="fas fa-shield-alt text-success"></i> Order Total:</span>
+                            <span class="fs-4 fw-bold" style="color:#8d5e4a">₱{{ order.order_total_amount }}</span>
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-secondary px-4 me-2 rounded-1">Contact Seller</button>
+                                <button class="btn btn-sm text-white px-4 rounded-1" style="background:#8d5e4a">Order Received</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" style="width: 150px; opacity: 0.5;">
+                        <p class="text-muted mt-3">No orders found in this category.</p>
                     </div>
                     {% endfor %}
+                </div>
+            {% endif %}
 
-                    <!-- Order Footer -->
-                    <div class="order-footer">
-                        <div class="mb-3">
-                            <span class="text-muted small"><i class="fas fa-shield-alt text-success"></i> Order Total:</span>
-                            <span class="fs-4 fw-bold ms-2" style="color:#8d5e4a">₱{{ order.order_total_amount }}</span>
-                        </div>
-                        <div class="d-flex justify-content-end">
-                            <button class="btn-outline-shopee">Contact Seller</button>
-                            {% if order.order_status == 'To Pay' %}
-                                <button class="btn-shopee">Pay Now</button>
-                            {% else %}
-                                <button class="btn-shopee">Order Received</button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center py-5">
-                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" style="width: 150px; opacity: 0.6;">
-                    <p class="text-muted mt-3">No orders yet.</p>
-                </div>
-                {% endfor %}
-            </div>
         </div>
-
     </div>
 </div>
+
+<script>
+    // JS for dynamic photo preview
+    function previewProfile(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) { document.getElementById('sidePreview').src = e.target.result; }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // JS for dynamic Zip Codes
+    const bicolZips = {"Legazpi": "4500", "Daraga": "4501", "Tabaco": "4511", "Naga": "4400"};
+    function updateZip(select) {
+        document.getElementById('zip_field').value = bicolZips[select.value] || "0000";
+    }
+</script>
 {% endblock %}

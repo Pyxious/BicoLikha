@@ -27,9 +27,11 @@ class CategoryForm(forms.ModelForm):
         fields = ['category_name']
 
 class ProductForm(forms.ModelForm):
+    stock_qty = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={'class': 'form-control'}))
     class Meta:
         model = Artwork
         fields = ['title', 'description', 'price', 'category', 'artist_ref']
+    
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),

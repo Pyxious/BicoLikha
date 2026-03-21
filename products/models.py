@@ -9,11 +9,22 @@ class Category(models.Model):
     def __str__(self): return self.category_name
 
 class Artist(models.Model):
+    # Primary Key
     artist_id = models.AutoField(primary_key=True)
+    
+    # These MUST match your SQL column names exactly
     artist_name = models.CharField(max_length=150)
+    artist_contact_num = models.CharField(max_length=20, null=True, blank=True)
+    artist_description = models.TextField(null=True, blank=True)
     artist_municipality = models.CharField(max_length=100)
-    class Meta: db_table = 'artist'
-    def __str__(self): return self.artist_name
+    artist_brgy = models.CharField(max_length=100)
+    artist_zipcode = models.CharField(max_length=10)
+
+    class Meta:
+        db_table = 'artist' # Connects to your existing MySQL table
+
+    def __str__(self):
+        return self.artist_name
 
 class Stock(models.Model):
     stock_id = models.AutoField(primary_key=True)
@@ -24,21 +35,31 @@ class Stock(models.Model):
 
 # --- 2. USER & PROFILE TABLES ---
 class CustomUser(models.Model):
-    user_id = models.IntegerField(primary_key=True)
+    user_id = models.IntegerField(primary_key=True) 
     user_role = models.CharField(max_length=1, default='C')
     user_lname = models.CharField(max_length=100)
     user_fname = models.CharField(max_length=100)
     user_email = models.EmailField(max_length=150)
     user_contact_num = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    # ADD THIS LINE:
+    profile_pix = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     user_password_hash = models.CharField(max_length=255, default='managed_by_django')
 
     class Meta:
         db_table = 'users'
 
+# products/models.py
+
 class CustomerProfile(models.Model):
+    # This must match your SQL 'customer' table exactly
     user_id = models.IntegerField(primary_key=True)
+    cust_contact_num = models.CharField(max_length=20, default='09000000000')
     cust_municipality = models.CharField(max_length=100, default='Bicol')
-    class Meta: db_table = 'customer'
+    cust_brgy = models.CharField(max_length=100, default='Centro') # THE MISSING FIELD
+    cust_zipcode = models.CharField(max_length=10, default='0000')
+
+    class Meta:
+        db_table = 'customer'
 
 class AdminProfile(models.Model):
     user_id = models.IntegerField(primary_key=True)
@@ -103,3 +124,16 @@ class Payment(models.Model):
 
     class Meta:
         db_table = 'payment' # Matches your SQL table
+
+
+# Add this to products/models.py (usually near the top with other models)
+
+class AuditLog(models.Model):
+    log_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id')
+    action = models.TextField()
+    ip_address = models.CharField(max_length=45, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'audit_logs'

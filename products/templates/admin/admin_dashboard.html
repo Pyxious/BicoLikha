@@ -1,36 +1,174 @@
 {% extends 'admin/management_base.html' %}
 
 {% block management_content %}
-    <div class="mb-4">
-        <h2 class="fw-bold mb-0">Dashboard</h2>
-        <p class="text-muted">Administrative Dashboard</p>
-    </div>
+<!-- Chart.js + Treemap Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
 
-    <div class="row g-3 mb-5">
-        <div class="col-md-3">
-            <div class="stat-box d-flex flex-column justify-content-center">
-                <small class="text-uppercase fw-bold text-muted">Total Products</small>
-                <h3 class="fw-bold">{{ total_products }}</h3>
+<style>
+    :root { 
+        --nav-brown: #8d5e4a; --text-brown: #5d3a2d; 
+        --bicol-green: #5f9e40; --light-green: #e9fcd9;
+    }
+    
+    .dash-card { background: white; border-radius: 20px; border: 1.5px solid #eee; padding: 25px; height: 100%; transition: 0.3s; }
+    .dash-card:hover { border-color: var(--nav-brown); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+    
+    .stat-title { font-size: 0.75rem; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-brown); margin-top: 5px; }
+
+    .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f9f9f9; }
+    .activity-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; background: var(--light-green); color: var(--bicol-green); }
+    
+    .table-custom thead { background: var(--light-green); color: var(--text-brown); font-size: 0.75rem; text-transform: uppercase; }
+</style>
+
+<div class="container-fluid" style="margin-top: -20px;">
+    <!-- TOP 3 BOXES -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="dash-card shadow-sm" style="border-top: 5px solid var(--bicol-green);">
+                <div class="stat-title">Total Users</div>
+                <div class="stat-value">{{ total_users }}</div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stat-box d-flex flex-column justify-content-center">
-                <small class="text-uppercase fw-bold text-muted">Total Artists</small>
-                <h3 class="fw-bold">{{ total_artists }}</h3>
+        <div class="col-md-4">
+            <div class="dash-card shadow-sm" style="border-top: 5px solid var(--nav-brown);">
+                <div class="stat-title">Total Revenue</div>
+                <div class="stat-value">₱{{ total_revenue|floatformat:2 }}</div>
             </div>
         </div>
-        <div class="col-md-3"><div class="stat-box"></div></div>
-        <div class="col-md-3"><div class="stat-box"></div></div>
+        <div class="col-md-4">
+            <div class="dash-card shadow-sm" style="border-top: 5px solid #ffc107;">
+                <div class="stat-title">Total Orders</div>
+                <div class="stat-value">{{ total_orders }}</div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-md-7">
-            <h4 class="fw-bold">Overview</h4>
-            <div class="chart-box"></div>
+    <div class="row g-4 mb-4">
+        <!-- USER GROWTH BAR CHART -->
+        <div class="col-md-8">
+            <div class="dash-card shadow-sm">
+                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">User Growth (Last 7 Days)</h6>
+                <canvas id="growthChart" height="110"></canvas>
+            </div>
         </div>
-        <div class="col-md-5">
-            <h4 class="fw-bold">Performance</h4>
-            <div class="chart-box"></div>
+        <!-- ORDER STATUS DOUGHNUT -->
+        <div class="col-md-4">
+            <div class="dash-card shadow-sm">
+                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">Order Status Distribution</h6>
+                <canvas id="statusChart"></canvas>
+            </div>
         </div>
     </div>
+
+    <div class="row g-4 mb-4">
+        <!-- RECENT ORDERS TABLE -->
+        <div class="col-md-8">
+            <div class="dash-card shadow-sm p-0 overflow-hidden">
+                <div class="p-4"><h6 class="fw-bold mb-0" style="color: var(--text-brown);">Recent Orders</h6></div>
+                <table class="table table-hover table-custom mb-0">
+                    <thead>
+                        <tr><th class="ps-4">Order ID</th><th>Customer ID</th><th>Amount</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td class="ps-4 fw-bold">#BK-{{ order.order_id }}</td>
+                            <td>User #{{ order.customer.user_id }}</td>
+                            <td class="fw-bold text-danger">₱{{ order.order_total_amount }}</td>
+                            <td><span class="badge rounded-pill {% if order.order_status == 'To Pay' %}bg-warning{% else %}bg-success{% endif %}">{{ order.order_status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- RECENT ACTIVITY FEED -->
+        <div class="col-md-4">
+            <div class="dash-card shadow-sm">
+                <h6 class="fw-bold mb-3" style="color: var(--text-brown);">Recent Activity</h6>
+                {% for u in recent_users %}
+                <div class="activity-item">
+                    <div class="activity-icon"><i class="fas fa-user-plus"></i></div>
+                    <div>
+                        <div class="small fw-bold">New user registered</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">{{ u.username }} joined {{ u.date_joined|timesince }} ago</div>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="activity-item">
+                    <div class="activity-icon" style="background:#fff3cd; color:#856404;"><i class="fas fa-tools"></i></div>
+                    <div>
+                        <div class="small fw-bold">Database synced</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">MySQL integrity check complete</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SALES BY LOCATION (BICOL TREEMAP) -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="dash-card shadow-sm">
+                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">Sales by Location (Bicol Municipalities & Barangays)</h6>
+                <div style="height: 400px; background: #fafafa; border-radius: 10px;">
+                    <canvas id="locationTreemap"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SECURE JSON DATA -->
+{{ growth_data|json_script:"growth-data" }}
+{{ status_counts|json_script:"status-data" }}
+{{ location_data|json_script:"location-data" }}
+
+<script>
+    const growth = JSON.parse(document.getElementById('growth-data').textContent);
+    const status = JSON.parse(document.getElementById('status-data').textContent);
+    const locations = JSON.parse(document.getElementById('location-data').textContent);
+
+    // Growth Bar Chart
+    new Chart(document.getElementById('growthChart'), {
+        type: 'bar',
+        data: {
+            labels: growth.map(d => d.day),
+            datasets: [{ data: growth.map(d => d.count), backgroundColor: '#5f9e40', borderRadius: 8 }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
+    });
+
+    // Status Doughnut Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: status.map(s => s.order_status),
+            datasets: [{ data: status.map(s => s.count), backgroundColor: ['#8d5e4a', '#5f9e40', '#ffc107', '#e9fcd9'], borderWeight: 5, borderColor: '#fff' }]
+        },
+        options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+    });
+
+    // Bicol Location Treemap
+    new Chart(document.getElementById('locationTreemap'), {
+        type: 'treemap',
+        data: {
+            datasets: [{
+                tree: locations,
+                key: 'v',
+                groups: ['mun', 'brgy'],
+                backgroundColor: (ctx) => ctx.raw && ctx.raw.g === 'mun' ? '#8d5e4a' : '#5f9e40',
+                labels: {
+                    display: true,
+                    formatter: (ctx) => ctx.raw._data.brgy + ' (' + ctx.raw.v + ')',
+                    color: '#fff', font: { size: 12, weight: 'bold' }
+                }
+            }]
+        },
+        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+    });
+</script>
 {% endblock %}

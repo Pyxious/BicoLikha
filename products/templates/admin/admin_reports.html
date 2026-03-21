@@ -1,38 +1,109 @@
 {% extends 'admin/management_base.html' %}
 
 {% block management_content %}
-<div class="mb-4">
-    <h2 class="fw-bold mb-0">Reports Analytics</h2>
-    <p class="text-muted">List of Reports and Analytics</p>
-</div>
+<style>
+    .report-banner { background: #5d3a2d; color: white; border-radius: 15px; padding: 30px; margin-bottom: 30px; position: relative; overflow: hidden; }
+    .report-banner::after { content: "\f1c1"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; right: 30px; top: 10px; font-size: 8rem; opacity: 0.1; }
+    
+    .card-title { font-weight: 800; color: #5d3a2d; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+    .table-report { font-size: 0.85rem; }
+    .table-report thead { background: var(--light-green); color: #5d3a2d; }
+    
+    .audit-item { border-left: 3px solid var(--bicol-green); padding: 10px 15px; margin-bottom: 10px; background: #fff; border-radius: 0 8px 8px 0; font-size: 0.85rem; }
+    .btn-export { border: 1px solid #ddd; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: #666; transition: 0.3s; }
+    .btn-export:hover { background: #f8f9fa; border-color: #8d5e4a; color: #8d5e4a; }
+</style>
 
-<!-- Main Banner Report -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="stat-box" style="height: 150px;"></div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-0">Reports & Insights</h2>
+        <p class="text-muted small">Generated on {{ report_date|date:"F d, Y" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-export bg-white px-3"><i class="fas fa-file-pdf me-2 text-danger"></i>Export PDF</button>
+        <button class="btn btn-export bg-white px-3"><i class="fas fa-file-csv me-2 text-success"></i>Export CSV</button>
     </div>
 </div>
 
-<!-- Secondary Stats -->
-<div class="row g-4 mb-5 text-center">
-    <div class="col-md-4"><div class="stat-box"></div></div>
-    <div class="col-md-4"><div class="stat-box"></div></div>
-    <div class="col-md-4"><div class="stat-box"></div></div>
+<!-- 1. MAIN SUMMARY BANNER -->
+<div class="report-banner shadow-sm">
+    <div class="row">
+        <div class="col-md-4 border-end border-secondary">
+            <small class="opacity-75">Gross Revenue</small>
+            <h1 class="fw-bold mb-0">₱{{ sales.total_revenue|default:"0.00" }}</h1>
+        </div>
+        <div class="col-md-4 border-end border-secondary ps-4">
+            <small class="opacity-75">Total Products Sold</small>
+            <h1 class="fw-bold mb-0">{{ sales.total_items|default:"0" }}</h1>
+        </div>
+        <div class="col-md-4 ps-4">
+            <small class="opacity-75">Active Artists</small>
+            <h1 class="fw-bold mb-0">20</h1>
+        </div>
+    </div>
 </div>
 
-<div class="row g-5">
-    <!-- Customer Acquisition -->
+<div class="row g-4">
+    <!-- 2. BEST SELLING PRODUCTS -->
     <div class="col-md-7">
-        <h4 class="fw-bold">Customer Acquisition</h4>
-        <small class="text-muted d-block mb-3">Customer Trends</small>
-        <div class="chart-box"></div>
+        <div class="p-4 bg-white shadow-sm" style="border-radius: 15px; border: 1px solid #eee; height: 100%;">
+            <h6 class="card-title mb-4"><i class="fas fa-trophy me-2 text-warning"></i>Best Selling Products</h6>
+            <table class="table table-report table-hover">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Product Name</th>
+                        <th class="text-center">Sold</th>
+                        <th class="text-end pe-3">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_products %}
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ item.product__title }}</td>
+                        <td class="text-center">{{ item.total_sold }}</td>
+                        <td class="text-end pe-3 text-danger fw-bold">₱{{ item.total_earned }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-center py-4 text-muted">No sales data recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Top Products -->
+    <!-- 3. SECURITY AUDIT TRAIL -->
     <div class="col-md-5">
-        <h4 class="fw-bold">Top Products</h4>
-        <small class="text-muted d-block mb-3">Top Products</small>
-        <div class="chart-box"></div>
+        <div class="p-4 bg-white shadow-sm" style="border-radius: 15px; border: 1px solid #eee; height: 100%;">
+            <h6 class="card-title mb-4"><i class="fas fa-history me-2"></i>Security Audit Trail</h6>
+            <div class="audit-list">
+                {% for log in audit_logs %}
+                <div class="audit-item shadow-sm border mb-2 p-2 bg-white" style="border-left: 4px solid #5f9e40 !important;">
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold small">{{ log.action }}</span>
+                        <span class="text-muted" style="font-size: 0.7rem;">{{ log.timestamp|timesince }} ago</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.7rem;">
+                        <i class="fas fa-user-shield me-1"></i> {{ log.user.username }} 
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-network-wired me-1"></i> IP: {{ log.ip_address }}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-center text-muted">No security events recorded.</p>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-3">
+                <a href="#" class="small text-decoration-none" style="color: var(--nav-brown);">View Full Security Logs</a>
+            </div>
+        </div>
     </div>
+</div>
+
+<div class="mt-4 p-4 bg-light rounded-4 border">
+    <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i>Report Summary</h6>
+    <p class="small text-muted mb-0">
+        This report analyzes BikoLikha information assets, focusing on **Integrity** (Sales Accuracy) and **Accountability** (Audit Trail). 
+        Data is pulled directly from the `bikolikha_db` MySQL instance to ensure zero information latency.
+    </p>
 </div>
 {% endblock %}

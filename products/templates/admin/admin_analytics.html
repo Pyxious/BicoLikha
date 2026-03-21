@@ -1,31 +1,174 @@
 {% extends 'admin/management_base.html' %}
 
 {% block management_content %}
-    <div class="mb-4">
-        <h2 class="fw-bold mb-0">Analytics</h2>
-        <p class="text-muted">Analytics Dashboard</p>
-    </div>
+<!-- 1. Include Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="mb-4">
-        <button class="filter-btn">Today</button>
-        <button class="filter-btn">This Week</button>
-        <button class="filter-btn">This Month</button>
-    </div>
+<style>
+    :root { --nav-brown: #8d5e4a; --bicol-green: #5f9e40; --bg-grey: #f8f9fa; }
+    
+    .analytics-title { color: #5d3a2d; font-weight: 800; }
+    
+    /* Stat Card Styling */
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid #eee;
+        transition: 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+    .stat-label { font-size: 0.75rem; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: #333; margin-top: 5px; }
+    
+    /* Chart Container Styling */
+    .chart-container {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid #eee;
+        height: 100%;
+    }
+    .chart-title { font-weight: 700; color: #5d3a2d; margin-bottom: 25px; font-size: 1rem; }
 
-    <div class="row g-3 mb-5">
-        <div class="col-md-4"><div class="stat-box"></div></div>
-        <div class="col-md-4"><div class="stat-box"></div></div>
-        <div class="col-md-4"><div class="stat-box"></div></div>
-    </div>
+    .filter-pill {
+        background: white;
+        border: 1.5px solid #ddd;
+        border-radius: 20px;
+        padding: 5px 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #666;
+        transition: 0.3s;
+    }
+    .filter-pill.active {
+        background: var(--header-green);
+        border-color: var(--nav-brown);
+        color: var(--nav-brown);
+    }
+</style>
 
-    <div class="row g-4">
-        <div class="col-md-8">
-            <h4 class="fw-bold">Revenue</h4>
-            <div class="chart-box"></div>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="analytics-title mb-0">System Analytics</h2>
+        <p class="text-muted small">Monitoring business performance and information integrity.</p>
+    </div>
+    <!-- Time Filters (Placeholder UI for demo) -->
+    <div class="d-flex gap-2">
+        <button class="filter-pill active">Today</button>
+        <button class="filter-pill">This Week</button>
+        <button class="filter-pill">This Month</button>
+    </div>
+</div>
+
+<!-- TOP STAT CARDS -->
+<div class="row g-3 mb-5">
+    <div class="col-md-4">
+        <div class="stat-card shadow-sm" style="border-left: 5px solid var(--nav-brown);">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value">₱{{ total_revenue|floatformat:2 }}</div>
         </div>
-        <div class="col-md-4">
-            <h4 class="fw-bold">Sales by Location</h4>
-            <div class="chart-box"></div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card shadow-sm" style="border-left: 5px solid var(--bicol-green);">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value">{{ total_orders }}</div>
         </div>
     </div>
+    <div class="col-md-4">
+        <div class="stat-card shadow-sm" style="border-left: 5px solid #ffc107;">
+            <div class="stat-label">System Users</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS GRID -->
+<div class="row g-4 mb-5">
+    <!-- Category Distribution (Pie Chart) -->
+    <div class="col-md-5">
+        <div class="chart-container shadow-sm">
+            <h6 class="chart-title"><i class="fas fa-chart-pie me-2"></i>Product Distribution</h6>
+            <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Integrity (Bar Chart) -->
+    <div class="col-md-7">
+        <div class="chart-container shadow-sm">
+            <h6 class="chart-title"><i class="fas fa-shield-alt me-2"></i>System Integrity (Order Status)</h6>
+            <div style="height: 300px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. SECURE DATA INJECTION (The VS Code Fix) -->
+<!-- These tags securely pass Python data to JS without causing syntax errors -->
+{{ category_sales|json_script:"category-json" }}
+{{ status_counts|json_script:"status-json" }}
+
+<!-- 3. Chart Generation Logic -->
+<script>
+    // Safely retrieve the JSON data from the script tags above
+    const categoryRaw = JSON.parse(document.getElementById('category-json').textContent);
+    const statusRaw = JSON.parse(document.getElementById('status-json').textContent);
+
+    // Map the raw data into labels and values
+    const catLabels = categoryRaw.map(item => item.category_name);
+    const catData = categoryRaw.map(item => item.total_sold);
+
+    const statusLabels = statusRaw.map(item => item.order_status);
+    const statusData = statusRaw.map(item => item.count);
+
+    // Render Product Category Doughnut Chart
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: catLabels,
+            datasets: [{
+                data: catData,
+                backgroundColor: ['#8d5e4a', '#5f9e40', '#e9fcd9', '#5d3a2d', '#adb5bd'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            }
+        }
+    });
+
+    // Render Order Status Bar Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                label: 'Orders',
+                data: statusData,
+                backgroundColor: 'rgba(95, 158, 64, 0.7)',
+                borderColor: '#5f9e40',
+                borderWidth: 1.5,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { display: false }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+
 {% endblock %}
