@@ -1,28 +1,84 @@
 {% extends 'products/base.html' %}
+
 {% block content %}
 <style>
-    .cart-wrapper { max-width: 1000px; margin: 20px auto 100px; padding: 0 15px; }
-    .cart-title { color: #5d3a2d; font-weight: 800; text-transform: lowercase; font-size: 2.4rem; margin-bottom: 30px; }
-    
-    /* Column Headers */
-    .column-header { color: #8d5e4a; font-weight: 800; font-size: 0.7rem; letter-spacing: 1.5px; margin-bottom: 10px; }
-    
-    /* Dashed Line */
-    .dashed-sep { border: none; border-top: 2.5px dashed #8d5e4a; margin: 15px 0; opacity: 0.5; }
+    /* Core Theme Colors */
+    :root {
+        --text-brown: #5d3a2d;
+        --nav-brown: #8d5e4a;
+        --light-grey: #e6e6e6;
+    }
 
-    /* Product Row */
-    .cart-item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: center; padding: 25px 0; }
-    
-    .prod-info { display: flex; align-items: center; }
-    .prod-img-placeholder { width: 100px; height: 100px; background: #e6e6e6; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+    .cart-wrapper { 
+        max-width: 1100px; 
+        margin: 20px auto 100px; 
+        padding: 0 20px; 
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Title: Bold, Brown, Lowercase */
+    .cart-title { 
+        color: var(--text-brown); 
+        font-weight: 800; 
+        text-transform: lowercase; 
+        font-size: 2.5rem; 
+        margin-bottom: 40px; 
+    }
+
+    /* Column Headers: Caps, Brown, Bold */
+    .column-header { 
+        color: var(--nav-brown); 
+        font-weight: 800; 
+        font-size: 0.75rem; 
+        letter-spacing: 1.5px; 
+        text-transform: uppercase;
+    }
+
+    /* Dashed Separator */
+    .dashed-sep { 
+        border: none; 
+        border-top: 2.5px dashed var(--nav-brown); 
+        margin: 15px 0; 
+        opacity: 0.5; 
+    }
+
+    /* Cart Row Grid Layout */
+    .cart-item-row { 
+        display: grid; 
+        grid-template-columns: 2.5fr 1fr 1fr 1fr; 
+        align-items: center; 
+        padding: 30px 0; 
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .cart-item-row:hover { background-color: #fafafa; }
+
+    /* Checkbox Styling */
+    .shopee-checkbox { 
+        width: 18px; 
+        height: 18px; 
+        accent-color: var(--nav-brown); 
+        cursor: pointer; 
+        position: relative;
+        z-index: 5;
+    }
+
+    /* Product Section */
+    .prod-box { display: flex; align-items: center; }
+    .prod-img-placeholder { 
+        width: 120px; 
+        height: 120px; 
+        background: var(--light-grey); 
+        border-radius: 4px; 
+        overflow: hidden; 
+        flex-shrink: 0; 
+    }
     .prod-img-placeholder img { width: 100%; height: 100%; object-fit: cover; }
     
-    .prod-text { margin-left: 20px; }
-    .prod-name { font-weight: 800; font-size: 0.95rem; color: #333; margin-bottom: 4px; }
-    .prod-cat { color: #aaa; font-size: 0.8rem; font-weight: 500; }
-
-    .price-col, .total-col { font-weight: 500; color: #666; font-size: 1rem; }
-    .total-col { text-align: right; color: #8d5e4a; font-weight: bold; }
+    .prod-details { margin-left: 25px; }
+    .prod-name { font-weight: 800; font-size: 1.1rem; color: #333; margin-bottom: 5px; }
+    .prod-cat { color: #aaa; font-size: 0.85rem; margin-bottom: 15px; }
+    .btn-remove { color: var(--nav-brown); font-weight: 700; font-size: 0.8rem; text-decoration: underline; position: relative; z-index: 5; }
 
     /* Quantity Pill */
     .qty-pill { 
@@ -30,23 +86,49 @@
         align-items: center; 
         border: 1.5px solid #ddd; 
         border-radius: 8px; 
+        background: white; 
         overflow: hidden;
-        background: white;
+        position: relative;
+        z-index: 5;
     }
-    .qty-btn { background: none; border: none; padding: 2px 12px; color: #aaa; transition: 0.2s; }
-    .qty-btn:hover { color: #8d5e4a; background: #f9f9f9; }
-    .qty-num { border-left: 1px solid #ddd; border-right: 1px solid #ddd; padding: 2px 15px; font-weight: bold; font-size: 0.9rem; color: #5d3a2d; }
+    .qty-btn { 
+        background: none; 
+        border: none; 
+        padding: 2px 15px; 
+        color: #bbb; 
+        font-weight: bold; 
+        text-decoration: none; 
+        transition: 0.2s;
+    }
+    .qty-btn:hover { color: var(--nav-brown); background: #f9f9f9; }
+    .qty-num { border-left: 1px solid #ddd; border-right: 1px solid #ddd; padding: 2px 15px; font-weight: bold; color: #5d3a2d; }
 
-    .summary-section { text-align: right; margin-top: 30px; }
-    .btn-checkout { background: #8d5e4a; color: white; border: none; padding: 12px 60px; border-radius: 12px; font-weight: bold; transition: 0.3s; }
-    .btn-checkout:hover { opacity: 0.9; transform: translateY(-2px); }
+    /* Price and Total Text */
+    .price-text { color: #888; font-weight: 500; }
+    .total-text { text-align: right; color: #8d5e4a; font-weight: 800; font-size: 1.1rem; }
+
+    /* Checkout Summary Area */
+    .summary-section { text-align: right; margin-top: 50px; }
+    .btn-checkout { 
+        background: var(--nav-brown); 
+        color: white; 
+        border: none; 
+        padding: 12px 60px; 
+        border-radius: 12px; 
+        font-weight: 800; 
+        transition: 0.3s; 
+        display: inline-block;
+        text-decoration: none;
+    }
+    .btn-checkout:hover { opacity: 0.9; transform: translateY(-2px); color: white; }
+    .btn-checkout.disabled { background: #ccc; pointer-events: none; opacity: 0.6; }
 </style>
 
 <div class="cart-wrapper">
-    <h1 class="cart-title">shopping bag</h1>
+    <h1 class="cart-title">shopping cart</h1>
 
     <!-- HEADER ROW -->
-    <div class="row px-1">
+    <div class="row px-2">
         <div class="col-6"><span class="column-header">PRODUCT</span></div>
         <div class="col-2 text-center"><span class="column-header">PRICE</span></div>
         <div class="col-2 text-center"><span class="column-header">QUANTITY</span></div>
@@ -55,58 +137,119 @@
     
     <hr class="dashed-sep">
 
-    <!-- ITEMS LIST -->
+    <!-- CART ITEMS LOOP -->
     {% for item in cart_items %}
-    <div class="cart-item-row">
-        <!-- Product -->
-        <div class="prod-info">
+    <!-- Row is clickable to view product details, ignoring buttons/checkboxes -->
+    <div class="cart-item-row" 
+     data-url="{% url 'product_detail' item.product.prod_id %}" 
+     onclick="rowClick(event, this.dataset.url)">
+        
+        <!-- Column 1: Checkbox + Product Info -->
+        <div class="prod-box">
+            <input type="checkbox" class="shopee-checkbox me-4" 
+                   data-id="{{ item.id }}"
+                   {% if item.is_selected %}checked{% endif %} 
+                   onchange="updateSelection(this)">
+            
             <div class="prod-img-placeholder shadow-sm">
                 {% if item.product.image %}
-                    <img src="{{ item.product.image.url }}">
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.title }}">
                 {% endif %}
             </div>
-            <div class="prod-text">
+            
+            <div class="prod-details text-start">
                 <div class="prod-name">{{ item.product.title }}</div>
                 <div class="prod-cat">{{ item.product.category.category_name }}</div>
-                <a href="{% url 'remove_from_cart' item.id %}" class="text-danger small text-decoration-none fw-bold mt-2 d-block">Remove</a>
+                <a href="{% url 'remove_from_cart' item.id %}" class="btn-remove">Remove</a>
             </div>
         </div>
 
-        <!-- Price -->
-        <div class="price-col text-center">
-            ₱{{ item.product.price|floatformat:0 }}
+        <!-- Column 2: Price -->
+        <div class="price-text text-center">
+            P{{ item.product.price|floatformat:0 }}
         </div>
 
-        <!-- Quantity -->
-        <div class="qty-col text-center">
+        <!-- Column 3: Quantity Pill -->
+        <div class="text-center">
             <div class="qty-pill">
-                <button class="qty-btn">-</button>
+                <a href="{% url 'update_cart_quantity' item.id 'decrement' %}" class="qty-btn">-</a>
                 <span class="qty-num">{{ item.op_quantity }}</span>
-                <button class="qty-btn">+</button>
+                <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="qty-btn">+</a>
             </div>
         </div>
 
-        <!-- Total -->
-        <div class="total-col">
-            ₱{{ item.op_subtotal_amount }}
+        <!-- Column 4: Total -->
+        <div class="total-text">
+            P{{ item.op_subtotal_amount|floatformat:2 }}
         </div>
     </div>
     <hr class="dashed-sep">
     {% empty %}
     <div class="text-center py-5">
+        <i class="fas fa-shopping-bag fa-3x mb-3 opacity-25"></i>
         <p class="text-muted">Your shopping bag is empty.</p>
+        <a href="{% url 'catalog' %}" class="btn btn-sm px-4 mt-2" style="border: 2px solid var(--nav-brown); color: var(--nav-brown); border-radius: 20px; font-weight: bold;">BACK TO SHOP</a>
     </div>
     {% endfor %}
 
-    <!-- Footer Summary -->
+    <!-- FINAL SUMMARY -->
     {% if cart_items %}
     <div class="summary-section">
         <div class="mb-4">
-            <span class="text-muted me-3">Subtotal:</span>
-            <span class="fs-4 fw-bold" style="color: #8d5e4a;">₱{{ grand_total }}</span>
+            <span class="text-muted me-3">Selected Total:</span>
+            <span class="fs-3 fw-bold" id="grandTotalDisplay" style="color: var(--nav-brown);">P{{ grand_total|floatformat:2 }}</span>
         </div>
-        <a href="{% url 'checkout' %}" class="btn-checkout text-decoration-none">CHECKOUT NOW</a>
+        <a href="{% url 'checkout' %}" id="checkoutBtn" class="btn-checkout {% if grand_total == 0 %}disabled{% endif %}">
+            CHECKOUT NOW
+        </a>
     </div>
     {% endif %}
 </div>
+
+<script>
+    /** 
+     * Handles clicking the row to go to the product detail page,
+     * but ignores clicks on buttons and checkboxes.
+     */
+    function rowClick(event, url) {
+        const ignoreElements = ['INPUT', 'A', 'BUTTON', 'I'];
+        if (!ignoreElements.includes(event.target.tagName)) {
+            window.location.href = url;
+        }
+    }
+
+    /**
+     * AJAX call to update the selection state (is_selected) in MySQL
+     * and update the grand total display instantly.
+     */
+    async function updateSelection(checkbox) {
+        const itemId = checkbox.getAttribute('data-id');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        
+        try {
+            const response = await fetch(`/cart/toggle/${itemId}/`, {
+                method: 'POST',
+                headers: { 
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest' 
+                }
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Update the total display
+                document.getElementById('grandTotalDisplay').innerText = 'P' + data.new_total.toFixed(2);
+                
+                // Disable checkout if total is 0
+                if (data.new_total > 0) {
+                    checkoutBtn.classList.remove('disabled');
+                } else {
+                    checkoutBtn.classList.add('disabled');
+                }
+            }
+        } catch (error) {
+            console.error('Integrity Check Failed:', error);
+        }
+    }
+</script>
 {% endblock %}

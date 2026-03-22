@@ -1,69 +1,82 @@
 {% extends 'products/base.html' %}
 {% block content %}
 <style>
-    .product-container { background: white; padding: 40px; border-radius: 10px; margin-top: 20px; }
+    .product-container { background: white; padding: 40px; border-radius: 15px; margin-top: 20px; }
+    .main-img-container { width: 100%; aspect-ratio: 1/1; cursor: zoom-in; overflow: hidden; border-radius: 8px; border: 1px solid #f0f0f0; }
+    .main-img-container img { width: 100%; height: 100%; object-fit: cover; }
     
-    /* THE FIX: Zoom cursor for the detail image */
-    .main-img-container { width: 100%; aspect-ratio: 1/1; cursor: zoom-in; overflow: hidden; border-radius: 5px; background: #f8f8f8; }
-    .main-img-container img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-    .main-img-container:hover img { opacity: 0.8; }
+    .price-box { background: #fbfbfb; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #f2f2f2; }
+    .price-text { color: #8d5e4a; font-size: 2.2rem; font-weight: 800; }
+    
+    .info-row { display: flex; align-items: flex-start; margin-bottom: 20px; font-size: 0.9rem; }
+    .info-label { width: 150px; color: #757575; font-weight: 500; flex-shrink: 0; }
+    .info-value { color: #333; }
 
-    /* Modal Styling for the Full Uncropped View */
-    .modal-content-transparent { background: transparent; border: none; }
-    .full-view-img { 
-        max-height: 85vh; 
-        max-width: 100%; 
-        object-fit: contain; /* SHOWS WHOLE IMAGE */
-        border-radius: 8px;
-        box-shadow: 0 0 30px rgba(0,0,0,0.5);
-    }
-
-    .price-box { background: #fbfbfb; padding: 15px 25px; margin: 20px 0; border-radius: 5px; }
-    .price-text { color: var(--nav-brown); font-size: 2.2rem; font-weight: 800; }
-    .qty-input { width: 60px; text-align: center; border: 1px solid #ddd; outline: none; }
-    .btn-cart { background: rgba(141, 94, 74, 0.1); border: 1px solid var(--nav-brown); color: var(--nav-brown); padding: 12px 30px; }
-    .btn-buy { background: var(--nav-brown); color: white; padding: 12px 50px; border: none; }
-    .label-muted { width: 110px; display: inline-block; color: #757575; font-size: 0.9rem; }
+    .qty-input { width: 60px; text-align: center; border: 1px solid #ddd; outline: none; height: 35px; }
+    .btn-qty { background: white; border: 1px solid #ddd; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; color: #555; }
+    
+    .btn-cart { background: rgba(141, 94, 74, 0.1); border: 1.5px solid #8d5e4a; color: #8d5e4a; padding: 12px 30px; transition: 0.3s; width: 220px; }
+    .btn-buy { background: #8d5e4a; color: white; padding: 12px 80px; border: none; transition: 0.3s; border-radius: 4px; }
+    .btn-buy:hover { opacity: 0.9; transform: translateY(-2px); }
 </style>
 
 <div class="container mt-4 mb-5">
     <div class="product-container shadow-sm">
         <div class="row g-5">
-            <!-- Left: Clickable Image -->
             <div class="col-md-5">
-                <div class="main-img-container border shadow-sm" 
-                     onclick="openLightbox('{{ product.image.url }}', '{{ product.title }}')">
-                    {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.title }}">
-                    {% else %}
-                        <div class="d-flex align-items-center justify-content-center h-100 text-muted">No Image</div>
-                    {% endif %}
+                <div class="main-img-container shadow-sm" onclick="openLightbox('{{ product.image.url }}', '{{ product.title }}')">
+                    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.title }}">{% endif %}
                 </div>
+                <p class="text-center small text-muted mt-3"><i class="fas fa-search-plus"></i> Click to view full image</p>
             </div>
 
-            <!-- Right: Details -->
             <div class="col-md-7">
-                <h3 class="fw-bold mb-3">{{ product.title }}</h3>
-                <div class="price-box">
-                    <span class="price-text">₱{{ product.price }}</span>
+                <h2 class="fw-bold mb-3" style="color: #333;">{{ product.title }}</h2>
+                <div class="price-box shadow-sm"><span class="price-text">₱{{ product.price }}</span></div>
+
+                <div class="info-row">
+                    <div class="info-label">Shipping</div>
+                    <div class="info-value">
+                        <div class="mb-1"><i class="fas fa-truck text-success me-2"></i> Shipping Fee: <b>₱60.00</b></div>
+                        <div class="text-muted small"><i class="far fa-clock me-2"></i> Estimated Delivery: 2 - 4 Days (Bicol Region)</div>
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <span class="label-muted">Artist</span>
-                    <span class="fw-bold" style="color: #5f9e40;">{{ product.artist_ref.artist_name }}</span>
+                <div class="info-row">
+                    <div class="info-label">Payment</div>
+                    <div class="info-value"><span class="badge border text-muted fw-normal me-2">Cash on Delivery</span><span class="badge border text-muted fw-normal">GCash</span></div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">Artist</div>
+                    <div class="info-value fw-bold" style="color: #5f9e40;">{{ product.artist_ref.artist_name }}</div>
                 </div>
 
                 <form action="{% url 'add_to_cart' product.prod_id %}" method="POST">
                     {% csrf_token %}
-                    <div class="d-flex align-items-center mb-5">
-                        <span class="label-muted">Quantity</span>
-                        <div class="d-flex border me-3">
-                            <input type="number" name="quantity" value="1" min="1" class="qty-input border-0">
+                    <!-- BUY NOW ISOLATION FLAG -->
+                    <input type="hidden" name="buy_now_mode" id="buyNowMode" value="false">
+
+                    <div class="info-row align-items-center mt-4">
+                        <div class="info-label">Quantity</div>
+                        <div class="info-value d-flex align-items-center">
+                            <div class="d-flex">
+                                <button type="button" class="btn-qty" onclick="this.parentNode.querySelector('input').stepDown()">-</button>
+                                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock.stock_quantity }}" class="qty-input">
+                                <button type="button" class="btn-qty" onclick="this.parentNode.querySelector('input').stepUp()">+</button>
+                            </div>
+                            <span class="ms-3 text-muted small">{{ product.stock.stock_quantity }} pieces available</span>
                         </div>
                     </div>
-                    <div class="d-flex gap-3 mt-4">
-                        <button type="submit" class="btn btn-cart fw-bold rounded-1">ADD TO CART</button>
-                        <button type="submit" class="btn btn-buy fw-bold rounded-1 px-5">BUY NOW</button>
+
+                    <div class="d-flex gap-3 mt-5">
+                        <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn btn-cart fw-bold">
+                            <i class="fas fa-cart-plus me-2"></i> ADD TO CART
+                        </button>
+                        
+                        <button type="submit" onclick="document.getElementById('buyNowMode').value='true'" class="btn btn-buy fw-bold">
+                            BUY NOW
+                        </button>
                     </div>
                 </form>
             </div>
@@ -71,14 +84,13 @@
     </div>
 </div>
 
-<!-- FULL IMAGE MODAL (Lightbox) -->
+<!-- LIGHTBOX MODAL -->
 <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content modal-content-transparent">
+        <div class="modal-content" style="background:transparent; border:none;">
             <div class="modal-body text-center">
-                <img src="" id="lightboxImg" class="full-view-img">
+                <img src="" id="lightboxImg" style="max-height:85vh; max-width:100%; object-fit:contain;">
                 <h4 id="lightboxTitle" class="text-white mt-3 fw-bold"></h4>
-                <button type="button" class="btn btn-outline-light mt-3 rounded-pill" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -88,8 +100,7 @@
     function openLightbox(imgUrl, title) {
         document.getElementById('lightboxImg').src = imgUrl;
         document.getElementById('lightboxTitle').innerText = title;
-        var myModal = new bootstrap.Modal(document.getElementById('lightboxModal'));
-        myModal.show();
+        new bootstrap.Modal(document.getElementById('lightboxModal')).show();
     }
 </script>
 {% endblock %}

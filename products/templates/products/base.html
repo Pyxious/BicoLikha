@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         :root {
@@ -180,6 +182,26 @@
     font-weight: bold;
     border: none;
 }
+
+/* The flying bag icon */
+.flying-bag {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    transition: all 0.8s cubic-bezier(0.42, 0, 0.58, 1);
+    color: #8d5e4a; /* Your brand brown */
+    font-size: 1.5rem;
+}
+
+/* Success flash on the cart icon */
+@keyframes cart-bounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+.cart-bounce {
+    animation: cart-bounce 0.5s ease-in-out;
+}
     </style>
 
 </head>
@@ -230,9 +252,15 @@
                         <i class="far fa-heart fa-lg"></i>
                     </a>
                     
-                    <a href="{% url 'view_cart' %}" title="Shopping Bag">
-                        <i class="fas fa-bag-shopping fa-lg"></i>
-                    </a>
+                    <a href="{% url 'view_cart' %}" title="Shopping Bag" class="position-relative d-inline-block" style="text-decoration: none;">
+                    <i class="fas fa-bag-shopping fa-lg" style="color: var(--text-brown);"></i>
+                    
+                    <!-- THE FIX: No Django tags inside the style attribute = No Red Errors -->
+                    <span id="cart-count-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                        style="font-size: 0.6rem; padding: 0.35em 0.65em;">
+                        {{ global_cart_count }}
+                    </span>
+                </a>
                 </div>
 
             </div>
@@ -283,4 +311,78 @@
 </body>
 </html>
 
+
+<script>
+function animateToCart(btnElement) {
+    const cartIcon = document.querySelector('.fa-bag-shopping'); // Targets your bag icon
+    const flyingIcon = document.createElement('i');
+    
+    // Set up the flying icon (a copy of the bag)
+    flyingIcon.classList.add('fas', 'fa-shopping-bag', 'flying-bag');
+    document.body.appendChild(flyingIcon);
+
+    // Get positions
+    const btnRect = btnElement.getBoundingClientRect();
+    const cartRect = cartIcon.getBoundingClientRect();
+
+    // Start position (at the button)
+    flyingIcon.style.left = btnRect.left + 'px';
+    flyingIcon.style.top = btnRect.top + 'px';
+
+    // Small delay to trigger transition
+    setTimeout(() => {
+        flyingIcon.style.left = cartRect.left + 'px';
+        flyingIcon.style.top = cartRect.top + 'px';
+        flyingIcon.style.opacity = '0';
+        flyingIcon.style.transform = 'scale(0.2)';
+    }, 50);
+
+    // Remove icon and bounce cart after animation finishes
+    setTimeout(() => {
+        flyingIcon.remove();
+        cartIcon.parentElement.classList.add('cart-bounce');
+        setTimeout(() => cartIcon.parentElement.classList.remove('cart-bounce'), 500);
+    }, 800);
+}
+
+// Global function to handle AJAX Add to Cart
+// Global function to handle AJAX Add to Cart
+async function handleAddToCart(event, productId) {
+    event.preventDefault();
+    const btn = event.currentTarget;
+    
+    // THE FIX: Look for a quantity input on the page. 
+    // If it exists (Detail Page), use that value. If not (Catalog), use 1.
+    const qtyInput = document.querySelector('input[name="quantity"]');
+    const quantity = qtyInput ? qtyInput.value : 1;
+
+    const formData = new FormData();
+    formData.append('quantity', quantity);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+        const response = await fetch(`/cart/add/${productId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+                animateToCart(btn);
+                
+                // Update the global badge
+                const badge = document.getElementById('cart-count-badge');
+                if (badge) {
+                    badge.innerText = data.cart_count;
+                    // Optional: show badge if it was 0 (if you want to hide it when empty)
+                    badge.style.display = data.cart_count > 0 ? 'block' : 'none';
+                }
+        }
+        // ... (rest of the code) ...
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+</script>
 

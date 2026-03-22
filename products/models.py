@@ -51,12 +51,15 @@ class CustomUser(models.Model):
 # products/models.py
 
 class CustomerProfile(models.Model):
-    # This must match your SQL 'customer' table exactly
     user_id = models.IntegerField(primary_key=True)
     cust_contact_num = models.CharField(max_length=20, default='09000000000')
-    cust_municipality = models.CharField(max_length=100, default='Bicol')
-    cust_brgy = models.CharField(max_length=100, default='Centro') # THE MISSING FIELD
-    cust_zipcode = models.CharField(max_length=10, default='0000')
+    cust_st_name = models.CharField(max_length=255, default='', blank=True)
+    cust_brngy = models.CharField(max_length=100, default='')
+    cust_municipality = models.CharField(max_length=100, default='')
+    cust_zipcode = models.CharField(max_length=10, default='')
+    # NEW FIELDS: For Precise Map Delivery
+    cust_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    cust_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     class Meta:
         db_table = 'customer'
@@ -112,7 +115,17 @@ class CartItem(models.Model):
     product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='prod_id')
     op_quantity = models.IntegerField(db_column='op_quantity', default=1)
     op_subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='op_subtotal_amount')
-    class Meta: db_table = 'op_cart'
+    
+    # NEW FIELD: This controls if the item is included in the current checkout
+    is_selected = models.BooleanField(default=True) 
+
+    class Meta:
+        db_table = 'op_cart'
+
+    def save(self, *args, **kwargs):
+        # Data Integrity: Recalculate subtotal on every save
+        self.op_subtotal_amount = self.product.price * self.op_quantity
+        super().save(*args, **kwargs)
 
 class Payment(models.Model):
     payment_id = models.AutoField(primary_key=True)

@@ -12,6 +12,7 @@ from django.db.models import Q
 import json
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
+from django.http import JsonResponse
 
 # Consolidated Imports from .models
 from .models import Artwork, Artist, Category, Stock, CustomUser, CustomerProfile, AdminProfile, Timeline, Order, CartItem, Profile, Payment, AuditLog
@@ -46,13 +47,13 @@ def admin_dashboard(request):
     # This groups your real orders by the customer's specific Bicol location
     loc_raw = Order.objects.exclude(order_status='Pending').values(
         'customer__cust_municipality', 
-        'customer__cust_brgy'
+        'customer__cust_brngy'  # Added the 'n' here
     ).annotate(count=Count('order_id'))
     
     location_data = [
         {
             'mun': item['customer__cust_municipality'],
-            'brgy': item['customer__cust_brgy'],
+            'brgy': item['customer__cust_brngy'], # Added the 'n' here
             'v': item['count']
         } for item in loc_raw
     ]
@@ -64,10 +65,10 @@ def admin_dashboard(request):
         'growth_data': growth_data,
         'status_counts': status_counts,
         'recent_orders': Order.objects.exclude(order_status='Pending').order_by('-order_id')[:5],
-        'recent_users': recent_users,
+        'recent_users': User.objects.all().order_by('-date_joined')[:3],
         'location_data': location_data,
     }
-    
+
     return render(request, 'admin/admin_dashboard.html', context)
 
 @user_passes_test(lambda u: u.is_staff)
@@ -429,44 +430,56 @@ def popular(request):
 
 # products/views.py
 
+
 @login_required
 def profile_view(request):
-    # Fetch profiles from MySQL
+    # 1. Fetch data from custom SQL tables
     custom_user = get_object_or_404(CustomUser, user_id=request.user.id)
-    customer_profile, _ = CustomerProfile.objects.get_or_create(user_id=request.user.id)
+    customer, _ = CustomerProfile.objects.get_or_create(user_id=request.user.id)
+    
+    active_tab = request.GET.get('tab', 'account')
 
-    active_tab = request.GET.get('tab', 'purchases')  # Default to purchases
+    if request.method == 'POST':
+        # --- ACTION 1: Main Page "Save Changes" (Names and Photo Only) ---
+        if 'update_personal_info' in request.POST:
+            custom_user.user_fname = request.POST.get('fname')
+            custom_user.user_lname = request.POST.get('lname')
+            if request.FILES.get('profile_pix'):
+                custom_user.profile_pix = request.FILES.get('profile_pix')
+            custom_user.save()
+            return redirect('/profile/?tab=account')
 
-    # --- Handle POST: Save Changes ---
-    if request.method == 'POST' and 'update_account' in request.POST:
-        # Update Django's internal User
-        request.user.first_name = request.POST.get('fname')
-        request.user.last_name = request.POST.get('lname')
-        request.user.save()
+        # --- ACTION 2: Modal "Submit" (Address and Contact Only) ---
+        elif 'update_address' in request.POST:
+            try:
+                with transaction.atomic():
+                    # Update names (since they are also in the modal)
+                    custom_user.user_fname = request.POST.get('fname')
+                    custom_user.user_lname = request.POST.get('lname')
+                    custom_user.save()
 
-        # Update custom 'users' table
-        custom_user.user_fname = request.POST.get('fname')
-        custom_user.user_lname = request.POST.get('lname')
-        custom_user.user_contact_num = request.POST.get('phone')
-        if request.FILES.get('profile_pix'):
-            custom_user.profile_pix = request.FILES.get('profile_pix')
-        custom_user.save()
+                    # Update address details
+                    customer.cust_contact_num = request.POST.get('phone')
+                    customer.cust_st_name = request.POST.get('st_name')
+                    customer.cust_brngy = request.POST.get('brgy')
+                    customer.cust_municipality = request.POST.get('municipality')
+                    customer.cust_zipcode = request.POST.get('zipcode')
 
-        # Update custom 'customer' table (Address)
-        customer_profile.cust_municipality = request.POST.get('municipality')
-        customer_profile.cust_brgy = request.POST.get('brgy')
-        customer_profile.cust_zipcode = request.POST.get('zipcode')
-        customer_profile.save()
+                    lat = request.POST.get('lat')
+                    lng = request.POST.get('lng')
+                    if lat and lng:
+                        customer.cust_latitude = lat
+                        customer.cust_longitude = lng
 
-        return redirect('/profile/?tab=account')
+                    customer.save()
+                return redirect('/profile/?tab=account')
+            except Exception as e:
+                print(f"Address Update Error: {e}")
 
-    # --- Handle GET: Order History with tab filtering ---
-    status_filter = request.GET.get('tab', 'all')
+    # 3. Restored all Purchase Tab filters
+    status_filter = request.GET.get('status', 'all')
+    orders_query = Order.objects.filter(customer=customer).exclude(order_status='Pending')
 
-    # Base query: exclude active 'Pending' bag
-    orders_query = Order.objects.filter(customer=customer_profile).exclude(order_status='Pending')
-
-    # Map UI tabs to database order_status values
     if status_filter == 'to_pay':
         orders_query = orders_query.filter(order_status='To Pay')
     elif status_filter == 'to_ship':
@@ -477,78 +490,183 @@ def profile_view(request):
         orders_query = orders_query.filter(order_status='Delivered')
     elif status_filter == 'cancelled':
         orders_query = orders_query.filter(order_status='Cancelled')
+    elif status_filter == 'return':
+        orders_query = orders_query.filter(order_status='Returned')
 
     order_history = orders_query.order_by('-order_id')
-
-    # Attach items to each order for display
     for order in order_history:
         order.items = CartItem.objects.filter(order=order)
 
     return render(request, 'products/profile.html', {
         'custom_user': custom_user,
-        'customer': customer_profile,
+        'customer': customer,
         'orders': order_history,
         'active_tab': active_tab,
+        'status_tab': status_filter
     })
 
 
 # --- 3. SHOPPING BAG LOGIC (Priority 1) ---
 
+# products/views.py
+
 @login_required
 def add_to_cart(request, product_id):
     if request.method == 'POST':
+        # 1. Fetch the product from MySQL
         product = get_object_or_404(Artwork, prod_id=product_id)
-        quantity = int(request.POST.get('quantity', 1))
+        
+        # 2. Get and sanitize quantity from the form (Requirement 7: Secure Coding)
+        try:
+            quantity = int(request.POST.get('quantity', 1))
+            if quantity < 1: quantity = 1
+        except (ValueError, TypeError):
+            quantity = 1
+
+        # 3. Detect Mode: Is it 'Add to Cart' or 'Buy Now'?
+        is_buy_now = request.POST.get('buy_now_mode') == 'true'
 
         try:
+            # Atomic Transaction: Ensures the whole chain succeeds or rolls back (Integrity 6.C)
             with transaction.atomic():
-                # Step 1: Sync User and Customer Tables (Satisfies fk_order_customer)
+                
+                # STEP A: Sync with custom 'users' table (Fulfills fk_customer_users)
                 CustomUser.objects.get_or_create(
                     user_id=request.user.id,
-                    defaults={'user_email': request.user.email, 'user_fname': request.user.first_name, 'user_lname': request.user.last_name}
+                    defaults={
+                        'user_email': request.user.email,
+                        'user_fname': request.user.first_name or request.user.username,
+                        'user_lname': request.user.last_name or 'Member',
+                    }
                 )
-                customer_profile, _ = CustomerProfile.objects.get_or_create(user_id=request.user.id)
 
-                # Step 2: Handle Order (Satisfies fk_order_timeline)
+                # STEP B: Sync with custom 'customer' table (Fulfills fk_order_customer)
+                customer_profile, _ = CustomerProfile.objects.get_or_create(
+                    user_id=request.user.id
+                )
+
+                # STEP C: Get or Create the 'Pending' Order (Active Bag)
                 try:
                     active_order = Order.objects.get(customer=customer_profile, order_status='Pending')
                 except Order.DoesNotExist:
+                    # Create required Timeline first (Fulfills fk_order_timeline)
                     new_timeline = Timeline.objects.create()
-                    active_order = Order.objects.create(customer=customer_profile, timeline=new_timeline, order_status='Pending')
+                    active_order = Order.objects.create(
+                        customer=customer_profile,
+                        timeline=new_timeline,
+                        order_status='Pending',
+                        order_total_amount=0,
+                        order_total_quantity=0
+                    )
 
-                # Step 3: Add to op_cart
+                # STEP D: BUY NOW ISOLATION LOGIC
+                # If 'Buy Now' is clicked, we unselect everything else currently in the bag
+                # so the Checkout page only shows THIS specific item.
+                if is_buy_now:
+                    CartItem.objects.filter(order=active_order).update(is_selected=False)
+
+                # STEP E: Add/Update the specific item in 'op_cart'
                 cart_item, created = CartItem.objects.get_or_create(
-                    order=active_order, product=product,
-                    defaults={'op_quantity': quantity, 'op_subtotal_amount': product.price * quantity}
+                    order=active_order,
+                    product=product,
+                    defaults={
+                        'op_quantity': quantity,
+                        'op_subtotal_amount': product.price * quantity,
+                        'is_selected': True
+                    }
                 )
 
                 if not created:
-                    cart_item.op_quantity += quantity
+                    # If Buy Now: Overwrite quantity. If Add to Cart: Increment quantity.
+                    if is_buy_now:
+                        cart_item.op_quantity = quantity
+                    else:
+                        cart_item.op_quantity += quantity
+                    
+                    # Ensure THIS item is selected for checkout
+                    cart_item.is_selected = True
+                    # Server-side subtotal calculation (Prevents Price Tampering)
                     cart_item.op_subtotal_amount = cart_item.op_quantity * product.price
                     cart_item.save()
 
-            return redirect('view_cart')
+                # Get updated count for the header badge
+                cart_count = CartItem.objects.filter(order=active_order).count()
+
+            # --- RESPONSE LOGIC ---
+            
+            # Case 1: AJAX Request (From 'Add to Cart' button)
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'cart_count': cart_count,
+                    'message': 'Successfully added to your bag!'
+                })
+            
+            # Case 2: Standard POST (From 'Buy Now' button)
+            # We redirect straight to the checkout page
+            return redirect('checkout')
+
         except Exception as e:
-            print(f"Cart Error: {e}")
+            # Log the error for debugging
+            print(f"CRITICAL DATABASE ERROR: {e}")
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': 'Internal Server Error'}, status=500)
             return redirect('catalog')
+
     return redirect('catalog')
 
 @login_required
+def toggle_cart_item(request, item_id):
+    if request.method == 'POST':
+        # 1. Find the specific item in the bag
+        cart_item = get_object_or_404(CartItem, id=item_id, order__customer__user_id=request.user.id)
+        
+        # 2. Flip the status (True -> False or False -> True)
+        cart_item.is_selected = not cart_item.is_selected
+        cart_item.save()
+        
+        # 3. Calculate the NEW total of only SELECTED items
+        order = cart_item.order
+        selected_items = CartItem.objects.filter(order=order, is_selected=True)
+        new_total = sum(item.op_subtotal_amount for item in selected_items)
+        
+        # 4. Save this total to the order so Checkout can see it
+        order.order_total_amount = new_total
+        order.save()
+        
+        return JsonResponse({
+            'status': 'success', 
+            'new_total': float(new_total),
+            'is_selected': cart_item.is_selected
+        })
+    return JsonResponse({'status': 'error'}, status=400)
+@login_required
 def view_cart(request):
     try:
-        customer = CustomerProfile.objects.get(user_id=request.user.id)
-        order = Order.objects.get(customer=customer, order_status='Pending')
-        cart_items = CartItem.objects.filter(order=order)
-        grand_total = sum(item.op_subtotal_amount for item in cart_items)
+        profile = CustomerProfile.objects.get(user_id=request.user.id)
+        order = Order.objects.get(customer=profile, order_status='Pending')
         
-        # Update order totals
+        # 1. Get ALL items to show in the list
+        all_items = CartItem.objects.filter(order=order)
+        
+        # 2. Filter only SELECTED items to calculate the Grand Total
+        selected_items = all_items.filter(is_selected=True)
+        grand_total = sum(item.op_subtotal_amount for item in selected_items)
+        
+        # Update the Order total amount in DB for the final checkout
         order.order_total_amount = grand_total
-        order.order_total_quantity = sum(item.op_quantity for item in cart_items)
+        
         order.save()
+        
     except (Order.DoesNotExist, CustomerProfile.DoesNotExist):
-        cart_items, grand_total = [], 0
+        all_items = []
+        grand_total = 0
 
-    return render(request, 'products/cart.html', {'cart_items': cart_items, 'grand_total': grand_total})
+    return render(request, 'products/cart.html', {
+        'cart_items': all_items, 
+        'grand_total': grand_total
+    })
+
 
 @login_required
 def remove_from_cart(request, item_id):
@@ -561,76 +679,42 @@ def checkout_view(request):
     try:
         customer = CustomerProfile.objects.get(user_id=request.user.id)
         order = Order.objects.get(customer=customer, order_status='Pending')
-        cart_items = CartItem.objects.filter(order=order)
-
-        if not cart_items:
+        
+        # --- THE STRICT FILTER ---
+        # This is what prevents unchecked items from showing up
+        cart_items = CartItem.objects.filter(order=order, is_selected=True)
+        
+        if not cart_items.exists():
             return redirect('view_cart')
 
-        # --- LOGIC TO GROUP BY ARTIST ---
+        # (Rest of your multi-artist grouping logic goes here...)
+        # Ensure you use the 'cart_items' variable filtered above
         artist_groups = {}
         for item in cart_items:
             artist = item.product.artist_ref
             if artist not in artist_groups:
-                artist_groups[artist] = {
-                    'items': [],
-                    'subtotal': 0,
-                    'shipping': 60.00, # Fixed fee per artist
-                }
+                artist_groups[artist] = {'items': [], 'subtotal': 0}
             artist_groups[artist]['items'].append(item)
             artist_groups[artist]['subtotal'] += float(item.op_subtotal_amount)
 
-        # Calculate Grand Totals
         total_shipping = len(artist_groups) * 60.00
         items_subtotal = sum(group['subtotal'] for group in artist_groups.values())
-        grand_total = items_subtotal + total_shipping
-
-        # Save the new grand total to the order object for integrity
-        order.order_total_amount = grand_total
-        order.save()
-
-        context = {
+        
+        return render(request, 'products/checkout.html', {
             'artist_groups': artist_groups,
             'total_shipping': total_shipping,
             'items_subtotal': items_subtotal,
-            'grand_total': grand_total,
-            'customer': customer,
-        }
-        return render(request, 'products/checkout.html', context)
-    except (Order.DoesNotExist, CustomerProfile.DoesNotExist):
+            'grand_total': items_subtotal + total_shipping,
+            'customer': customer
+        })
+    except:
         return redirect('catalog')
 
-@login_required
-def place_order(request):
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                customer = CustomerProfile.objects.get(user_id=request.user.id)
-                order = Order.objects.get(customer=customer, order_status='Pending')
-                
-                # 1. Recalculate total with shipping fee
-                shipping_fee = 60.00
-                order.order_total_amount = float(order.order_total_amount) + shipping_fee
-                
-                # 2. Update status to 'To Pay'
-                order.order_status = 'To Pay'
-                order.save()
-                
-                # 3. Create Payment Record (This is where it failed before)
-                Payment.objects.create(
-                    order=order,
-                    payment_method=request.POST.get('payment_method', 'Cash on Delivery'),
-                    payment_reference=f"BK-{order.order_id}-REF"
-                )
 
-                # 4. Redirect to success
-                # Make sure the file is in templates/products/order_success.html
-                return render(request, 'products/order_success.html', {'order': order})
 
-        except Exception as e:
-            print(f"Error placing order: {e}")
-            return redirect('catalog')
-            
-    return redirect('catalog')
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
+from .models import Order, CartItem, CustomerProfile, Payment, Stock
 
 @login_required
 def place_order(request):
@@ -638,30 +722,76 @@ def place_order(request):
         try:
             with transaction.atomic():
                 customer = CustomerProfile.objects.get(user_id=request.user.id)
-                order = Order.objects.get(customer=customer, order_status='Pending')
+                old_order = Order.objects.get(customer=customer, order_status='Pending')
                 
-                # 1. Update the final amount including shipping
-                shipping_fee = 60.00
-                order.order_total_amount = float(order.order_total_amount) + shipping_fee
-                
-                # 2. LOCK THE ORDER (Change status)
-                # This ensures the next 'add_to_cart' creates a NEW Order ID
-                order.order_status = 'To Pay' 
-                order.save()
-                
-                # 3. Create a Payment Record for Audit Trail
+                # 1. Separate Selected (Buying) from Unselected (Staying in Bag)
+                buying_items = CartItem.objects.filter(order=old_order, is_selected=True)
+                staying_items = CartItem.objects.filter(order=old_order, is_selected=False)
+
+                if not buying_items.exists():
+                    return redirect('view_cart')
+
+                # 2. Calculate Final Totals for the items being bought
+                artist_ids = buying_items.values_list('product__artist_ref', flat=True).distinct()
+                shipping_fee = len(artist_ids) * 60.00
+                items_total = float(sum(item.op_subtotal_amount for item in buying_items))
+
+                # 3. IF there are items left behind, move them to a NEW Pending Order
+                if staying_items.exists():
+                    new_bag_timeline = Timeline.objects.create()
+                    new_bag_order = Order.objects.create(
+                        customer=customer,
+                        timeline=new_bag_timeline,
+                        order_status='Pending'
+                    )
+                    staying_items.update(order=new_bag_order, is_selected=True)
+
+                # 4. Finalize the CURRENT Order (The one being checked out)
+                old_order.order_delivery_fee = shipping_fee
+                old_order.order_total_amount = items_total + shipping_fee
+                old_order.order_status = 'Processing'
+                old_order.save()
+
+                # 5. Stock Reduction (Availability Control)
+                for item in buying_items:
+                    stock = item.product.stock
+                    stock.stock_quantity -= item.op_quantity
+                    if stock.stock_quantity <= 0:
+                        stock.stock_quantity = 0
+                        stock.stock_status = 'Out of Stock'
+                    stock.save()
+
+                # 6. Audit Trail: Create Payment
                 Payment.objects.create(
-                    order=order,
-                    payment_method=request.POST.get('payment_method', 'Cash on Delivery'),
-                    payment_reference=f"BK-{order.order_id}-X"
+                    order=old_order,
+                    payment_method="Cash on Delivery",
+                    payment_reference=f"REF-{old_order.order_id}"
                 )
 
-            return render(request, 'products/order_success.html', {'order': order})
+            return render(request, 'products/order_success.html', {'order': old_order})
+
         except Exception as e:
-            print(f"Error placing order: {e}")
+            print(f"Checkout Crash: {e}")
             return redirect('catalog')
             
     return redirect('catalog')
+
+@login_required
+def cancel_order(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, customer__user_id=request.user.id)
+    if order.order_status in ['Processing', 'To Pay']:
+            try:
+                with transaction.atomic():
+                    # Fulfills Availability Requirement: Return items to stock
+                    for item in CartItem.objects.filter(order=order):
+                        item.product.stock.stock_quantity += item.op_quantity
+                        item.product.stock.save()
+                    order.order_status = 'Cancelled'
+                    order.save()
+            except Exception as e:
+                print(f"Cancel Error: {e}")
+    return redirect('/profile/?tab=purchases&status=cancelled')
+
 
 # --- 4. AUTHENTICATION ---
 
@@ -725,3 +855,34 @@ def log_user_login(sender, request, user, **kwargs):
         action=f"User {user.username} logged into the system.",
         ip_address=ip
     )
+
+
+
+@login_required
+def update_cart_quantity(request, item_id, action):
+    # Security: Ensure the item belongs to the logged-in user's pending order
+    cart_item = get_object_or_404(
+        CartItem, 
+        id=item_id, 
+        order__customer__user_id=request.user.id, 
+        order__order_status='Pending'
+    )
+    
+    if action == 'increment':
+        # Availability Check: Don't allow adding more than what's in stock
+        if cart_item.op_quantity < cart_item.product.stock.stock_quantity:
+            cart_item.op_quantity += 1
+        else:
+            # You could add a django message here saying "Max stock reached"
+            pass
+            
+    elif action == 'decrement':
+        # Integrity Check: Don't allow quantity less than 1
+        if cart_item.op_quantity > 1:
+            cart_item.op_quantity -= 1
+            
+    # Recalculate subtotal on the server (Data Integrity)
+    cart_item.op_subtotal_amount = cart_item.op_quantity * cart_item.product.price
+    cart_item.save()
+    
+    return redirect('view_cart')

@@ -1,80 +1,58 @@
 {% extends 'products/base.html' %}
+
 {% block content %}
+<!-- 1. Leaflet Map CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
-    /* 1. Layout & Theme */
-    .profile-container { 
-        max-width: 1200px; 
-        border: 2px solid #8d5e4a; 
-        border-radius: 25px; 
-        overflow: hidden; 
-        margin: 10px auto 50px; 
-        background: white; 
-        display: flex; 
-        min-height: 700px; 
-    }
+    /* Layout */
+    .profile-container { max-width: 1200px; border: 2.5px solid #8d5e4a; border-radius: 25px; overflow: hidden; margin: 10px auto 50px; background: white; display: flex; height: 750px; }
     
     /* Sidebar */
-    .profile-sidebar { 
-        width: 280px; 
-        background: #e9fcd9; 
-        border-right: 2px solid #8d5e4a; 
-        padding: 40px 20px; 
-        flex-shrink: 0; 
-    }
-    .sidebar-link { 
-        display: flex; 
-        align-items: center; 
-        padding: 12px 15px; 
-        color: #5d3a2d; 
-        text-decoration: none; 
-        font-weight: 600; 
-        border-radius: 10px; 
-        transition: 0.2s; 
-        margin-bottom: 5px; 
-    }
-    .sidebar-link i { width: 25px; font-size: 1.1rem; margin-right: 12px; color: #8d5e4a; }
-    .sidebar-link:hover { background: rgba(141, 94, 74, 0.1); }
-    .sidebar-link.active { color: #8d5e4a; background: rgba(255, 255, 255, 0.5); }
-
-    /* Photo Edit Overlay */
-    .profile-pix-wrapper { 
-        position: relative; 
-        width: 120px; 
-        height: 120px; 
-        margin: 0 auto; 
-        border-radius: 50%; 
-        overflow: hidden; 
-        cursor: pointer; 
-        border: 3px solid #8d5e4a; 
-    }
+    .profile-sidebar { width: 280px; background: #e9fcd9; border-right: 2.5px solid #8d5e4a; padding: 40px 20px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+    .profile-pix-wrapper { position: relative; width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid #8d5e4a; cursor: pointer; background: white; }
     .profile-pix-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-    .pix-overlay { 
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.4); display: flex; align-items: center; 
-        justify-content: center; color: white; opacity: 0; transition: 0.3s; 
-    }
+    .pix-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; opacity: 0; transition: 0.3s; }
     .profile-pix-wrapper:hover .pix-overlay { opacity: 1; }
 
-    /* Top Tabs for Purchases */
-    .purchase-tabs { display: flex; border-bottom: 1px solid #eee; background: white; }
-    .p-tab { flex: 1; text-align: center; padding: 15px 5px; color: #333; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-bottom: 2px solid transparent; }
-    .p-tab.active { color: #8d5e4a; border-bottom: 2px solid #8d5e4a; font-weight: 700; }
+    .sidebar-link { display: flex; align-items: center; padding: 12px 15px; color: #5d3a2d; text-decoration: none; font-weight: 600; border-radius: 10px; width: 100%; margin-bottom: 5px; }
+    .sidebar-link i { width: 25px; font-size: 1.1rem; margin-right: 12px; color: #8d5e4a; }
+    .sidebar-link.active { color: #8d5e4a; background: rgba(255, 255, 255, 0.5); }
+    .btn-logout-pill { border: 2px solid #8d5e4a; border-radius: 25px; color: #8d5e4a; background: white; padding: 6px 45px; font-weight: 700; font-size: 0.85rem; }
 
-    /* Order Cards */
-    .order-card { background: white; margin-bottom: 15px; border-radius: 4px; padding: 20px; border: 1px solid #f0f0f0; }
-    .order-item-img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #eee; border-radius: 2px; flex-shrink: 0; }
+    /* Content Area */
+    .scroll-content { flex-grow: 1; overflow-y: auto; padding: 50px; background: white; }
+    .form-section-title { color: #8d5e4a; font-weight: 800; font-size: 0.85rem; letter-spacing: 1.5px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 25px; display: block; }
     
-    /* Form Styling */
-    .form-section-title { color: #8d5e4a; font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 20px; display: block; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     .bicol-input { border-radius: 8px; border: 1.5px solid #ddd; padding: 10px; font-size: 0.9rem; margin-bottom: 15px; width: 100%; outline: none; }
     .bicol-input:focus { border-color: #8d5e4a; }
+    .bicol-input[readonly] { background-color: #f8f9fa; color: #777; cursor: not-allowed; }
+
+    .btn-save-changes { background: #8d5e4a; color: white; border: none; padding: 10px 40px; border-radius: 25px; font-weight: 700; transition: 0.3s; }
+    .btn-save-changes:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+
+    /* Modal Styling */
+    .delivery-modal .modal-content { border-radius: 12px; border: none; padding: 0; overflow: hidden; }
+    .del-header { background: #8d5e4a; color: white; padding: 20px; }
+    .del-input-group { border: 1.5px solid #eee; border-radius: 8px; padding: 6px 15px; margin-bottom: 12px; background: white; }
+    .del-input-group label { display: block; font-size: 0.65rem; color: #bbb; font-weight: bold; text-transform: uppercase; margin-bottom: -2px; }
+    .del-input-group input { border: none; width: 100%; outline: none; font-size: 0.95rem; color: #333; background: transparent; padding: 2px 0; }
+    
+    #map { height: 300px; width: 100%; border-radius: 10px; border: 1px solid #ddd; }
+
+    /* Purchases */
+    .purchase-tabs { display: flex; border-bottom: 1px solid #eee; background: white; position: sticky; top: -50px; z-index: 10; margin-bottom: 20px; }
+    .p-tab { flex: 1; text-align: center; padding: 15px 5px; color: #333; text-decoration: none; font-size: 0.8rem; border-bottom: 2px solid transparent; }
+    .p-tab.active { color: #8d5e4a; border-bottom: 2px solid #8d5e4a; font-weight: 700; }
+    .order-card { background: white; margin-bottom: 15px; border-radius: 8px; padding: 20px; border: 1px solid #f0f0f0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
 </style>
 
 <div class="container-fluid">
     <div class="profile-container shadow-sm">
         
         <!-- SIDEBAR -->
-        <div class="profile-sidebar text-center">
+        <div class="profile-sidebar">
             <div class="profile-pix-wrapper" onclick="document.getElementById('profile_pix_input').click()">
                 {% if custom_user.profile_pix %}
                     <img src="{{ custom_user.profile_pix.url }}" id="sidePreview">
@@ -83,162 +61,179 @@
                 {% endif %}
                 <div class="pix-overlay"><i class="fas fa-camera"></i></div>
             </div>
-            <h5 class="mt-3 fw-bold mb-0">{{ user.username }}</h5>
+            <div class="mt-3 fw-bold small text-center" style="color: #5d3a2d;">{{ user.email }}</div>
 
-
-            <nav class="mt-5 text-start">
-                <a href="?tab=account" class="sidebar-link {% if active_tab == 'account' %}active{% endif %}">
-                    <i class="far fa-user"></i> My Account
-                </a>
-                <a href="?tab=all" class="sidebar-link {% if active_tab != 'account' %}active{% endif %}">
-                    <i class="fas fa-shopping-bag"></i> My Purchases
-                </a>
+            <nav class="mt-5 w-100">
+                <a href="?tab=account" class="sidebar-link {% if active_tab == 'account' %}active{% endif %}"><i class="far fa-user"></i> My Account</a>
+                <a href="?tab=purchases" class="sidebar-link {% if active_tab != 'account' %}active{% endif %}"><i class="fas fa-shopping-bag"></i> My Purchases</a>
                 <a href="#" class="sidebar-link"><i class="far fa-bell"></i> Notifications</a>
                 <a href="#" class="sidebar-link"><i class="fas fa-ticket-alt"></i> My Vouchers</a>
             </nav>
 
-            <form action="{% url 'logout' %}" method="post" class="mt-5">
+            <form action="{% url 'logout' %}" method="post" class="mt-auto">
                 {% csrf_token %}
-                <button type="submit" class="btn px-4 py-1 fw-bold" style="border: 2px solid #8d5e4a; border-radius: 20px; color: #8d5e4a; background: white; font-size: 0.8rem;">LOGOUT</button>
+                <button type="submit" class="btn btn-logout-pill">LOGOUT</button>
             </form>
         </div>
 
-        <!-- MAIN CONTENT AREA -->
-        <div class="flex-grow-1 bg-white">
-            
+        <!-- CONTENT AREA -->
+        <div class="scroll-content">
             {% if active_tab == 'account' %}
-                <!-- --- SECTION: MY ACCOUNT SETTINGS --- -->
-                <div class="p-5">
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="file" name="profile_pix" id="profile_pix_input" style="display:none;" onchange="previewProfile(this)">
+                <form method="POST" enctype="multipart/form-data" id="personalInfoForm">
+                    {% csrf_token %}
+                    <input type="file" name="profile_pix" id="profile_pix_input" style="display:none;" onchange="previewProfile(this)">
 
-                        <div class="d-flex justify-content-between align-items-center mb-5">
-                            <h3 class="fw-bold m-0" style="color: #5d3a2d;">Account Settings</h3>
-                            <button type="submit" name="update_account" class="btn text-white px-5 rounded-pill" style="background: #8d5e4a; font-weight: bold;">Save Changes</button>
+                    <div class="d-flex justify-content-between align-items-center mb-5">
+                        <h2 class="fw-bold m-0" style="color: #5d3a2d;">Account Settings</h2>
+                        <button type="submit" name="update_personal_info" id="saveChangesBtn" class="btn-save-changes shadow-sm" disabled>Save Changes</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 pe-lg-4 border-end text-start">
+                            <span class="form-section-title">PERSONAL INFORMATION</span>
+                            <div class="mb-3"><label class="small fw-bold text-muted">First Name</label><input type="text" name="fname" id="id_fname" value="{{ custom_user.user_fname }}" class="bicol-input"></div>
+                            <div class="mb-3"><label class="small text-muted fw-bold">Last Name</label><input type="text" name="lname" id="id_lname" value="{{ custom_user.user_lname }}" class="bicol-input"></div>
+                            <div class="mb-3"><label class="small text-muted fw-bold">Email Address</label><input type="email" value="{{ user.email }}" class="bicol-input" readonly></div>
+                            <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" value="{{ customer.cust_contact_num }}" class="bicol-input" readonly></div>
                         </div>
 
-                        <div class="row">
-                            <!-- Left Column: Personal Info -->
-                            <div class="col-md-6">
-                                <span class="form-section-title">PERSONAL INFORMATION</span>
-                                <label class="small text-muted fw-bold">First Name</label>
-                                <input type="text" name="fname" value="{{ custom_user.user_fname }}" class="bicol-input">
-                                
-                                <label class="small text-muted fw-bold">Last Name</label>
-                                <input type="text" name="lname" value="{{ custom_user.user_lname }}" class="bicol-input">
-                                
-                                <label class="small text-muted fw-bold">Email Address</label>
-                                <input type="email" value="{{ custom_user.user_email }}" class="bicol-input bg-light" readonly>
-                                
-                                <label class="small text-muted fw-bold">Phone Number</label>
-                                <input type="text" name="phone" value="{{ custom_user.user_contact_num }}" class="bicol-input">
-                            </div>
-
-                            <!-- Right Column: Address -->
-                            <div class="col-md-6 border-start ps-4">
-                                <span class="form-section-title">ADDRESS</span>
-                                <label class="small text-muted fw-bold">Municipality</label>
-                                <select name="municipality" class="bicol-input" onchange="updateZip(this)">
-                                    <option value="{{ customer.cust_municipality }}" selected>{{ customer.cust_municipality }}</option>
-                                    <option value="Legazpi">Legazpi</option>
-                                    <option value="Daraga">Daraga</option>
-                                    <option value="Tabaco">Tabaco</option>
-                                    <option value="Naga">Naga</option>
-                                </select>
-
-                                <label class="small text-muted fw-bold">Barangay</label>
-                                <input type="text" name="brgy" value="{{ customer.cust_brgy }}" class="bicol-input">
-
-                                <label class="small text-muted fw-bold">Zip Code</label>
-                                <input type="text" name="zipcode" id="zip_field" value="{{ customer.cust_zipcode }}" class="bicol-input bg-light" readonly>
+                        <div class="col-md-6 ps-lg-4 text-start">
+                            <span class="form-section-title">MY ADDRESSES</span>
+                            <div class="address-display-box shadow-sm">
+                                <div class="small">
+                                    <div class="fw-bold mb-1" style="color: #333;">{{ custom_user.user_fname }} | (+63) {{ customer.cust_contact_num }}</div>
+                                    <div class="text-muted">{{ customer.cust_st_name|default:"No details" }}, {{ customer.cust_brngy|default:"No Barangay" }}<br>{{ customer.cust_municipality }}, {{ customer.cust_zipcode }}</div>
+                                    <span class="default-badge">Default</span>
+                                </div>
+                                <a href="#" class="fw-bold text-primary text-decoration-none small" data-bs-toggle="modal" data-bs-target="#deliveryModal">Edit</a>
                             </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
 
             {% else %}
-                <!-- --- SECTION: MY PURCHASES (SHOPEE STYLE) --- -->
+                <!-- PURCHASES SECTION -->
                 <div class="purchase-tabs">
-                    <a href="?tab=all" class="p-tab {% if active_tab == 'all' %}active{% endif %}">All</a>
-                    <a href="?tab=to_pay" class="p-tab {% if active_tab == 'to_pay' %}active{% endif %}">To Pay</a>
-                    <a href="?tab=to_ship" class="p-tab {% if active_tab == 'to_ship' %}active{% endif %}">To Ship</a>
-                    <a href="?tab=to_receive" class="p-tab {% if active_tab == 'to_receive' %}active{% endif %}">To Receive</a>
-                    <a href="?tab=completed" class="p-tab {% if active_tab == 'completed' %}active{% endif %}">Completed</a>
-                    <a href="?tab=cancelled" class="p-tab {% if active_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
+                    <a href="?tab=purchases&status=all" class="p-tab {% if status_tab == 'all' %}active{% endif %}">All</a>
+                    <a href="?tab=purchases&status=to_pay" class="p-tab {% if status_tab == 'to_pay' %}active{% endif %}">To Pay</a>
+                    <a href="?tab=purchases&status=to_ship" class="p-tab {% if status_tab == 'to_ship' %}active{% endif %}">To Ship</a>
+                    <a href="?tab=purchases&status=completed" class="p-tab {% if status_tab == 'completed' %}active{% endif %}">Completed</a>
+                    <a href="?tab=purchases&status=cancelled" class="p-tab {% if status_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
                 </div>
-
-                <div class="p-4 bg-light" style="min-height: 600px;">
-                    <!-- Search Bar -->
-                    <div class="input-group mb-4 shadow-sm bg-white rounded overflow-hidden">
-                        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" class="form-control border-0 py-2" placeholder="Search by Order ID or Product name">
-                    </div>
-
-                    <!-- ORDERS LIST -->
-                    {% for order in orders %}
-                    <div class="order-card shadow-sm mb-3">
+                {% for order in orders %}
+                    <div class="order-card shadow-sm">
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
-                            <div class="fw-bold small"><i class="fas fa-store me-1"></i> Bicolikha Official Store</div>
-                            <div class="text-danger fw-bold small text-uppercase"><i class="fas fa-truck me-1"></i> {{ order.order_status }}</div>
+                            <div class="fw-bold small text-muted">Order #BK-{{ order.order_id }}</div>
+                            <div class="text-danger fw-bold small text-uppercase">{{ order.order_status }}</div>
                         </div>
-
                         {% for item in order.items %}
                         <div class="d-flex align-items-center mb-3">
-                            {% if item.product.image %}
-                                <img src="{{ item.product.image.url }}" class="order-item-img">
-                            {% else %}
-                                <div class="order-item-img bg-light d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
-                            {% endif %}
-                            
-                            <div class="flex-grow-1 ps-3">
-                                <div class="fw-bold" style="font-size: 0.95rem;">{{ item.product.title }}</div>
-                                <div class="text-muted small">Category: {{ item.product.category.category_name }}</div>
-                                <div class="small fw-bold mt-1">x{{ item.op_quantity }}</div>
-                            </div>
-
-                            <div class="text-end">
-                                <div class="price-current" style="color: #8d5e4a; font-weight: 700;">₱{{ item.product.price }}</div>
-                            </div>
+                            <img src="{% if item.product.image %}{{ item.product.image.url }}{% endif %}" style="width:60px; height:60px; object-fit:cover;" class="rounded border me-3">
+                            <div class="flex-grow-1"><div class="fw-bold small">{{ item.product.title }}</div><div class="text-muted small">x{{ item.op_quantity }}</div></div>
+                            <div class="fw-bold" style="color: #8d5e4a;">₱{{ item.op_subtotal_amount }}</div>
                         </div>
                         {% endfor %}
-
-                        <div class="text-end border-top pt-3 mt-2">
-                            <span class="text-muted small me-2"><i class="fas fa-shield-alt text-success"></i> Order Total:</span>
-                            <span class="fs-4 fw-bold" style="color:#8d5e4a">₱{{ order.order_total_amount }}</span>
-                            <div class="mt-3">
-                                <button class="btn btn-sm btn-outline-secondary px-4 me-2 rounded-1">Contact Seller</button>
-                                <button class="btn btn-sm text-white px-4 rounded-1" style="background:#8d5e4a">Order Received</button>
-                            </div>
+                        <div class="text-end border-top pt-3 d-flex justify-content-between align-items-center">
+                            {% if order.order_status == 'Processing' or order.order_status == 'To Pay' %}
+                                <a href="{% url 'cancel_order' order.order_id %}" class="btn btn-sm btn-outline-danger px-4 rounded-pill" onclick="return confirm('Cancel this order?')">Cancel Order</a>
+                            {% else %}<div></div>{% endif %}
+                            <div><span class="text-muted small">Total: </span><span class="fs-5 fw-bold" style="color:#8d5e4a">₱{{ order.order_total_amount }}</span></div>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="text-center py-5">
-                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" style="width: 150px; opacity: 0.5;">
-                        <p class="text-muted mt-3">No orders found in this category.</p>
-                    </div>
-                    {% endfor %}
-                </div>
+                {% empty %}
+                    <div class="text-center py-5 opacity-50"><p>No orders found.</p></div>
+                {% endfor %}
             {% endif %}
+        </div>
+    </div>
+</div>
 
+<!-- ==========================================
+     MODAL: DELIVERY WITH RESTORED MAP
+     ========================================== -->
+<div class="modal fade delivery-modal" id="deliveryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="del-header"><h5 class="mb-0 fw-bold">Edit Delivery Location</h5></div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 border-end pe-4">
+                            <div class="row g-2">
+                                <div class="col-6"><div class="del-input-group"><label>First name</label><input type="text" name="fname" value="{{ custom_user.user_fname }}"></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>Last name</label><input type="text" name="lname" value="{{ custom_user.user_lname }}"></div></div>
+                            </div>
+                            <div class="del-input-group"><label>House number, street, etc.</label><input type="text" name="st_name" value="{{ customer.cust_st_name }}"></div>
+                            <div class="del-input-group"><label>Barangay</label><input type="text" name="brgy" value="{{ customer.cust_brngy }}"></div>
+                            <div class="row g-2">
+                                <div class="col-6"><div class="del-input-group"><label>City</label><input type="text" name="municipality" value="{{ customer.cust_municipality }}"></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>ZIP Code</label><input type="text" name="zipcode" value="{{ customer.cust_zipcode }}"></div></div>
+                            </div>
+                            <div class="del-input-group"><label>Phone</label><input type="text" name="phone" value="{{ customer.cust_contact_num }}"></div>
+                        </div>
+                        <div class="col-md-6 ps-4">
+                            <span class="small fw-bold text-muted mb-2 d-block">Pinpoint Location</span>
+                            <div id="map"></div>
+                            <input type="hidden" name="lat" id="lat_input" value="{{ customer.cust_latitude|default:13.1391 }}">
+                            <input type="hidden" name="lng" id="lng_input" value="{{ customer.cust_longitude|default:123.7438 }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="update_address" class="btn text-white px-5" style="background:#8d5e4a; font-weight:bold;">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <script>
-    // JS for dynamic photo preview
+    // 1. Photo preview & button unlock
     function previewProfile(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
-            reader.onload = function(e) { document.getElementById('sidePreview').src = e.target.result; }
+            reader.onload = function(e) { 
+                document.getElementById('sidePreview').src = e.target.result; 
+                document.getElementById('saveChangesBtn').disabled = false;
+            }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // JS for dynamic Zip Codes
-    const bicolZips = {"Legazpi": "4500", "Daraga": "4501", "Tabaco": "4511", "Naga": "4400"};
-    function updateZip(select) {
-        document.getElementById('zip_field').value = bicolZips[select.value] || "0000";
+    // 2. Button locking logic
+    const fnameInput = document.getElementById('id_fname');
+    const lnameInput = document.getElementById('id_lname');
+    const saveBtn = document.getElementById('saveChangesBtn');
+    if(fnameInput && lnameInput) {
+        const initialFname = fnameInput.value;
+        const initialLname = lnameInput.value;
+        function checkChanges() {
+            saveBtn.disabled = (fnameInput.value.trim() === initialFname && lnameInput.value.trim() === initialLname);
+        }
+        fnameInput.addEventListener('input', checkChanges);
+        lnameInput.addEventListener('input', checkChanges);
     }
+
+    // 3. Map Initialization logic
+    var map;
+    var marker;
+    const deliveryModal = document.getElementById('deliveryModal');
+    deliveryModal.addEventListener('shown.bs.modal', function () {
+        const startLat = parseFloat(document.getElementById('lat_input').value) || 13.1391;
+        const startLng = parseFloat(document.getElementById('lng_input').value) || 123.7438;
+        if (!map) {
+            map = L.map('map').setView([startLat, startLng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            marker = L.marker([startLat, startLng], {draggable: true}).addTo(map);
+            marker.on('dragend', function(e) {
+                document.getElementById('lat_input').value = marker.getLatLng().lat;
+                document.getElementById('lng_input').value = marker.getLatLng().lng;
+            });
+        } else {
+            map.invalidateSize();
+        }
+    });
 </script>
 {% endblock %}
