@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
@@ -7,6 +8,7 @@ urlpatterns = [
     # --- Public Pages ---
     path('', views.catalog, name='catalog'),
     path('artists/', views.artists, name='artists'),
+    path('artist/<int:artist_id>/', views.artist_detail, name='artist_detail'),
     path('about/', views.about, name='about'),
     path('popular/', views.popular, name='popular'),
     path('profile/', views.profile_view, name='profile'),
@@ -19,19 +21,30 @@ urlpatterns = [
     path('cart/toggle/<int:item_id>/', views.toggle_cart_item, name='toggle_cart_item'),
     
     path('product/<int:prod_id>/', views.product_detail, name='product_detail'),
+    path('logout/customer/', views.logout_view, name='logout_view'),
 
     # --- Order ---
     path('order/cancel/<int:order_id>/', views.cancel_order, name='cancel_order'),
    
 
+
+
     # --- Authentication ---
     path('signup/', views.signup, name='signup'),
-    path('accounts/login/', views.CustomLoginView.as_view(), name='login'),
+    path('accounts/login/', views.UserLoginView.as_view(), name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/login/', views.UserLoginView.as_view(), name='login'),
+    path('signup/', views.signup, name='signup'),
 
     # --- Administrative / Management Hub ---
     path('management/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('management/analytics/', views.admin_analytics, name='admin_analytics'),
+    path('admin/', admin.site.urls), 
+    path('bk-staff-entry-7721/login/', views.HiddenAdminLoginView.as_view(), name='admin_login'),
+    path('bk-staff-entry-7721/logout/', views.admin_logout, name='admin_logout'),
+    
+
+    
     
     # User Management Sub-routes
     path('management/users/', views.admin_users, name='admin_users'),
@@ -43,6 +56,7 @@ urlpatterns = [
     path('management/products/', views.admin_products, name='admin_products'),
     path('management/orders/', views.admin_orders, name='admin_orders'),
     path('management/messages/', views.admin_messages, name='admin_messages'),
+    path('management/notify-artist/<int:order_id>/<int:artist_id>/', views.notify_artist, name='notify_artist'),
     path('management/reports/', views.admin_reports, name='admin_reports'),
 ]
 

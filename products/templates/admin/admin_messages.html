@@ -2,63 +2,120 @@
 
 {% block management_content %}
 <style>
-    .messaging-container { display: flex; height: 75vh; gap: 20px; }
+    .messaging-container { display: flex; height: 78vh; gap: 20px; margin-top: -20px; }
     
     /* Left: Contacts List */
-    .contacts-list { width: 350px; background: var(--header-green); border-radius: 15px; padding: 20px; border: 1px solid var(--sidebar-brown); }
-    .contact-item { background: #dceecb; border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid transparent; cursor: pointer; }
-    .contact-item.active { background: white; border-color: var(--sidebar-brown); }
-    .contact-avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--sidebar-brown); margin-right: 12px; border: 2px solid white; }
+    .contacts-list { width: 320px; background: #fff; border-radius: 20px; padding: 20px; border: 1px solid #eee; display: flex; flex-direction: column; }
+    .contact-item { border-radius: 15px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; cursor: pointer; transition: 0.2s; border: 1px solid transparent; text-decoration: none; color: inherit; }
+    .contact-item:hover { background: var(--header-green); }
+    .contact-item.active { background: var(--header-green); border-color: var(--sidebar-brown); }
+    .contact-avatar { width: 45px; height: 45px; border-radius: 50%; background: #eee; margin-right: 12px; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     
     /* Right: Chat Window */
-    .chat-window { flex-grow: 1; border: 1px solid #ddd; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; }
-    .chat-header { background: var(--sidebar-brown); color: white; padding: 15px; text-align: center; }
-    .chat-body { flex-grow: 1; padding: 20px; background: #fff; display: flex; flex-direction: column; gap: 15px; }
-    .msg-bubble { background: #e0e0e0; padding: 15px 25px; border-radius: 10px; width: fit-content; max-width: 70%; }
-    .msg-sent { align-self: flex-end; }
-    .chat-footer { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
-    .message-input { background: var(--header-green); border: 1px solid var(--sidebar-brown); border-radius: 25px; padding: 10px 20px; flex-grow: 1; outline: none; }
+    .chat-window { flex-grow: 1; border: 1px solid #eee; background: #fcfcfc; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header { background: white; padding: 15px 25px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+    
+    .chat-body { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background-image: radial-gradient(#dceecb 1px, transparent 1px); background-size: 20px 20px; }
+    
+    /* Message Bubbles */
+    .msg-bubble { padding: 12px 18px; border-radius: 18px; font-size: 0.9rem; max-width: 60%; line-height: 1.4; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .msg-received { background: white; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #eee; }
+    .msg-sent { background: var(--sidebar-brown); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    
+    /* Order Notification Card */
+    .order-notif-card { background: #fff; border-left: 4px solid #5f9e40; padding: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 10px 0; max-width: 80%; }
+    .btn-status { font-size: 0.7rem; font-weight: 800; border-radius: 20px; padding: 5px 15px; }
+
+    .chat-footer { padding: 20px; background: white; border-top: 1px solid #eee; display: flex; gap: 12px; align-items: center; }
+    .message-input { background: #f5f5f5; border: 1px solid #eee; border-radius: 25px; padding: 10px 20px; flex-grow: 1; outline: none; transition: 0.2s; }
+    .message-input:focus { background: white; border-color: var(--sidebar-brown); box-shadow: 0 0 0 3px rgba(93, 58, 45, 0.1); }
 </style>
 
 <div class="messaging-container">
     <!-- Contacts Sidebar -->
     <div class="contacts-list shadow-sm">
-        <div class="input-group mb-3 px-2">
-            <input type="text" class="form-control border-secondary rounded-pill" placeholder="Search...">
-            <button class="btn btn-sm ms-2 rounded-circle" style="background:var(--sidebar-brown); color:white;"><i class="fas fa-plus"></i></button>
+        <h6 class="fw-bold mb-3 px-2" style="color: var(--sidebar-brown);">Artists</h6>
+        <div class="input-group mb-3 px-1">
+            <input type="text" class="form-control border-light bg-light rounded-pill small" placeholder="Search artists...">
         </div>
         
-        <div class="contact-item active">
-            <div class="contact-avatar"></div>
-            <div>
-                <div class="fw-bold small">John</div>
-                <div class="text-muted" style="font-size: 0.7rem;">orem ipsum tak tak tak...</div>
-            </div>
+        <<div class="overflow-auto">
+    {% for artist in artists %}
+    <a href="?artist_id={{ artist.artist_id }}" class="contact-item {% if active_artist.artist_id == artist.artist_id %}active{% endif %}">
+        
+        <!-- FIX: Look for the linked user's profile picture -->
+        {% with addr=artist.user.address_set.first %}
+            {% if addr and addr.profile_pix %}
+                <img src="{{ addr.profile_pix.url }}" class="contact-avatar">
+            {% else %}
+                <div class="contact-avatar d-flex align-items-center justify-content-center text-white fw-bold" style="background: #8d5e4a;">
+                    {{ artist.artist_name|slice:":1" }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="overflow-hidden">
+            <div class="fw-bold small text-truncate">{{ artist.artist_name }}</div>
+            <div class="text-muted text-truncate" style="font-size: 0.7rem;">{{ artist.artist_municipality }}</div>
         </div>
-        {% for i in "12345" %}
-        <div class="contact-item">
-            <div class="contact-avatar"></div>
-        </div>
-        {% endfor %}
+    </a>
+    {% endfor %}
+</div>
     </div>
 
-    <!-- Main Chat -->
+    <!-- Main Chat Window -->
     <div class="chat-window shadow-sm">
+        {% if active_artist %}
         <div class="chat-header">
-            <img src="https://via.placeholder.com/50" class="rounded-circle mb-1" style="border: 2px solid white;">
-            <div class="fw-bold">John</div>
-            <div class="small opacity-75">@john_doe</div>
+            <div class="d-flex align-items-center">
+                <div class="fw-bold">{{ active_artist.artist_name }}</div>
+                <span class="badge bg-success-subtle text-success ms-2 rounded-pill" style="font-size: 0.6rem;">VERIFIED ARTIST</span>
+            </div>
+            <div class="text-muted small">ID: #ART-{{ active_artist.artist_id }}</div>
         </div>
+
         <div class="chat-body">
-            <div class="msg-bubble"></div>
-            <div class="msg-bubble"></div>
-            <div class="msg-bubble msg-sent"></div>
+            {% for msg in messages_list %}
+                {% if msg.sender_role == 'Admin' %}
+                    <!-- SENT BY ADMIN -->
+                    <div class="msg-bubble msg-sent">
+                        {{ msg.message_text }}
+                        <div class="text-end" style="font-size: 0.6rem; opacity: 0.7; margin-top: 5px;">{{ msg.timestamp|date:"H:i" }}</div>
+                    </div>
+                {% else %}
+                    <!-- RECEIVED FROM ARTIST -->
+                    <div class="msg-bubble msg-received">
+                        {% if msg.status_update %}
+                            <div class="fw-bold text-success small mb-1"><i class="fas fa-check-circle me-1"></i> STATUS UPDATE</div>
+                        {% endif %}
+                        {{ msg.message_text }}
+                        <div class="text-muted" style="font-size: 0.6rem; margin-top: 5px;">{{ msg.timestamp|date:"H:i" }}</div>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center mt-5 opacity-25">
+                    <i class="fas fa-comments fa-3x mb-2"></i>
+                    <p>Select an artist to start messaging</p>
+                </div>
+            {% endfor %}
         </div>
-        <div class="chat-footer">
-            <i class="far fa-file-alt text-muted fa-lg"></i>
-            <input type="text" class="message-input" placeholder="Type a Message">
-            <i class="fas fa-paper-plane" style="color:var(--sidebar-brown); cursor:pointer;"></i>
+
+        <form action="" method="POST" class="chat-footer">
+            {% csrf_token %}
+            <input type="hidden" name="artist_id" value="{{ active_artist.artist_id }}">
+            <i class="far fa-image text-muted fa-lg cursor-pointer"></i>
+            <input type="text" name="message" class="message-input" placeholder="Type a message to the artist..." required>
+            <button type="submit" class="btn p-0 border-0">
+                <i class="fas fa-paper-plane fa-lg" style="color:var(--sidebar-brown);"></i>
+            </button>
+        </form>
+        {% else %}
+        <div class="h-100 d-flex align-items-center justify-content-center flex-column text-muted">
+            <i class="fas fa-user-edit fa-4x mb-3 opacity-25"></i>
+            <p class="fw-bold">No Artist Selected</p>
+            <p class="small">Click on an artist from the left to view conversations.</p>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

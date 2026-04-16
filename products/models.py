@@ -1,152 +1,180 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# --- 1. BASE TABLES ---
+# --- 1. CATEGORY & ARTIST ---
+
 class Category(models.Model):
-    category_id = models.AutoField(primary_key=True)
-    category_name = models.CharField(max_length=100)
-    class Meta: db_table = 'categories'
-    def __str__(self): return self.category_name
+    category_id = models.AutoField(primary_key=True, db_column='CATEGORY_ID')
+    category_name = models.CharField(max_length=100, db_column='CATEGORY_NAME', null=True)
+    category_desc = models.TextField(db_column='CATEGORY_DESC', null=True, blank=True)
+
+
+    class Meta:
+        db_table = 'category'
+    def __str__(self): return self.category_name or "Unnamed Category"
 
 class Artist(models.Model):
-    # Primary Key
-    artist_id = models.AutoField(primary_key=True)
+    artist_id = models.AutoField(primary_key=True, db_column='ARTIST_ID')
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_profile')
+    artist_name = models.CharField(max_length=255, db_column='ARTIST_NAME', null=True)
+    artist_phone_num = models.CharField(max_length=20, db_column='ARTIST_PHONE_NUM', null=True)
+    artist_description = models.TextField(db_column='ARTIST_DESCRIPTION', null=True)
+    artist_municipality = models.CharField(max_length=100, db_column='ARTIST_MUNICIPALITY', null=True)
+    artist_brgy = models.CharField(max_length=100, db_column='ARTIST_BRGY', null=True)
+    artist_zipcode = models.CharField(max_length=10, db_column='ARTIST_ZIPCODE', null=True)
+    artist_image = models.CharField(max_length=255, db_column='ARTIST_IMAGE', null=True) # Matches SQL varchar
+   
     
-    # These MUST match your SQL column names exactly
-    artist_name = models.CharField(max_length=150)
-    artist_contact_num = models.CharField(max_length=20, null=True, blank=True)
-    artist_description = models.TextField(null=True, blank=True)
-    artist_municipality = models.CharField(max_length=100)
-    artist_brgy = models.CharField(max_length=100)
-    artist_zipcode = models.CharField(max_length=10)
 
     class Meta:
-        db_table = 'artist' # Connects to your existing MySQL table
+        db_table = 'artist'
+    def __str__(self): return self.artist_name or "Unknown Artist"
 
-    def __str__(self):
-        return self.artist_name
+# --- 2. USER EXTENSIONS (Address & Profile Logic) ---
 
-class Stock(models.Model):
-    stock_id = models.AutoField(primary_key=True)
-    stock_quantity = models.IntegerField(default=1)
-    stock_status = models.CharField(max_length=50, default='In Stock')
-    class Meta: db_table = 'stock'
-    def __str__(self): return f"Stock {self.stock_id}"
-
-# --- 2. USER & PROFILE TABLES ---
-class CustomUser(models.Model):
-    user_id = models.IntegerField(primary_key=True) 
-    user_role = models.CharField(max_length=1, default='C')
-    user_lname = models.CharField(max_length=100)
-    user_fname = models.CharField(max_length=100)
-    user_email = models.EmailField(max_length=150)
-    user_contact_num = models.CharField(max_length=15, unique=True, null=True, blank=True)
-    # ADD THIS LINE:
-    profile_pix = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    user_password_hash = models.CharField(max_length=255, default='managed_by_django')
+class Address(models.Model):
+    address_id = models.AutoField(primary_key=True, db_column='ADDRESS_ID')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    address_type = models.CharField(max_length=50, db_column='ADDRESS_TYPE', null=True)
+    phone_num = models.CharField(max_length=20, db_column='ADDRESS_PHONE_NUM', null=True)
+    house_num = models.CharField(max_length=20, db_column='ADDRESS_HOUSE_NUM', null=True)
+    street = models.CharField(max_length=100, db_column='ADDRESS_STREET', null=True)
+    municipality = models.CharField(max_length=100, db_column='ADDRESS_MUNICIPALITY', null=True)
+    brgy = models.CharField(max_length=100, db_column='ADDRESS_BRGY', null=True)
+    zipcode = models.CharField(max_length=10, db_column='CUST_ZIPCODE', null=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, db_column='LATITUDE', null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, db_column='LONGITUDE', null=True)
+    profile_pix = models.ImageField(upload_to='profile_pics/', db_column='PROFILE_PIX', null=True, blank=True)
 
     class Meta:
-        db_table = 'users'
+        db_table = 'address'
 
-# products/models.py
-
-class CustomerProfile(models.Model):
-    user_id = models.IntegerField(primary_key=True)
-    cust_contact_num = models.CharField(max_length=20, default='09000000000')
-    cust_st_name = models.CharField(max_length=255, default='', blank=True)
-    cust_brngy = models.CharField(max_length=100, default='')
-    cust_municipality = models.CharField(max_length=100, default='')
-    cust_zipcode = models.CharField(max_length=10, default='')
-    # NEW FIELDS: For Precise Map Delivery
-    cust_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    cust_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-
-    class Meta:
-        db_table = 'customer'
-
-class AdminProfile(models.Model):
-    user_id = models.IntegerField(primary_key=True)
-    admin_access = models.CharField(max_length=45, default='Full Access')
-
-    class Meta:
-        db_table = 'admin'
-
-    def __str__(self):
-        return f"Admin {self.user_id}"
-    
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=15, unique=True)
-    is_verified = models.BooleanField(default=False)
-
-# --- 3. CORE E-COMMERCE TABLES ---
-class Timeline(models.Model):
-    timeline_id = models.AutoField(primary_key=True)
-    order_time = models.DateTimeField(auto_now_add=True)
-    class Meta: db_table = 'timeline'
-
-class Order(models.Model):
-    order_id = models.AutoField(primary_key=True)
-    customer = models.ForeignKey(CustomerProfile, on_delete=models.CASCADE, db_column='user_id')
-    timeline = models.ForeignKey(Timeline, on_delete=models.CASCADE, db_column='timeline_id')
-    order_total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    order_total_quantity = models.IntegerField(default=0)
-    order_status = models.CharField(max_length=20, default='Pending')
-    order_delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    class Meta: db_table = 'order'
+# --- 3. PRODUCTS & CART ---
 
 class Artwork(models.Model):
-    prod_id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=150, db_column='prod_name')
-    description = models.TextField(db_column='prod_description', blank=True, null=True) # Field is named 'description'
-    price = models.DecimalField(max_digits=10, decimal_places=2, db_column='prod_price')
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, db_column='category_id')
-    artist_ref = models.ForeignKey(Artist, on_delete=models.CASCADE, db_column='artist_id')
-    stock = models.ForeignKey(Stock, on_delete=models.CASCADE, db_column='stock_id')
-    user_id = models.IntegerField(default=2) 
-    image = models.ImageField(upload_to='artwork_pics/', db_column='prod_image_path', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    class Meta: db_table = 'product'
-    def __str__(self): return self.title
+    prod_id = models.AutoField(primary_key=True, db_column='PROD_ID')
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, db_column='ARTIST_ID', null=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, db_column='CATEGORY_ID', null=True)
+    title = models.CharField(max_length=255, db_column='PROD_NAME', null=True)
+    description = models.TextField(db_column='PROD_DESCRIPTION', null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, db_column='PROD_PRICE', null=True)
+    stock_qty = models.IntegerField(db_column='PROD_STOCK_QTY', null=True)
+    image = models.ImageField(upload_to='artwork_pics/', db_column='PROD_IMAGE', null=True, blank=True)
+    
+
+    class Meta:
+        db_table = 'product'
+    def __str__(self): return self.title or "Untitled"
+
+class Cart(models.Model):
+    cart_id = models.AutoField(primary_key=True, db_column='CART_ID')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    total_items = models.IntegerField(db_column='TOTAL_ITEMS', default=0)
+    date_created = models.DateTimeField(auto_now_add=True, db_column='DATE_CREATED')
+
+    class Meta:
+        db_table = 'cart'
 
 class CartItem(models.Model):
-    id = models.AutoField(primary_key=True)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, db_column='order_id')
-    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='prod_id')
-    op_quantity = models.IntegerField(db_column='op_quantity', default=1)
-    op_subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='op_subtotal_amount')
+    id = models.AutoField(primary_key=True) # From the previous fix
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, db_column='CART_ID')
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID')
+    quantity = models.IntegerField(db_column='QUANTITY', default=1)
+    is_selected = models.BooleanField(default=True) # This matches the SQL we just added
     
-    # NEW FIELD: This controls if the item is included in the current checkout
-    is_selected = models.BooleanField(default=True) 
+    class Meta: 
+        db_table = 'cart_items'
+        unique_together = (('cart', 'product'),)
 
-    class Meta:
-        db_table = 'op_cart'
+    @property
+    def get_subtotal(self):
+        return self.product.price * self.quantity
 
-    def save(self, *args, **kwargs):
-        # Data Integrity: Recalculate subtotal on every save
-        self.op_subtotal_amount = self.product.price * self.op_quantity
-        super().save(*args, **kwargs)
+# --- 4. ORDERS & PAYMENTS ---
 
 class Payment(models.Model):
-    payment_id = models.AutoField(primary_key=True)
-    # This links the payment to your order
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, db_column='order_id')
-    payment_method = models.CharField(max_length=50)
-    payment_reference = models.CharField(max_length=100, null=True, blank=True)
-    payment_time = models.DateTimeField(auto_now_add=True)
+    payment_id = models.AutoField(primary_key=True, db_column='PAYMENT_ID')
+    method = models.CharField(max_length=50, db_column='PAYMENT_METHOD', null=True)
+    status = models.CharField(max_length=50, db_column='PAYMENT_STATUS', null=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_column='PAYMENT_TIMESTAMP')
 
     class Meta:
-        db_table = 'payment' # Matches your SQL table
+        db_table = 'payment'
 
+class Order(models.Model):
+    order_id = models.AutoField(primary_key=True, db_column='ORDER_ID')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    payment = models.OneToOneField(Payment, on_delete=models.SET_NULL, null=True, db_column='PAYMENT_ID')
+    # shipment_id is in SQL but model not created yet, using Integer for now
+    shipment_id = models.IntegerField(db_column='SHIPMENT_ID', null=True, unique=True)
+    total_qty = models.IntegerField(db_column='ORDER_TOTAL_QUANTITY', null=True)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_DELIVERY_FEE', null=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_TOTAL_AMOUNT', null=True)
+    status = models.CharField(max_length=50, db_column='ORDER_STATUS', null=True)
 
-# Add this to products/models.py (usually near the top with other models)
+    class Meta:
+        db_table = 'orders'
 
-class AuditLog(models.Model):
-    log_id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id')
-    action = models.TextField()
-    ip_address = models.CharField(max_length=45, null=True, blank=True)
+class OrderDetail(models.Model):
+    # ADD THIS LINE:
+    id = models.AutoField(primary_key=True) 
+    
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, db_column='ORDER_ID')
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PROD_ID')
+    price = models.DecimalField(max_digits=10, decimal_places=2, db_column='PRICE', null=True)
+    quantity = models.IntegerField(db_column='QUANTITY', null=True)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, db_column='SUBTOTAL', null=True)
+
+    class Meta: 
+        db_table = 'order_details'
+        unique_together = (('order', 'product'),)
+        
+    # Helper for templates
+    @property
+    def get_subtotal(self):
+        return self.price * self.quantity
+    
+class Notification(models.Model):
+    # This must match your SQL table 'notifications'
+    order = models.ForeignKey('Order', on_delete=models.CASCADE)
+    artist = models.ForeignKey('Artist', on_delete=models.CASCADE)
+    message_text = models.TextField()
+    sender_role = models.CharField(max_length=50) # 'Admin' or 'Artist'
+    status_update = models.CharField(max_length=50, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'notifications'
+
+# --- 5. SOCIAL & REVIEWS ---
+
+class Review(models.Model):
+    review_id = models.AutoField(primary_key=True, db_column='REVIEW_ID')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID', null=True)
+    rating = models.IntegerField(db_column='REVIEW_RATING', null=True)
+    description = models.TextField(db_column='REVIEW_DESCRIPTION', null=True)
+    image = models.CharField(max_length=255, db_column='REVIEW_IMAGE', null=True)
+    date_created = models.DateTimeField(auto_now_add=True, db_column='DATE_CREATED')
+
+    class Meta:
+        db_table = 'review'
+
+class Like(models.Model):
+    like_id = models.AutoField(primary_key=True, db_column='LIKE_ID')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID', null=True)
+    date_liked = models.DateTimeField(auto_now_add=True, db_column='DATE_LIKED')
+
+    class Meta:
+        db_table = 'likes'
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    action = models.TextField()
+    ip_address = models.GenericIPAddressField(null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    class Meta: 
         db_table = 'audit_logs'

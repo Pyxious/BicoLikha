@@ -5,6 +5,16 @@
     <h1 style="color: var(--nav-brown); font-weight: 300;">Log In</h1>
     <p class="small text-muted mb-4">Hi there! Sign in to access your bicolikha account for a better shopping experience.</p>
     
+    <!-- NUMBER 2: DJANGO MESSAGES (Portal Security Errors) -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} border-0 small fw-bold mb-4 py-2" 
+                 style="border-radius: 10px; background-color: #fceaea; color: #c0392b; text-align: left;">
+                <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
         
@@ -18,8 +28,8 @@
         <div class="mb-1 text-start">
             <label class="small fw-bold text-muted">Password</label>
             <div class="position-relative">
-                <input type="password" name="password" class="bicol-input" required placeholder="Enter your password">
-                <i class="far fa-eye-slash position-absolute" style="right:15px; top:15px; color:var(--nav-brown); cursor: pointer;"></i>
+                <input type="password" name="password" id="loginPassword" class="bicol-input" required placeholder="Enter your password">
+                <i class="far fa-eye-slash position-absolute" id="togglePassword" style="right:15px; top:15px; color:var(--nav-brown); cursor: pointer;"></i>
             </div>
         </div>
 
@@ -29,7 +39,7 @@
         </div>
 
         <!-- Login Button -->
-        <button type="submit" class="btn-bicol">Log In</button>
+        <button type="submit" class="btn-bicol shadow-sm">Log In</button>
     </form>
 
     <!-- THE NEW SIGN UP SECTION -->
@@ -43,34 +53,38 @@
 </div>
 
 <style>
-    /* Styling to match your previous screenshot */
     .auth-card {
         background: #fff;
-        border-radius: 20px;
+        border-radius: 25px;
         border: 1px solid #eee;
-        padding: 40px;
+        padding: 50px 40px;
         max-width: 450px;
         margin: 60px auto;
         text-align: center;
     }
     .bicol-input {
-        border-radius: 10px;
-        border: 1.5px solid #ddd;
-        padding: 12px;
+        border-radius: 12px;
+        border: 1.5px solid #eee;
+        background-color: #fcfcfc;
+        padding: 12px 15px;
         width: 100%;
         outline: none;
         transition: 0.3s;
+        font-size: 0.9rem;
     }
     .bicol-input:focus {
         border-color: var(--nav-brown);
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(141, 94, 74, 0.05);
     }
     .btn-bicol {
         background: var(--nav-brown);
         color: white;
-        border-radius: 10px;
-        padding: 12px;
+        border-radius: 12px;
+        padding: 14px;
         width: 100%;
-        font-weight: bold;
+        font-weight: 800;
+        letter-spacing: 1px;
         border: none;
         transition: 0.3s;
     }
@@ -79,4 +93,17 @@
         transform: translateY(-2px);
     }
 </style>
+
+<script>
+    // Simple password toggle logic
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#loginPassword');
+
+    togglePassword.addEventListener('click', function (e) {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+</script>
 {% endblock %}

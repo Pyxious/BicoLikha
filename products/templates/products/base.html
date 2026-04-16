@@ -208,11 +208,7 @@
 <body>
 
     <!-- ADMIN PANEL BUTTON (Visible only to Staff) -->
-    {% if user.is_staff %}
-    <a href="{% url 'admin_dashboard' %}" class="admin-float-btn shadow-sm">
-        <i class="fas fa-lock me-1"></i> Admin Panel
-    </a>
-    {% endif %}
+    
 
     <!-- TOP HEADER -->
     <header class="top-header">

@@ -83,19 +83,23 @@
         <!-- Updated Grid: col-lg-3 makes them smaller by fitting 4 per row on desktop -->
         <div class="row g-4 justify-content-center" id="artist-grid">
             {% for artist in artists %}
-            <div class="col-6 col-md-4 col-lg-3 artist-item text-center">
-                <a href="#" class="artist-card">
-                    <div class="artist-avatar">
-                        {% if artist.image %}
-                            <img src="{{ artist.image.url }}" class="w-100 h-100" style="object-fit: cover;" alt="{{ artist.artist_name }}">
-                        {% else %}
-                            <i class="fas fa-user"></i>
-                        {% endif %}
-                    </div>
-                    <div class="artist-name">{{ artist.artist_name }}</div>
-                </a>
-            </div>
-            {% endfor %}
+<div class="col-6 col-md-4 col-lg-3 artist-item text-center">
+    <!-- 1. UPDATED LINK: Points to the new artist detail page -->
+    <a href="{% url 'artist_detail' artist.artist_id %}" class="artist-card">
+        <div class="artist-avatar">
+            <!-- 2. UPDATED IMAGE LOGIC: Pulls from the linked User's Profile Picture -->
+            {% with addr=artist.user.address_set.first %}
+                {% if addr and addr.profile_pix %}
+                    <img src="{{ addr.profile_pix.url }}" class="w-100 h-100" style="object-fit: cover;" alt="{{ artist.artist_name }}">
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            {% endwith %}
+        </div>
+        <div class="artist-name">{{ artist.artist_name }}</div>
+    </a>
+</div>
+{% endfor %}
         </div>
 
         <button class="nav-arrow right-arrow" id="nextBtn" onclick="changePage(1)">

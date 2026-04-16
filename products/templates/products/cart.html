@@ -173,14 +173,16 @@
         <div class="text-center">
             <div class="qty-pill">
                 <a href="{% url 'update_cart_quantity' item.id 'decrement' %}" class="qty-btn">-</a>
-                <span class="qty-num">{{ item.op_quantity }}</span>
+                <!-- FIXED: changed op_quantity to quantity -->
+                <span class="qty-num">{{ item.quantity }}</span>
                 <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="qty-btn">+</a>
             </div>
         </div>
 
         <!-- Column 4: Total -->
         <div class="total-text">
-            P{{ item.op_subtotal_amount|floatformat:2 }}
+            <!-- FIXED: Using the new property we added to models.py -->
+            P{{ item.get_subtotal|floatformat:2 }}
         </div>
     </div>
     <hr class="dashed-sep">

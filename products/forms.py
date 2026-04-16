@@ -1,7 +1,29 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Artwork, Category, Artist, Profile, CustomUser
+from .models import Artwork, Category, Artist, Address
+from django.contrib.auth.forms import AuthenticationForm
+from django import forms
 
+# --- CUSTOM SIGNUP FORM ---
+
+class CustomerAuthenticationForm(AuthenticationForm):
+    def confirm_login_allowed(self, user):
+        if user.is_staff:
+            raise forms.ValidationError(
+                "Portal Mismatch: Admin accounts must use the Management Portal.",
+                code='invalid_login',
+            )
+        super().confirm_login_allowed(user)
+
+class AdminAuthenticationForm(AuthenticationForm):
+    def confirm_login_allowed(self, user):
+        if not user.is_staff:
+            raise forms.ValidationError(
+                "Access Denied: You do not have administrative privileges.",
+                code='invalid_login',
+            )
+        super().confirm_login_allowed(user)
+        
 class BicolikhaSignupForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'bicol-input'}))
     last_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'bicol-input'}))
@@ -16,26 +38,27 @@ class BicolikhaSignupForm(forms.ModelForm):
 
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
-        # This is where the error was. Now CustomUser is imported and ready.
-        if CustomUser.objects.filter(user_contact_num=phone).exists():
+        # 2. UPDATED: Use 'Address' and the correct field name 'phone_num'
+        if Address.objects.filter(phone_num=phone).exists():
             raise forms.ValidationError("This phone number is already registered.")
         return phone
 
+# --- ADMIN FORMS ---
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['category_name']
+        fields = ['category_name', 'category_desc']
 
 class ProductForm(forms.ModelForm):
-    stock_qty = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={'class': 'form-control'}))
     class Meta:
         model = Artwork
-        fields = ['title', 'description', 'price', 'category', 'artist_ref']
-    
+        fields = ['title', 'description', 'price', 'category', 'artist', 'stock_qty', 'image']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'price': forms.NumberInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
-            'artist_ref': forms.Select(attrs={'class': 'form-select'}),
+            'artist': forms.Select(attrs={'class': 'form-select'}),
+            'stock_qty': forms.NumberInput(attrs={'class': 'form-control'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
         }

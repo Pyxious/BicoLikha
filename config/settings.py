@@ -42,9 +42,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware', 
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',           
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bikolikha_db',      # Make sure you created this in MySQL Workbench/XAMPP
+        'NAME': 'bl_db',      # Make sure you created this in MySQL Workbench/XAMPP
         'USER': 'root', 
         'PASSWORD': '', 
         'HOST': '127.0.0.1',
@@ -140,8 +140,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTHENTICATION_BACKENDS = [
-    'products.backends.EmailOrPhoneBackend', # Your new custom logic
-    'django.contrib.auth.backends.ModelBackend', # Default backup
+    'django.contrib.auth.backends.ModelBackend', # Default
+    'products.backends.EmailOrPhoneBackend',    # Your custom one
 ]
 
 # config/settings.py (around the bottom)

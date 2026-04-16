@@ -12,82 +12,136 @@
             --sidebar-brown: #5d3a2d;
             --active-green: #e9fcd9;
             --bg-grey: #e6e1df;
+            --accent-brown: #8d5e4a;
         }
         body { background-color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
         
         /* Topbar */
-        .topbar { background-color: var(--header-green); padding: 10px 20px; border-bottom: 1px solid #ddd; position: fixed; width: 100%; z-index: 1000; }
+        .topbar { background-color: var(--header-green); padding: 10px 40px; border-bottom: 1px solid #ddd; position: fixed; width: 100%; z-index: 1000; height: 70px; }
         .search-box { background: white; border-radius: 20px; border: 1px solid var(--sidebar-brown); padding: 5px 20px; width: 400px; }
         .search-box input { border: none; outline: none; width: 90%; }
 
         /* Sidebar */
-        .sidebar { width: 250px; height: 100vh; position: fixed; border-right: 1px solid #ddd; padding-top: 80px; }
+        .sidebar { 
+            width: 260px; 
+            height: 100vh; 
+            position: fixed; 
+            border-right: 1px solid #ddd; 
+            padding-top: 90px; 
+            display: flex; 
+            flex-direction: column;
+            background: white;
+        }
         .nav-link { 
             color: var(--sidebar-brown); 
             padding: 12px 25px; 
-            margin: 5px 15px;
+            margin: 2px 15px;
             border-radius: 8px;
-            font-weight: 500;
+            font-weight: 600;
             display: flex;
             align-items: center;
             text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.2s;
         }
-        .nav-link i { margin-right: 15px; width: 20px; text-align: center; }
-        .nav-link.active { background-color: var(--active-green); border: 1px solid var(--sidebar-brown); }
+        .nav-link i { margin-right: 15px; width: 20px; text-align: center; font-size: 1.1rem; }
+        .nav-link.active { background-color: var(--active-green); border: 1px solid var(--sidebar-brown); color: var(--sidebar-brown); }
         .nav-link:hover:not(.active) { background-color: #f8f9fa; }
+        
+        /* Logout Button Area */
+        .sidebar-footer { margin-top: auto; padding: 20px 15px 30px; border-top: 1px solid #eee; }
+        .btn-logout { 
+            border: 1.5px solid var(--accent-brown); 
+            color: var(--accent-brown); 
+            border-radius: 25px; 
+            font-weight: 800; 
+            font-size: 0.75rem; 
+            transition: 0.3s;
+            background: white;
+        }
+        .btn-logout:hover { background: var(--accent-brown); color: white; }
+        
+        /* Main Content handling */
+        .main-content {
+    padding: 100px 40px 40px 40px;
+    min-height: 100vh;
+    margin-left: 0; /* Default for login/non-staff */
+    transition: margin-left 0.3s ease;
+}
 
-        /* Content Area */
-        .main-content { margin-left: 250px; padding: 100px 40px 40px 40px; }
+/* Only adds margin if the 'has-sidebar' class is present */
+.main-content.has-sidebar {
+    margin-left: 260px;
+}
+
         .stat-box { background-color: var(--bg-grey); height: 120px; border-radius: 4px; padding: 15px; }
-        .chart-box { background-color: var(--bg-grey); height: 350px; border-radius: 4px; padding: 20px; }
-        .filter-btn { background-color: var(--active-green); border: 1px solid var(--sidebar-brown); padding: 5px 15px; border-radius: 5px; font-size: 0.8rem; margin-right: 10px; }
     </style>
 </head>
 <body>
 
+    <!-- TOPBAR -->
     <div class="topbar d-flex justify-content-between align-items-center">
-        <a href="{% url 'catalog' %}" class="fw-bold text-decoration-none fs-4" style="color:var(--sidebar-brown)">bicolikha</a>
-        <div class="search-box">
+        <span class="fw-bold fs-4" style="color:var(--sidebar-brown)">bicolikha</span>
+        
+        {% if user.is_authenticated and user.is_staff %}
+        <div class="search-box d-none d-md-block">
             <i class="fas fa-search me-2"></i>
-            <input type="text" placeholder="Search...">
+            <input type="text" placeholder="Search data...">
         </div>
         <div class="d-flex align-items-center">
-            <i class="fas fa-bell mx-3"></i>
-            <i class="fas fa-star mx-3"></i>
-            <span class="small fw-bold">{{ user.username }}.admin</span>
+            <i class="far fa-bell mx-3"></i>
+            <i class="far fa-star mx-3"></i>
+            <span class="small fw-bold" style="color: var(--sidebar-brown)">
+                {{ user.username }}<span class="opacity-50">.admin</span>
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- SIDEBAR (Only visible if logged in as Admin) -->
+    {% if user.is_authenticated and user.is_staff %}
+    <div class="sidebar">
+        <nav class="flex-grow-1">
+            <a href="{% url 'admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-th-large"></i> Dashboard
+            </a>
+            <a href="{% url 'admin_analytics' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i> Analytics
+            </a>
+            <a href="{% url 'admin_users' %}" class="nav-link {% if 'user' in request.path %}active{% endif %}">
+                <i class="fas fa-user-friends"></i> Users
+            </a>
+            <a href="{% url 'admin_products' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_products' %}active{% endif %}">
+                <i class="fas fa-paint-brush"></i> Products
+            </a>
+            <a href="{% url 'admin_orders' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_orders' %}active{% endif %}">
+                <i class="fas fa-receipt"></i> Orders
+            </a>
+            <a href="{% url 'admin_messages' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_messages' %}active{% endif %}">
+                <i class="fas fa-envelope"></i> Messages
+            </a>
+            <a href="{% url 'admin_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}">
+                <i class="fas fa-file-alt"></i> Reports
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <form action="{% url 'admin_logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-logout w-100 py-2">
+                    <i class="fas fa-power-off me-2"></i> LOGOUT ADMIN
+                </button>
+            </form>
         </div>
     </div>
+    {% endif %}
 
-    <div class="sidebar">
-        <!-- Links use the 'name' from urls.py -->
-        <a href="{% url 'admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
-        </a>
-        <a href="{% url 'admin_analytics' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}">
-            <i class="fas fa-chart-line"></i> Analytics
-        </a>
-        <a href="{% url 'admin_users' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
-            <i class="fas fa-users"></i> Users
-        </a>
-        <a href="{% url 'admin_products' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_products' %}active{% endif %}">
-            <i class="fas fa-box"></i> Products
-        </a>
-        <a href="{% url 'admin_orders' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_orders' %}active{% endif %}">
-            <i class="fas fa-file-invoice"></i> Orders
-        </a>
-        <a href="{% url 'admin_messages' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_messages' %}active{% endif %}">
-            <i class="fas fa-comment-dots"></i> Messages
-        </a>
-        <a href="{% url 'admin_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}">
-            <i class="fas fa-folder"></i> Reports
-        </a>
-    </div>
-
-    <div class="main-content">
+    <!-- MAIN CONTENT -->
+    <div class="main-content {% if user.is_authenticated and user.is_staff %}has-sidebar{% endif %}">
         {% block management_content %}
-        <!-- THIS IS WHERE CONTENT POPS UP -->
         {% endblock %}
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

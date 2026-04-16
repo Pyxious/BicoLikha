@@ -6,15 +6,16 @@
     .clickable-row:hover { background-color: rgba(141, 94, 74, 0.05) !important; }
     .order-table-container { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
     
-    /* Status Badge Colors */
-    .st-to-pay { background: #fff4e5; color: #ff9800; border: 1px solid #ffe5cc; }
-    .st-processing { background: #e5f1ff; color: #007bff; border: 1px solid #cce5ff; }
-    .st-shipped { background: #f3e5ff; color: #9c27b0; border: 1px solid #ebccff; }
-    .st-delivered { background: #e9fcd9; color: #5f9e40; border: 1px solid #d4f5b8; }
-    .st-cancelled { background: #ffe5e5; color: #d32f2f; border: 1px solid #ffcccc; }
-
+    /* Status Badge Styling */
+    .badge-status { font-size: 0.7rem; letter-spacing: 0.5px; border: 1px solid transparent; }
+    
     .modal-section-title { font-weight: 800; color: #8d5e4a; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 15px; display: block; }
-    .item-thumbnail { width: 45px; height: 45px; object-fit: cover; border-radius: 4px; background: #f5f5f5; }
+    .btn-update-order { background: #8d5e4a; color: white; font-weight: 800; transition: 0.3s; }
+    .btn-update-order:hover { opacity: 0.9; transform: translateY(-1px); color: white; }
+
+    /* Notify Button Style */
+    .btn-notify { font-size: 0.65rem; font-weight: 700; border: 1px solid #8d5e4a; color: #8d5e4a; background: transparent; transition: 0.2s; }
+    .btn-notify:hover { background: #8d5e4a; color: white; }
 </style>
 
 <div class="mb-4">
@@ -40,20 +41,19 @@
             <tr class="clickable-row" data-bs-toggle="modal" data-bs-target="#orderModal{{ order.order_id }}">
                 <td class="ps-4 fw-bold">#BK-{{ order.order_id }}</td>
                 <td>
-                    <div class="fw-bold">{{ order.customer.user_id }}</div>
-                    <div class="small text-muted">{{ order.customer.cust_municipality }}</div>
+                    <div class="fw-bold">{{ order.user.get_full_name|default:order.user.username }}</div>
+                    <div class="small text-muted">{{ order.user.email }}</div>
                 </td>
                 <td><span class="badge bg-light text-dark border">{{ order.items.count }} items</span></td>
-                <td class="fw-bold text-danger">₱{{ order.order_total_amount }}</td>
+                <td class="fw-bold text-danger">₱{{ order.total_amount }}</td>
                 <td>
-                    <!-- Dynamic Status Badge -->
-                    <span class="badge px-3 py-2 
-                        {% if order.order_status == 'To Pay' %}st-to-pay
-                        {% elif order.order_status == 'Processing' %}st-processing
-                        {% elif order.order_status == 'Shipped' %}st-shipped
-                        {% elif order.order_status == 'Delivered' %}st-delivered
-                        {% else %}st-cancelled{% endif %}">
-                        {{ order.order_status }}
+                    <span class="badge rounded-pill px-3 py-2 badge-status 
+                        {% if order.status == 'Delivered' %}bg-success-subtle text-success border-success-subtle
+                        {% elif order.status == 'Cancelled' %}bg-danger-subtle text-danger border-danger-subtle
+                        {% elif order.status == 'Shipped' %}bg-primary-subtle text-primary border-primary-subtle
+                        {% elif order.status == 'Processing' %}bg-info-subtle text-info border-info-subtle
+                        {% else %}bg-warning-subtle text-warning border-warning-subtle{% endif %}">
+                        {{ order.status|upper }}
                     </span>
                 </td>
                 <td class="text-center">
@@ -64,64 +64,91 @@
             <!-- ORDER DETAIL MODAL -->
             <div class="modal fade" id="orderModal{{ order.order_id }}" tabindex="-1">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                        
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
                             
                             <div class="modal-header border-0 pb-0">
-                                <h5 class="fw-bold">Order Details #BK-{{ order.order_id }}</h5>
+                                <h5 class="fw-bold mb-0">Order Details #BK-{{ order.order_id }}</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
 
                             <div class="modal-body p-4">
                                 <div class="row">
-                                    <!-- Left: Customer & Shipping -->
-                                    <div class="col-md-5 border-end">
-                                        <span class="modal-section-title">CUSTOMER INFORMATION</span>
-                                        <div class="fw-bold mb-1">User ID: {{ order.customer.user_id }}</div>
-                                        <div class="small text-muted mb-4">
-                                            <i class="fas fa-map-marker-alt me-1"></i> 
-                                            {{ order.customer.cust_brgy }}, {{ order.customer.cust_municipality }}<br>
-                                            Zip Code: {{ order.customer.cust_zipcode }}
+                                    <!-- LEFT COLUMN: CUSTOMER INFO -->
+                                    <div class="col-md-5 border-end pe-4">
+                                        <h6 class="modal-section-title">CUSTOMER INFORMATION</h6>
+                                        <p class="mb-1 small"><strong>User ID:</strong> {{ order.user.id }}</p>
+                                        <div class="d-flex align-items-start mb-2">
+                                            <i class="fas fa-map-marker-alt mt-1 me-2 text-secondary"></i>
+                                            <span class="small">
+                                                {{ order.customer_address.street }}, {{ order.customer_address.brgy }}<br>
+                                                {{ order.customer_address.municipality }} {{ order.customer_address.zipcode }}
+                                            </span>
                                         </div>
-
-                                        <span class="modal-section-title">CHANGE ORDER STATUS</span>
-                                        <select name="status" class="form-select mb-3">
-                                            <option value="To Pay" {% if order.order_status == 'To Pay' %}selected{% endif %}>To Pay</option>
-                                            <option value="Processing" {% if order.order_status == 'Processing' %}selected{% endif %}>Processing</option>
-                                            <option value="Shipped" {% if order.order_status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                                            <option value="Delivered" {% if order.order_status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                            <option value="Cancelled" {% if order.order_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                        <p class="mb-4 small"><strong>Contact:</strong> {{ order.customer_address.phone_num }}</p>
+                                        
+                                        <h6 class="modal-section-title">CHANGE ORDER STATUS</h6>
+                                        <select name="status" class="form-select mb-3 shadow-sm" style="border-radius: 10px;">
+                                            <option value="To Pay" {% if order.status == "To Pay" %}selected{% endif %}>To Pay</option>
+                                            <option value="Processing" {% if order.status == "Processing" %}selected{% endif %}>Processing (To Ship)</option>
+                                            <option value="Shipped" {% if order.status == "Shipped" %}selected{% endif %}>Shipped (To Receive)</option>
+                                            <option value="Delivered" {% if order.status == "Delivered" %}selected{% endif %}>Delivered (Completed)</option>
+                                            <option value="Cancelled" {% if order.status == "Cancelled" %}selected{% endif %}>Cancelled</option>
                                         </select>
                                     </div>
-
-                                    <!-- Right: Product List -->
+                                    
+                                    <!-- RIGHT COLUMN: ORDERED ITEMS -->
                                     <div class="col-md-7 ps-4">
-                                        <span class="modal-section-title">ORDERED ITEMS</span>
-                                        <div style="max-height: 250px; overflow-y: auto;">
+                                        <h6 class="modal-section-title">ORDERED ITEMS</h6>
+                                        <div style="max-height: 280px; overflow-y: auto; padding-right: 5px;">
                                             {% for item in order.items %}
-                                            <div class="d-flex align-items-center mb-3">
-                                                <img src="{{ item.product.image.url }}" class="item-thumbnail me-3">
-                                                <div class="flex-grow-1">
-                                                    <div class="fw-bold small">{{ item.product.title }}</div>
-                                                    <div class="small text-muted">₱{{ item.product.price }} x {{ item.op_quantity }}</div>
+                                            <div class="d-flex align-items-center mb-3 p-2 border rounded-3 bg-light-subtle">
+                                                <!-- Product Image -->
+                                                {% if item.product.image %}
+                                                    <img src="{{ item.product.image.url }}" class="me-3 border shadow-sm" style="width:45px; height:45px; object-fit:cover; border-radius:8px;">
+                                                {% else %}
+                                                    <div class="me-3 border d-flex align-items-center justify-content-center bg-light" style="width:45px; height:45px; border-radius:8px;">
+                                                        <i class="fas fa-image text-muted small"></i>
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <!-- Product Details -->
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <div class="fw-bold small text-truncate" title="{{ item.product.title }}">{{ item.product.title }}</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">
+                                                        ₱{{ item.price }} x {{ item.quantity }} | <span class="text-dark fw-bold">₱{{ item.subtotal }}</span>
+                                                    </div>
                                                 </div>
-                                                <div class="fw-bold small">₱{{ item.op_subtotal_amount }}</div>
+                                                
+                                                <!-- NOTIFY ARTIST ACTION -->
+                                                <div class="ms-2">
+                                                    <a href="{% url 'notify_artist' order.order_id item.product.artist.artist_id %}" 
+                                                       class="btn btn-sm btn-notify rounded-pill px-2 py-1 shadow-sm">
+                                                       <i class="fas fa-paper-plane me-1"></i> Notify
+                                                    </a>
+                                                </div>
                                             </div>
                                             {% endfor %}
                                         </div>
-                                        <div class="border-top pt-3 mt-3 d-flex justify-content-between">
-                                            <span class="fw-bold">Total Payment</span>
-                                            <span class="fw-bold text-danger fs-5">₱{{ order.order_total_amount }}</span>
+                                        
+                                        <hr class="my-3">
+                                        
+                                        <div class="d-flex justify-content-between align-items-center px-2">
+                                            <span class="fw-bold text-muted small">GRAND TOTAL</span>
+                                            <span class="fs-4 fw-bold" style="color: #8d5e4a;">₱{{ order.total_amount }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="modal-footer border-0">
+                            <div class="modal-footer border-0 p-4 pt-0">
                                 <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" name="update_status" class="btn text-white px-5 rounded-pill" style="background: #8d5e4a;">Update Order Status</button>
+                                <button type="submit" name="update_status" class="btn btn-update-order px-5 rounded-pill shadow-sm">
+                                    Update Order Status
+                                </button>
                             </div>
                         </form>
                     </div>

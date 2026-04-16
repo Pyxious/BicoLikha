@@ -60,8 +60,8 @@
                     {% for item in top_products %}
                     <tr>
                         <td class="ps-3 fw-bold">{{ item.product__title }}</td>
-                        <td class="text-center">{{ item.total_sold }}</td>
-                        <td class="text-end pe-3 text-danger fw-bold">₱{{ item.total_earned }}</td>
+                        <td class="text-center">{{ item.total_sold }}</td> <!-- Changed from .sold -->
+                        <td class="text-end pe-3 text-danger fw-bold">₱{{ item.total_earned }}</td> <!-- Changed from .earned -->
                     </tr>
                     {% empty %}
                     <tr><td colspan="3" class="text-center py-4 text-muted">No sales data recorded yet.</td></tr>
