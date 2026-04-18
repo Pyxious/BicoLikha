@@ -39,7 +39,7 @@
             <input type="text" class="form-control border-light bg-light rounded-pill small" placeholder="Search artists...">
         </div>
         
-        <<div class="overflow-auto">
+        <div class="overflow-auto">
     {% for artist in artists %}
     <a href="?artist_id={{ artist.artist_id }}" class="contact-item {% if active_artist.artist_id == artist.artist_id %}active{% endif %}">
         
@@ -76,28 +76,18 @@
 
         <div class="chat-body">
             {% for msg in messages_list %}
-                {% if msg.sender_role == 'Admin' %}
-                    <!-- SENT BY ADMIN -->
-                    <div class="msg-bubble msg-sent">
-                        {{ msg.message_text }}
-                        <div class="text-end" style="font-size: 0.6rem; opacity: 0.7; margin-top: 5px;">{{ msg.timestamp|date:"H:i" }}</div>
-                    </div>
-                {% else %}
-                    <!-- RECEIVED FROM ARTIST -->
-                    <div class="msg-bubble msg-received">
-                        {% if msg.status_update %}
-                            <div class="fw-bold text-success small mb-1"><i class="fas fa-check-circle me-1"></i> STATUS UPDATE</div>
-                        {% endif %}
-                        {{ msg.message_text }}
-                        <div class="text-muted" style="font-size: 0.6rem; margin-top: 5px;">{{ msg.timestamp|date:"H:i" }}</div>
-                    </div>
-                {% endif %}
-            {% empty %}
-                <div class="text-center mt-5 opacity-25">
-                    <i class="fas fa-comments fa-3x mb-2"></i>
-                    <p>Select an artist to start messaging</p>
-                </div>
-            {% endfor %}
+    <!-- Only show messages where the sender is NOT System -->
+    {% if msg.sender_role != 'System' %}
+        {% if msg.sender_role == 'Admin' %}
+            <div class="msg-bubble msg-sent">{{ msg.message_text }}</div>
+        {% else %}
+            <div class="msg-bubble msg-received">
+                <div class="fw-bold text-success small mb-1"><i class="fas fa-check-circle me-1"></i> STATUS: {{ msg.status_update }}</div>
+                {{ msg.message_text }}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endfor %}
         </div>
 
         <form action="" method="POST" class="chat-footer">

@@ -1,174 +1,127 @@
 {% extends 'admin/management_base.html' %}
 
 {% block management_content %}
-<!-- Chart.js + Treemap Plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
 
 <style>
-    :root { 
-        --nav-brown: #8d5e4a; --text-brown: #5d3a2d; 
-        --bicol-green: #5f9e40; --light-green: #e9fcd9;
-    }
+    :root { --nav-brown: #8d5e4a; --text-brown: #5d3a2d; --bicol-green: #5f9e40; --light-green: #e9fcd9; }
     
-    .dash-card { background: white; border-radius: 20px; border: 1.5px solid #eee; padding: 25px; height: 100%; transition: 0.3s; }
-    .dash-card:hover { border-color: var(--nav-brown); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+    .dash-header { margin-bottom: 30px; text-align: left; }
+    .dash-card { background: white; border: 1.5px solid #eee; border-radius: 15px; padding: 25px; flex: 1; text-align: center; }
     
-    .stat-title { font-size: 0.75rem; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-brown); margin-top: 5px; }
+    .stat-label { font-size: 0.85rem; color: #999; font-weight: 600; margin-bottom: 5px; }
+    .stat-value { font-size: 2.2rem; font-weight: 800; color: var(--text-brown); line-height: 1; }
+    .stat-trend { font-size: 0.75rem; font-weight: 700; margin-top: 5px; }
 
-    .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f9f9f9; }
-    .activity-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; background: var(--light-green); color: var(--bicol-green); }
-    
-    .table-custom thead { background: var(--light-green); color: var(--text-brown); font-size: 0.75rem; text-transform: uppercase; }
+    /* Chart Sections */
+    .chart-box { background: white; border: 1.5px solid #eee; border-radius: 20px; padding: 30px; height: 100%; }
+    .chart-title { font-weight: 800; color: var(--text-brown); font-size: 1.5rem; margin-bottom: 5px; }
+    .chart-subtitle { color: #888; font-size: 0.9rem; margin-bottom: 25px; }
+
+    /* Controls */
+    .filter-btn { border: 1.5px solid var(--nav-brown); background: white; color: #666; padding: 8px 30px; border-radius: 10px; font-weight: 600; transition: 0.3s; }
+    .filter-btn.active { background: var(--light-green); color: var(--text-brown); }
 </style>
 
-<div class="container-fluid" style="margin-top: -20px;">
-    <!-- TOP 3 BOXES -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="dash-card shadow-sm" style="border-top: 5px solid var(--bicol-green);">
-                <div class="stat-title">Total Users</div>
-                <div class="stat-value">{{ total_users }}</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="dash-card shadow-sm" style="border-top: 5px solid var(--nav-brown);">
-                <div class="stat-title">Total Revenue</div>
-                <div class="stat-value">₱{{ total_revenue|floatformat:2 }}</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="dash-card shadow-sm" style="border-top: 5px solid #ffc107;">
-                <div class="stat-title">Total Orders</div>
-                <div class="stat-value">{{ total_orders }}</div>
+<div class="dash-header">
+    <h1 class="fw-bold mb-0">Dashboard</h1>
+    <p class="text-muted">Administrative Dashboard</p>
+</div>
+
+<!-- 1. TOP STAT CARDS -->
+<div class="d-flex gap-4 mb-5">
+    <div class="dash-card shadow-sm">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">{{ total_users }}</div>
+        <div class="stat-trend text-success">↑ +10.1%</div>
+    </div>
+    <div class="dash-card shadow-sm">
+        <div class="stat-label">Revenue</div>
+        <div class="stat-value">₱{{ total_revenue|floatformat:2 }}</div>
+        <div class="stat-trend text-success">↑ +8.2%</div>
+    </div>
+    <div class="dash-card shadow-sm">
+        <div class="stat-label">Orders</div>
+        <div class="stat-value">{{ total_orders }}</div>
+        <div class="stat-trend text-success">↑ +1%</div>
+    </div>
+    <div class="dash-card shadow-sm">
+        <div class="stat-label">Total Products</div>
+        <div class="stat-value">{{ total_products }}</div>
+        <div class="stat-trend text-success">↑ +5% from last month</div>
+    </div>
+</div>
+
+<div class="row g-4 text-start">
+    <!-- 2. OVERVIEW (LINE CHART) -->
+    <div class="col-md-7">
+        <div class="chart-box shadow-sm">
+            <h2 class="chart-title">Overview</h2>
+            <p class="chart-subtitle">Profit and Revenue</p>
+            
+            <canvas id="overviewChart" height="200"></canvas>
+
+            <div class="d-flex gap-3 mt-4">
+                <button class="filter-btn">Today</button>
+                <button class="filter-btn">This Week</button>
+                <button class="filter-btn active">This Month</button>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <!-- USER GROWTH BAR CHART -->
-        <div class="col-md-8">
-            <div class="dash-card shadow-sm">
-                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">User Growth (Last 7 Days)</h6>
-                <canvas id="growthChart" height="110"></canvas>
-            </div>
-        </div>
-        <!-- ORDER STATUS DOUGHNUT -->
-        <div class="col-md-4">
-            <div class="dash-card shadow-sm">
-                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">Order Status Distribution</h6>
-                <canvas id="statusChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <!-- RECENT ORDERS TABLE -->
-        <div class="col-md-8">
-            <div class="dash-card shadow-sm p-0 overflow-hidden">
-                <div class="p-4"><h6 class="fw-bold mb-0" style="color: var(--text-brown);">Recent Orders</h6></div>
-                <table class="table table-hover table-custom mb-0">
-                    <thead>
-                        <tr><th class="ps-4">Order ID</th><th>Customer ID</th><th>Amount</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for order in recent_orders %}
-                        <tr>
-                            <td class="ps-4 fw-bold">#BK-{{ order.order_id }}</td>
-                            <td>User #{{ order.customer.user_id }}</td>
-                            <td class="fw-bold text-danger">₱{{ order.order_total_amount }}</td>
-                            <td><span class="badge rounded-pill {% if order.order_status == 'To Pay' %}bg-warning{% else %}bg-success{% endif %}">{{ order.order_status }}</span></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <!-- RECENT ACTIVITY FEED -->
-        <div class="col-md-4">
-            <div class="dash-card shadow-sm">
-                <h6 class="fw-bold mb-3" style="color: var(--text-brown);">Recent Activity</h6>
-                {% for u in recent_users %}
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="fas fa-user-plus"></i></div>
-                    <div>
-                        <div class="small fw-bold">New user registered</div>
-                        <div class="text-muted" style="font-size: 0.7rem;">{{ u.username }} joined {{ u.date_joined|timesince }} ago</div>
-                    </div>
+    <!-- 3. PERFORMANCE (DONUT CHART) -->
+    <div class="col-md-5">
+        <div class="chart-box shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="chart-title">Performance</h2>
+                    <p class="chart-subtitle">Order Status Distribution</p>
                 </div>
-                {% endfor %}
-                <div class="activity-item">
-                    <div class="activity-icon" style="background:#fff3cd; color:#856404;"><i class="fas fa-tools"></i></div>
-                    <div>
-                        <div class="small fw-bold">Database synced</div>
-                        <div class="text-muted" style="font-size: 0.7rem;">MySQL integrity check complete</div>
-                    </div>
+                <div class="d-flex align-items-center gap-2 text-muted small fw-bold">
+                    <i class="fas fa-chevron-left"></i> By Artist <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- SALES BY LOCATION (BICOL TREEMAP) -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="dash-card shadow-sm">
-                <h6 class="fw-bold mb-4" style="color: var(--text-brown);">Sales by Location (Bicol Municipalities & Barangays)</h6>
-                <div style="height: 400px; background: #fafafa; border-radius: 10px;">
-                    <canvas id="locationTreemap"></canvas>
-                </div>
+            
+            <div style="max-width: 300px; margin: 0 auto;">
+                <canvas id="performanceChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- SECURE JSON DATA -->
-{{ growth_data|json_script:"growth-data" }}
-{{ status_counts|json_script:"status-data" }}
-{{ location_data|json_script:"location-data" }}
-
+{{ status_distribution|json_script:"status-data" }}
 <script>
-    const growth = JSON.parse(document.getElementById('growth-data').textContent);
-    const status = JSON.parse(document.getElementById('status-data').textContent);
-    const locations = JSON.parse(document.getElementById('location-data').textContent);
-
-    // Growth Bar Chart
-    new Chart(document.getElementById('growthChart'), {
-        type: 'bar',
+    // Overview Line Chart
+    new Chart(document.getElementById('overviewChart'), {
+        type: 'line',
         data: {
-            labels: growth.map(d => d.day),
-            datasets: [{ data: growth.map(d => d.count), backgroundColor: '#5f9e40', borderRadius: 8 }]
+            labels: ['Mar 1', 'Mar 5', 'Mar 9', 'Mar 13', 'Mar 17', 'Mar 21', 'Mar 25', 'Mar 29'],
+            datasets: [
+                { label: 'Revenue', data: [500, 600, 550, 700, 650, 800, 750, 900], borderColor: '#8d5e4a', tension: 0.4, borderWeight: 4, pointRadius: 0 },
+                { label: 'Profit', data: [400, 450, 420, 500, 480, 550, 520, 600], borderColor: '#5f9e40', tension: 0.4, borderWeight: 4, pointRadius: 0 }
+            ]
         },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
+        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
     });
 
-    // Status Doughnut Chart
-    new Chart(document.getElementById('statusChart'), {
+    const statusRaw = JSON.parse(document.getElementById('status-data').textContent);
+    
+    // Process it for Chart.js
+    const statusLabels = statusRaw.map(s => s.status);
+    const statusValues = statusRaw.map(s => s.count);
+
+    // Performance Donut Chart
+    new Chart(document.getElementById('performanceChart'), {
         type: 'doughnut',
         data: {
-            labels: status.map(s => s.order_status),
-            datasets: [{ data: status.map(s => s.count), backgroundColor: ['#8d5e4a', '#5f9e40', '#ffc107', '#e9fcd9'], borderWeight: 5, borderColor: '#fff' }]
-        },
-        options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
-    });
-
-    // Bicol Location Treemap
-    new Chart(document.getElementById('locationTreemap'), {
-        type: 'treemap',
-        data: {
+            labels: statusLabels,
             datasets: [{
-                tree: locations,
-                key: 'v',
-                groups: ['mun', 'brgy'],
-                backgroundColor: (ctx) => ctx.raw && ctx.raw.g === 'mun' ? '#8d5e4a' : '#5f9e40',
-                labels: {
-                    display: true,
-                    formatter: (ctx) => ctx.raw._data.brgy + ' (' + ctx.raw.v + ')',
-                    color: '#fff', font: { size: 12, weight: 'bold' }
-                }
+                data: statusValues,
+                backgroundColor: ['#A8DADC', '#F1FAEE', '#E9C46A', '#F4A261', '#E76F51'],
+                borderWidth: 0
             }]
         },
-        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 </script>
 {% endblock %}

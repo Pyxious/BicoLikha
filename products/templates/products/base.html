@@ -347,37 +347,47 @@ async function handleAddToCart(event, productId) {
     event.preventDefault();
     const btn = event.currentTarget;
     
-    // THE FIX: Look for a quantity input on the page. 
-    // If it exists (Detail Page), use that value. If not (Catalog), use 1.
+    // Find quantity from the input box on the page
     const qtyInput = document.querySelector('input[name="quantity"]');
     const quantity = qtyInput ? qtyInput.value : 1;
 
     const formData = new FormData();
     formData.append('quantity', quantity);
+    // Use the django template tag for the token
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
     try {
         const response = await fetch(`/cart/add/${productId}/`, {
             method: 'POST',
             body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest' 
+            }
         });
+        
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+
         const data = await response.json();
 
         if (data.status === 'success') {
-                animateToCart(btn);
-                
-                // Update the global badge
-                const badge = document.getElementById('cart-count-badge');
-                if (badge) {
-                    badge.innerText = data.cart_count;
-                    // Optional: show badge if it was 0 (if you want to hide it when empty)
-                    badge.style.display = data.cart_count > 0 ? 'block' : 'none';
-                }
+            // TRIGGER THE FLYING BAG ANIMATION
+            animateToCart(btn);
+            
+            // UPDATE THE RED BADGE
+            const badge = document.getElementById('cart-count-badge');
+            if (badge) {
+                badge.innerText = data.cart_count;
+                badge.style.display = data.cart_count > 0 ? 'block' : 'none';
+            }
+        } else {
+            alert(data.message || "Error adding to cart");
         }
-        // ... (rest of the code) ...
     } catch (error) {
         console.error('Error:', error);
+        window.location.href = "{% url 'login' %}";
     }
 }
 </script>

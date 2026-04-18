@@ -1,87 +1,197 @@
 {% extends 'products/base.html' %}
 {% block content %}
 <style>
-    .product-container { background: white; padding: 40px; border-radius: 15px; margin-top: 20px; }
-    .main-img-container { width: 100%; aspect-ratio: 1/1; cursor: zoom-in; overflow: hidden; border-radius: 8px; border: 1px solid #f0f0f0; }
-    .main-img-container img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .price-box { background: #fbfbfb; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #f2f2f2; }
-    .price-text { color: #8d5e4a; font-size: 2.2rem; font-weight: 800; }
-    
-    .info-row { display: flex; align-items: flex-start; margin-bottom: 20px; font-size: 0.9rem; }
-    .info-label { width: 150px; color: #757575; font-weight: 500; flex-shrink: 0; }
-    .info-value { color: #333; }
+    :root { 
+        --bicol-green: #5f9e40; 
+        --bicol-brown: #8d5e4a; 
+        --text-brown: #5d3a2d; 
+        --light-grey: #eee; 
+    }
 
-    .qty-input { width: 60px; text-align: center; border: 1px solid #ddd; outline: none; height: 35px; }
-    .btn-qty { background: white; border: 1px solid #ddd; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; color: #555; }
+    /* MATCHED TO CATEGORY_DETAIL */
+    .product-detail-wrapper { 
+        max-width: 1400px; 
+        margin: 30px auto 100px; 
+        padding: 0 60px; 
+    }
+
+    /* 1. Breadcrumbs */
+    .breadcrumb-nav { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        color: #555; 
+        letter-spacing: 1.5px; 
+        text-transform: uppercase;
+        margin-bottom: 40px;
+    }
+    .breadcrumb-nav span { margin: 0 10px; color: #ddd; font-weight: 400; }
+    .breadcrumb-active { color: #ccc; font-weight: 400; }
+
+    /* Left Side: Product Frame */
+    .detail-image-box {
+        width: 100%;
+        aspect-ratio: 1/1;
+        border: 1.5px solid var(--bicol-brown);
+        border-radius: 20px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        overflow: hidden;
+        cursor: zoom-in;
+        transition: 0.3s;
+    }
+    .detail-image-box img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Right Side: Content */
+    .detail-content { padding-left: 20px; text-align: left; }
+    .detail-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+    .detail-title { color: var(--bicol-green); font-weight: 900; font-size: 2.8rem; text-transform: lowercase; margin: 0; letter-spacing: -1.5px; }
+    .detail-price { color: var(--bicol-green); font-weight: 900; font-size: 2.8rem; margin: 0; }
+    .detail-cat-name { color: #a8948d; font-size: 1.4rem; font-weight: 500; text-transform: lowercase; margin-bottom: 25px; }
+    .sep-line { border: none; border-top: 2px solid var(--light-grey); margin: 25px 0; }
+    .section-head { font-weight: 800; color: var(--text-brown); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .section-body { font-size: 0.95rem; color: #888; line-height: 1.6; margin-bottom: 30px; }
+
+    /* Quantity Selector & THE FIX for grey arrows */
+    .qty-row { display: flex; align-items: center; justify-content: space-between; margin-top: 40px; }
+    .qty-label { font-weight: 800; color: var(--text-brown); font-size: 0.85rem; text-transform: uppercase; }
+    .qty-controls { display: flex; align-items: center; border: 1px solid var(--light-grey); border-radius: 25px; overflow: hidden; background: white; }
+    .qty-btn { background: none; border: none; padding: 5px 15px; color: #ccc; font-size: 1.2rem; transition: 0.2s; }
+    .qty-btn:hover { color: var(--bicol-green); }
     
-    .btn-cart { background: rgba(141, 94, 74, 0.1); border: 1.5px solid #8d5e4a; color: #8d5e4a; padding: 12px 30px; transition: 0.3s; width: 220px; }
-    .btn-buy { background: #8d5e4a; color: white; padding: 12px 80px; border: none; transition: 0.3s; border-radius: 4px; }
-    .btn-buy:hover { opacity: 0.9; transform: translateY(-2px); }
+    /* THE FIX: Remove browser default arrows (spinners) */
+    .qty-val { width: 40px; text-align: center; font-weight: bold; color: var(--text-brown); border: none; outline: none; }
+    .qty-val::-webkit-inner-spin-button, 
+    .qty-val::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    .qty-val[type=number] { -moz-appearance: textfield; } /* Firefox */
+
+    .stock-info { font-style: italic; color: #ccc; font-size: 0.85rem; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 15px; margin-top: 25px; }
+    .btn-base { flex: 1; padding: 16px; border-radius: 15px; font-weight: 800; font-size: 1.3rem; transition: 0.3s; border: none; }
+    .btn-add-bag { background: transparent; border: 2px solid var(--bicol-brown); color: var(--bicol-brown); }
+    .btn-add-bag:hover { background: rgba(141, 94, 74, 0.05); }
+    .btn-buy-now { background-color: var(--bicol-brown); color: white; }
+    .btn-buy-now:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    /* Review Card Styling */
+    .review-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 20px; padding: 30px; margin-bottom: 25px; transition: 0.3s; }
+    .reviewer-avatar { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--light-green); }
+    .reviewer-initials { width: 55px; height: 55px; border-radius: 50%; background: var(--light-green); color: var(--bicol-green); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
+    .review-stars { color: #ffc107; font-size: 0.85rem; margin-top: 3px; }
+    .review-img-thumb { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; cursor: pointer; border: 1px solid #eee; margin-top: 15px; }
 </style>
 
-<div class="container mt-4 mb-5">
-    <div class="product-container shadow-sm">
-        <div class="row g-5">
-            <div class="col-md-5">
-                <div class="main-img-container shadow-sm" onclick="openLightbox('{{ product.image.url }}', '{{ product.title }}')">
-                    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.title }}">{% endif %}
-                </div>
-                <p class="text-center small text-muted mt-3"><i class="fas fa-search-plus"></i> Click to view full image</p>
+<div class="product-detail-wrapper">
+    <!-- BREADCRUMBS -->
+    <div class="breadcrumb-nav text-start">
+        <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a>
+        <span> > </span> CATEGORIES
+        <span> > </span> 
+        <a href="{% url 'category_detail' product.category.category_id %}" style="color: inherit; text-decoration: none;">
+            {{ product.category.category_name|upper }}
+        </a>
+        <span> > </span> 
+        <span class="breadcrumb-active">{{ product.title|upper }}</span>
+    </div>
+
+    <div class="row g-5 align-items-start">
+        <!-- LEFT: IMAGE BOX -->
+        <div class="col-md-6">
+            <div class="detail-image-box shadow-sm" onclick="openLightbox('{{ product.image.url }}', '{{ product.title }}')">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.title }}">
+                {% endif %}
+            </div>
+            <p class="text-center small text-muted mt-3">
+                <i class="fas fa-search-plus me-1"></i> Click to view full image
+            </p>
+        </div>
+
+        <!-- RIGHT: PRODUCT INFO -->
+        <div class="col-md-6 detail-content">
+            <div class="detail-header-row">
+                <h1 class="detail-title">{{ product.title }}</h1>
+                <div class="detail-price">₱{{ product.price|floatformat:0 }}</div>
+            </div>
+            <div class="detail-cat-name">{{ product.category.category_name }}</div>
+
+            <hr class="sep-line">
+
+            <div class="section-head">Description</div>
+            <div class="section-body">{{ product.description|default:"No description provided." }}</div>
+
+            <div class="section-head">Artist</div>
+            <div class="section-body">
+                <a href="{% url 'artist_detail' product.artist.artist_id %}" style="color: var(--text-brown); text-decoration: underline;">
+                    {{ product.artist.artist_name }}
+                </a>.
+                {{ product.artist.artist_description|truncatewords:30|default:"Verified Local Artist" }}
             </div>
 
-            <div class="col-md-7">
-                <h2 class="fw-bold mb-3" style="color: #333;">{{ product.title }}</h2>
-                <div class="price-box shadow-sm"><span class="price-text">₱{{ product.price }}</span></div>
+            <hr class="sep-line" style="border-top-style: dashed;">
 
-                <div class="info-row">
-                    <div class="info-label">Shipping</div>
-                    <div class="info-value">
-                        <div class="mb-1"><i class="fas fa-truck text-success me-2"></i> Shipping Fee: <b>₱60.00</b></div>
-                        <div class="text-muted small"><i class="far fa-clock me-2"></i> Estimated Delivery: 2 - 4 Days (Bicol Region)</div>
+            <form action="{% url 'add_to_cart' product.prod_id %}" method="POST" id="addToCartForm">
+                {% csrf_token %}
+                <div class="qty-row">
+                    <div class="qty-label">Quantity</div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="qty-controls">
+                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepDown()">-</button>
+                            <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_qty }}" class="qty-val" readonly>
+                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepUp()">+</button>
+                        </div>
+                        <div class="stock-info">{{ product.stock_qty }} units left</div>
                     </div>
                 </div>
 
-                <div class="info-row">
-                    <div class="info-label">Payment</div>
-                    <div class="info-value"><span class="badge border text-muted fw-normal me-2">Cash on Delivery</span><span class="badge border text-muted fw-normal">GCash</span></div>
+                <div class="btn-row">
+                    <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn-base btn-add-bag shadow-sm">
+                        Add to bag
+                    </button>
+                    <button type="submit" name="submit_type" value="buy_now" class="btn-base btn-buy-now shadow-sm">
+                        Buy Now
+                    </button>
                 </div>
+            </form>
+        </div>
+    </div>
 
-                <div class="info-row">
-                    <div class="info-label">Artist</div>
-                    <div class="info-value fw-bold" style="color: #5f9e40;">{{ product.artist.artist_name }}</div>
-                </div>
-
-                <form action="{% url 'add_to_cart' product.prod_id %}" method="POST">
-                    {% csrf_token %}
-                    <!-- BUY NOW ISOLATION FLAG -->
-                    <input type="hidden" name="buy_now_mode" id="buyNowMode" value="false">
-
-                    <div class="info-row align-items-center mt-4">
-                        <div class="info-label">Quantity</div>
-                        <div class="info-value d-flex align-items-center">
-                            <div class="d-flex">
-                                <button type="button" class="btn-qty" onclick="this.parentNode.querySelector('input').stepDown()">-</button>
-                                <!-- FIXED: Changed stock.stock_quantity to stock_qty -->
-                                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_qty }}" class="qty-input">
-                                <button type="button" class="btn-qty" onclick="this.parentNode.querySelector('input').stepUp()">+</button>
-                            </div>
-                            <span class="ms-3 text-muted small">{{ product.stock_qty }} pieces available</span>
+    <!-- REVIEWS SECTION -->
+    <div class="mt-5 pt-5">
+        <h3 class="fw-bold mb-4 text-start" style="color: var(--text-brown);">Customer Reviews ({{ reviews.count }})</h3>
+        {% for r in reviews %}
+        <div class="review-card shadow-sm text-start">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                    {% with addr=r.user.address_set.first %}
+                        {% if addr and addr.profile_pix %}
+                            <img src="{{ addr.profile_pix.url }}" class="reviewer-avatar me-3 shadow-sm">
+                        {% else %}
+                            <div class="reviewer-initials me-3 shadow-sm">{{ r.user.first_name|slice:":1" }}</div>
+                        {% endif %}
+                    {% endwith %}
+                    <div>
+                        <div class="fw-bold text-dark">{{ r.user.get_full_name|default:r.user.username }}</div>
+                        <div class="review-stars">
+                            {% for i in "12345" %}<i class="{% if forloop.counter <= r.rating %}fas{% else %}far{% endif %} fa-star"></i>{% endfor %}
                         </div>
                     </div>
-
-                    <div class="d-flex gap-3 mt-5">
-                        <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn btn-cart fw-bold">
-                            <i class="fas fa-cart-plus me-2"></i> ADD TO CART
-                        </button>
-                        
-                        <button type="submit" onclick="document.getElementById('buyNowMode').value='true'" class="btn btn-buy fw-bold">
-                            BUY NOW
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
+            <div class="review-text mt-3">{{ r.description }}</div>
+            {% if r.image %}<img src="{{ r.image.url }}" class="review-img-thumb shadow-sm mt-2" onclick="openLightbox('{{ r.image.url }}', 'Review Photo')">{% endif %}
+            <span class="text-muted small mt-3 d-block">Posted on {{ r.date_created|date:"F d, Y" }}</span>
         </div>
+        {% empty %}
+        <div class="text-center py-5 opacity-25"><i class="far fa-comments fa-4x mb-3"></i><p class="fw-bold">No reviews yet.</p></div>
+        {% endfor %}
     </div>
 </div>
 
@@ -89,8 +199,8 @@
 <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="background:transparent; border:none;">
-            <div class="modal-body text-center">
-                <img src="" id="lightboxImg" style="max-height:85vh; max-width:100%; object-fit:contain;">
+            <div class="modal-body text-center p-0">
+                <img src="" id="lightboxImg" style="max-height:85vh; max-width:100%; object-fit:contain; border-radius: 15px;">
                 <h4 id="lightboxTitle" class="text-white mt-3 fw-bold"></h4>
             </div>
         </div>
@@ -98,43 +208,10 @@
 </div>
 
 <script>
-    // LIGHTBOX LOGIC
     function openLightbox(imgUrl, title) {
         document.getElementById('lightboxImg').src = imgUrl;
         document.getElementById('lightboxTitle').innerText = title;
         new bootstrap.Modal(document.getElementById('lightboxModal')).show();
-    }
-
-    // RESTORED ANIMATION & AJAX LOGIC
-    function handleAddToCart(event, productId) {
-        event.preventDefault();
-        const form = event.target.closest('form');
-        const formData = new FormData(form);
-
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': formData.get('csrf_token')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // UPDATE CART COUNT ANIMATION
-                const cartBadge = document.querySelector('.cart-count-badge');
-                if (cartBadge) {
-                    cartBadge.innerText = data.cart_count;
-                    cartBadge.classList.add('bump-animation'); // Your custom animation class
-                    setTimeout(() => cartBadge.classList.remove('bump-animation'), 300);
-                }
-                
-                // SHOW SUCCESS MESSAGE (Your original animation)
-                alert(data.message); // Replace this with your custom toast/popup animation
-            }
-        })
-        .catch(error => console.error('Error:', error));
     }
 </script>
 {% endblock %}

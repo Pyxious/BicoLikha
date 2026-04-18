@@ -1,55 +1,154 @@
 {% extends 'products/base.html' %}
+
 {% block content %}
-<div class="container mt-5 mb-5 text-start">
-    <div class="row g-5">
-        <!-- Sidebar: Artist Bio -->
-        <div class="col-md-4">
-            <div class="p-4 shadow-sm border rounded-4 bg-white sticky-top" style="top: 100px;">
-                <div class="text-center mb-4">
-                    {% if address.profile_pix %}
-                        <img src="{{ address.profile_pix.url }}" class="rounded-circle shadow" style="width: 150px; height: 150px; object-fit: cover; border: 5px solid #e9fcd9;">
-                    {% else %}
-                        <div class="rounded-circle bg-secondary mx-auto d-flex align-items-center justify-content-center text-white" style="width: 150px; height: 150px; font-size: 3rem;">
-                            {{ artist.artist_name|slice:":1" }}
-                        </div>
-                    {% endif %}
-                    <h3 class="fw-bold mt-3" style="color: #5d3a2d;">{{ artist.artist_name }}</h3>
-                    <span class="badge bg-success-subtle text-success rounded-pill px-3">VERIFIED ARTIST</span>
-                </div>
-                
-                <h6 class="fw-bold text-muted small text-uppercase">About the Artist</h6>
-                <p class="text-muted small">{{ artist.artist_description|default:"No biography available." }}</p>
-                
-                <hr>
-                <div class="small">
-                    <p class="mb-1"><i class="fas fa-map-marker-alt me-2 text-success"></i> {{ artist.artist_municipality }}</p>
-                    <p class="mb-0"><i class="fas fa-palette me-2 text-success"></i> {{ artworks.count }} Artworks Created</p>
-                </div>
+<style>
+    /* Background and Layout */
+    .artist-detail-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 85vh;
+        gap: 50px;
+        padding: 40px;
+    }
+
+    /* Large Navigation Arrows */
+    .nav-arrow-link {
+        font-size: 5rem;
+        color: #5f9e40; /* Mockup Green */
+        text-decoration: none;
+        transition: 0.3s;
+        opacity: 0.8;
+    }
+    .nav-arrow-link:hover { transform: scale(1.2); opacity: 1; color: #8d5e4a; }
+
+    /* The Main Card */
+    .artist-card-container {
+        width: 1000px;
+        height: 550px;
+        display: flex;
+        border: 2.5px solid #8d5e4a;
+        border-radius: 50px; /* Matching the deep roundness */
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    }
+
+    /* LEFT SIDE (Green) */
+    .card-panel-left {
+        flex: 1;
+        background-color: #e9fcd9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-right: 2.5px solid #8d5e4a;
+    }
+
+    .artist-circle {
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: #5f9e40;
+        border: 4px solid #8d5e4a;
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    .artist-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+    .artist-display-name {
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #5d3a2d;
+        letter-spacing: -2px;
+    }
+
+    /* RIGHT SIDE (Grey) */
+    .card-panel-right {
+        flex: 1.6;
+        padding: 60px;
+        background: #e6e6e6; /* Mockup Grey */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: left;
+    }
+
+    .meta-label {
+        font-weight: 800;
+        color: #8d5e4a;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .bio-paragraph {
+        font-size: 1.05rem;
+        color: #444;
+        line-height: 1.6;
+        margin-bottom: 45px;
+    }
+
+    /* Thumbnail Grid */
+    .featured-thumbs-row {
+        display: flex;
+        gap: 15px;
+    }
+    .thumb-item {
+        width: 75px;
+        height: 75px;
+        background: white;
+        border-radius: 12px;
+        border: 1.5px solid #ccc;
+        padding: 5px;
+        transition: 0.2s;
+    }
+    .thumb-item:hover { transform: translateY(-5px); border-color: #8d5e4a; }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+</style>
+
+<div class="artist-detail-wrapper">
+    <!-- PREVIOUS ARTIST -->
+    <a href="{% url 'artist_detail' prev_id %}" class="nav-arrow-link">
+        <i class="fas fa-caret-left"></i>
+    </a>
+
+    <!-- MAIN SPLIT CARD -->
+    <div class="artist-card-container">
+        <!-- LEFT PANEL -->
+        <div class="card-panel-left">
+            <div class="artist-circle shadow-sm">
+                {% if address.profile_pix %}
+                    <img src="{{ address.profile_pix.url }}" alt="{{ artist.artist_name }}">
+                {% endif %}
             </div>
+            <div class="artist-display-name">{{ artist.artist_name|lower }}</div>
         </div>
 
-        <!-- Main Content: Artworks -->
-        <div class="col-md-8">
-            <h2 class="fw-bold mb-4" style="color: #5d3a2d;">Featured Artworks</h2>
-            <div class="row g-4">
+        <!-- RIGHT PANEL -->
+        <div class="card-panel-right">
+            <div class="meta-label">About the Artist</div>
+            <p class="bio-paragraph">
+                {{ artist.artist_description|default:"No bio available." }}
+            </p>
+
+            <div class="meta-label">Featured Products</div>
+            <div class="featured-thumbs-row">
                 {% for art in artworks %}
-                <div class="col-md-6">
-                    <a href="{% url 'product_detail' art.prod_id %}" class="text-decoration-none">
-                        <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
-                            <img src="{{ art.image.url }}" class="card-img-top" style="height: 250px; object-fit: cover;">
-                            <div class="card-body">
-                                <h6 class="fw-bold text-dark mb-1">{{ art.title }}</h6>
-                                <p class="text-muted small mb-2">{{ art.category.category_name }}</p>
-                                <div class="fw-bold fs-5" style="color: #8d5e4a;">₱{{ art.price }}</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                <a href="{% url 'product_detail' art.prod_id %}" class="thumb-item shadow-sm">
+                    <img src="{{ art.image.url }}">
+                </a>
                 {% empty %}
-                <p class="text-center py-5 text-muted">This artist hasn't uploaded any products yet.</p>
+                <span class="small text-muted">No products yet.</span>
                 {% endfor %}
             </div>
         </div>
     </div>
+
+    <!-- NEXT ARTIST -->
+    <a href="{% url 'artist_detail' next_id %}" class="nav-arrow-link">
+        <i class="fas fa-caret-right"></i>
+    </a>
 </div>
 {% endblock %}

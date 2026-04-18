@@ -2,52 +2,36 @@
 
 {% block content %}
 <style>
-    /* Layout and Typography */
     .checkout-wrapper { max-width: 1200px; margin: 20px auto 100px; color: #5d3a2d; font-family: 'Inter', sans-serif; }
     .checkout-title { font-weight: 800; font-size: 2.5rem; text-transform: lowercase; margin-bottom: 5px; }
     .dashed-sep { border: none; border-top: 2.5px dashed #8d5e4a; margin: 30px 0; opacity: 0.4; }
-    
     .breadcrumb-text { font-weight: 700; font-size: 0.85rem; color: #8d5e4a; letter-spacing: 1px; margin-bottom: 30px; }
     .breadcrumb-text span { color: #ccc; margin: 0 10px; font-weight: 400; }
 
-    /* Left Side - Info Boxes */
     .info-box { border: 1px solid #e0e0e0; border-radius: 10px; background: white; margin-bottom: 40px; overflow: hidden; }
     .info-row { display: flex; padding: 15px 25px; border-bottom: 1px solid #f2f2f2; align-items: center; font-size: 0.9rem; }
     .info-row:last-child { border-bottom: none; }
     .info-label { width: 120px; color: #999; flex-shrink: 0; }
     .info-value { flex-grow: 1; color: #333; }
-    .change-link { color: #0055ff; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .change-link { color: #0055ff; text-decoration: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
 
-    .payment-title { font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 5px; }
-    .payment-sub { font-size: 0.75rem; color: #999; margin-bottom: 20px; }
-
-    /* Right Side - Order Summary */
     .summary-card { border: 1px solid #e0e0e0; border-radius: 20px; background: white; padding: 30px; position: sticky; top: 20px; }
-    .summary-title { font-weight: 800; font-size: 0.9rem; color: #8d5e4a; margin-bottom: 20px; letter-spacing: 0.5px; }
-    
-    /* Grouped by Artist */
-    .artist-group-header { font-size: 0.7rem; font-weight: 800; color: #ccc; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .summary-title { font-weight: 800; font-size: 0.9rem; color: #8d5e4a; margin-bottom: 20px; }
     
     .checkout-item { display: flex; align-items: center; margin-bottom: 20px; position: relative; }
-    .checkout-img { width: 60px; height: 60px; background: #e6e6e6; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-    .qty-badge { 
-        position: absolute; top: -5px; left: 50px; 
-        background: #5d3a2d; color: white; border-radius: 50%; 
-        width: 20px; height: 20px; font-size: 0.7rem; 
-        display: flex; align-items: center; justify-content: center; font-weight: bold;
-    }
+    .checkout-img { width: 60px; height: 60px; background: #e6e6e6; border-radius: 12px; object-fit: cover; }
+    .qty-badge { position: absolute; top: -5px; left: 50px; background: #5d3a2d; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; }
     .item-details { flex-grow: 1; padding-left: 20px; }
-    .item-name { font-weight: 700; font-size: 0.85rem; color: #333; }
-    .item-cat { font-size: 0.75rem; color: #999; }
-    .item-price { font-weight: 600; font-size: 0.9rem; color: #333; }
-
-    .btn-place-order { 
-        background: #8d5e4a; color: white; border: none; width: 100%; 
-        padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px;
-    }
+    
+    .btn-place-order { background: #8d5e4a; color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; }
+    
+    /* Address Modal Styling */
+    .address-option { transition: 0.2s; border-radius: 10px; margin-bottom: 10px; border: 1.5px solid #eee !important; }
+    .address-option:hover { background: #fdfcfb; border-color: #8d5e4a !important; }
+    .address-option.selected { border-color: #8d5e4a !important; background: #fff9f6; }
 </style>
 
-<div class="checkout-wrapper">
+<div class="checkout-wrapper text-start">
     <h1 class="checkout-title">checkout</h1>
     <hr class="dashed-sep">
 
@@ -56,113 +40,133 @@
     <div class="row g-5">
         <!-- LEFT COLUMN -->
         <div class="col-md-7">
-            <div class="info-box">
+            <div class="info-box shadow-sm">
+                <!-- CONTACT: Static (tied to selected address) -->
                 <div class="info-row">
                     <div class="info-label">Contact</div>
-                    <!-- FIXED: Using user object and address phone -->
-                    <div class="info-value">{{ user.first_name }} {{ user.last_name }} (+63) {{ address.phone_num }}</div>
-                    <a href="{% url 'profile' %}" class="change-link">Change</a>
+                    <div class="info-value" id="contact-display">{{ user.get_full_name }} | (+63) {{ selected_address.phone_num }}</div>
+                    <div style="width: 50px;"></div>
+                </div>
+
+                <!-- SHIP TO: Modal Trigger -->
+                <div class="info-row">
+                    <div class="info-label">Ship to</div>
+                    <div class="info-value" id="address-display">
+                        {{ selected_address.street }}, {{ selected_address.brgy }}, {{ selected_address.municipality }}
+                    </div>
+                    <a class="change-link" data-bs-toggle="modal" data-bs-target="#addressSelectModal">Change</a>
                 </div>
 
                 <div class="info-row">
-                    <div class="info-label">Ship to</div>
-                    <div class="info-value">
-                        {% if address %}
-                            {{ address.street }}, {{ address.brgy }}, {{ address.municipality }}, {{ address.zipcode }}
-                        {% else %}
-                            <span class="text-danger">No address found. <a href="{% url 'profile' %}">Add one here.</a></span>
-                        {% endif %}
-                    </div>
-                    <a href="{% url 'profile' %}" class="change-link">Change</a>
+                    <div class="info-label">Shipping</div>
+                    <div class="info-value">Standard Local • <b>₱{{ total_shipping|floatformat:2 }}</b></div>
                 </div>
-
-                <!-- Shipping Method Row -->
-                <<div class="info-row">
-    <div class="info-label">Shipping method</div>
-    <div class="info-value">
-        <span>Standard Local • </span>
-        <b style="color: #333;">₱{{ total_shipping|floatformat:2 }}</b>
-        
-        <!-- THE EXPLANATION: Shows how many artists are being shipped from -->
-        <span class="ms-2 text-muted" style="font-size: 0.8rem;">
-            ({{ artist_groups|length }} Artist{{ artist_groups|length|pluralize }} × ₱60.00)
-        </span>
-    </div>
-</div>
             </div>
 
-            <div class="payment-section">
-                <div class="payment-title">PAYMENT</div>
-                <div class="payment-sub">All transactions are secure and encrypted.</div>
-                
-                <div class="info-box">
-                    <div class="info-row">
-                        <div class="form-check w-100">
-                            <input class="form-check-input" type="radio" name="pay" id="cod" checked>
-                            <label class="form-check-label fw-bold ms-2" for="cod">Cash on Delivery</label>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="form-check w-100">
-                            <input class="form-check-input" type="radio" name="pay" id="card">
-                            <label class="form-check-label fw-bold ms-2" for="card">Credit/Debit Cards</label>
-                        </div>
+            <h6 class="fw-bold mb-3">PAYMENT METHOD</h6>
+            <div class="info-box shadow-sm">
+                <div class="info-row">
+                    <div class="form-check w-100">
+                        <input class="form-check-input" type="radio" name="pay" id="cod" checked>
+                        <label class="form-check-label fw-bold ms-2" for="cod">Cash on Delivery</label>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT COLUMN (ORDER SUMMARY) -->
+        <!-- RIGHT COLUMN (SUMMARY) -->
         <div class="col-md-5">
             <div class="summary-card shadow-sm">
                 <div class="summary-title">ORDER SUMMARY</div>
                 
                 {% for artist, data in artist_groups.items %}
-                    <div class="artist-group-header">Artist: {{ artist.artist_name }}</div>
-                    
+                    <div class="small fw-bold text-muted text-uppercase border-bottom pb-1 mb-3" style="font-size: 0.65rem;">Artist: {{ artist.artist_name }}</div>
                     {% for item in data.items %}
                     <div class="checkout-item">
                         <div class="position-relative">
                             <img src="{{ item.product.image.url }}" class="checkout-img">
-                            <!-- FIXED: Changed op_quantity to quantity -->
                             <span class="qty-badge">{{ item.quantity }}</span>
                         </div>
                         <div class="item-details">
-                            <div class="item-name">{{ item.product.title }}</div>
-                            <div class="item-cat">{{ item.product.category.category_name }}</div>
+                            <div class="item-name fw-bold small">{{ item.product.title }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">₱{{ item.product.price }}</div>
                         </div>
-                        <!-- FIXED: Using the get_subtotal property -->
-                        <div class="item-price">₱{{ item.get_subtotal|floatformat:2 }}</div>
+                        <div class="fw-bold small">₱{{ item.get_subtotal }}</div>
                     </div>
                     {% endfor %}
                 {% endfor %}
 
-                <hr class="my-4" style="opacity: 0.1;">
-                
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted small">Subtotal</span>
-                    <span class="fw-bold">₱{{ items_subtotal }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted small">Shipping Fee</span>
-                    <span class="fw-bold">₱{{ total_shipping }}</span>
-                </div>
-                
-                <div class="d-flex justify-content-between mt-4">
-                    <span class="fw-bold fs-5">Total</span>
-                    <span class="fw-bold fs-4" style="color: #8d5e4a;">₱{{ grand_total }}</span>
-                </div>
+                <hr class="my-4">
+                <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><span class="fw-bold">₱{{ items_subtotal }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Shipping</span><span class="fw-bold">₱{{ total_shipping }}</span></div>
+                <div class="d-flex justify-content-between mt-4 fs-5"><span class="fw-bold">Total</span><span class="fw-bold" style="color: #8d5e4a;">₱{{ grand_total }}</span></div>
 
+                <!-- MAIN FORM -->
                 <form action="{% url 'place_order' %}" method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-place-order shadow-sm">PLACE ORDER NOW</button>
-                </form>
+                {% csrf_token %}
+                <input type="hidden" name="selected_address_id" id="hidden_addr_id" value="{{ selected_address.address_id }}">
+                
+                <!-- ADD THESE TWO LINES -->
+                {% if is_buy_now %}
+                    <input type="hidden" name="buy_now_id" value="{{ buy_now_id }}">
+                    <input type="hidden" name="buy_now_qty" value="{{ buy_now_qty }}">
+                {% endif %}
+
+                <button type="submit" class="btn-place-order shadow-sm">PLACE ORDER NOW</button>
+            </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Decorative bottom block -->
-<div style="background-color: #5f9e40; height: 120px; width: 100%;"></div>
+<!-- ADDRESS SELECTION MODAL -->
+<div class="modal fade" id="addressSelectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Select Delivery Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3" style="max-height: 400px; overflow-y: auto;">
+                {% for addr in all_addresses %}
+                <div class="p-3 address-option {% if addr.address_id == selected_address.address_id %}selected{% endif %}" 
+                     id="addr-card-{{ addr.address_id }}"
+                     onclick="updateAddress('{{ addr.address_id }}', '{{ addr.street }}, {{ addr.brgy }}, {{ addr.municipality }}', '{{ addr.phone_num }}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="small">
+                            <div class="fw-bold">{{ user.get_full_name }} | (+63) {{ addr.phone_num }}</div>
+                            <div class="text-muted">{{ addr.street }}, {{ addr.brgy }}, {{ addr.municipality }}</div>
+                        </div>
+                        <div class="check-icon">
+                            <input type="radio" name="addr_radio" value="{{ addr.address_id }}" {% if addr.address_id == selected_address.address_id %}checked{% endif %} class="form-check-input">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="p-3">
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">Confirm Selection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateAddress(id, fullText, phone) {
+        // 1. Update Hidden Input
+        document.getElementById('selected_address_id').value = id;
+        
+        // 2. Update UI Displays
+        document.getElementById('address-display').innerText = fullText;
+        document.getElementById('contact-display').innerText = "{{ user.get_full_name }} | (+63) " + phone;
+        
+        // 3. Update Modal Selection Visuals
+        document.querySelectorAll('.address-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById('addr-card-' + id).classList.add('selected');
+        
+        // 4. Check the radio button
+        document.querySelector('input[name="addr_radio"][value="'+id+'"]').checked = true;
+    }
+</script>
 
 {% endblock %}

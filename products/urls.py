@@ -19,12 +19,18 @@ urlpatterns = [
     path('cart/update/<int:item_id>/<str:action>/', views.update_cart_quantity, name='update_cart_quantity'),
     path('place-order/', views.place_order, name='place_order'),
     path('cart/toggle/<int:item_id>/', views.toggle_cart_item, name='toggle_cart_item'),
-    
+    path('category/<int:cat_id>/', views.category_detail, name='category_detail'),
+
+
     path('product/<int:prod_id>/', views.product_detail, name='product_detail'),
     path('logout/customer/', views.logout_view, name='logout_view'),
 
     # --- Order ---
     path('order/cancel/<int:order_id>/', views.cancel_order, name='cancel_order'),
+    path('order/received/<int:order_id>/', views.confirm_order_received, name='confirm_order_received'),
+    path('submit-review/', views.submit_review, name='submit_review'),
+    path('review/edit/<int:review_id>/', views.edit_review, name='edit_review'),
+    path('review/delete/<int:review_id>/', views.delete_review, name='delete_review'),
    
 
 

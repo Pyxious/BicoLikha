@@ -1,0 +1,117 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --bicol-green: #5f9e40;
+        --theme-light-green: #e9fcd9;
+        --text-brown: #5d3a2d;
+        --nav-brown: #8d5e4a;
+    }
+
+    .cat-detail-wrapper { 
+        max-width: 1400px; 
+        margin: 30px auto 100px; 
+        padding: 0 60px; 
+        text-align: left; 
+    }
+    
+    /* Readable Breadcrumbs */
+    .breadcrumb-nav { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        color: #555; 
+        margin-bottom: 40px; 
+        letter-spacing: 1.5px; 
+        text-transform: uppercase;
+    }
+    .breadcrumb-nav span { margin: 0 10px; color: #ddd; font-weight: 400; }
+    .breadcrumb-active { color: #ccc; font-weight: 400; }
+
+    /* Wide Header */
+    .cat-header-container { 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+        margin-bottom: 60px;
+    }
+    .cat-title-main { 
+        color: var(--bicol-green); 
+        font-weight: 900; 
+        font-size: 4rem; 
+        text-transform: lowercase; 
+        margin: 0;
+        letter-spacing: -2px;
+    }
+
+    .nav-arrow-cat { 
+        font-size: 4.5rem; 
+        color: var(--bicol-green); 
+        text-decoration: none; 
+        transition: 0.3s; 
+    }
+    .nav-arrow-cat:hover { color: var(--nav-brown); transform: scale(1.1); }
+
+    /* PRODUCT GRID: Green Boxes */
+    .product-grid { 
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 35px; 
+    }
+    .product-card { text-decoration: none; color: inherit; display: block; }
+    
+    .img-frame { 
+        width: 100%; 
+        aspect-ratio: 1/1; 
+        background: var(--theme-light-green); 
+        border-radius: 6px; 
+        margin-bottom: 15px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        transition: 0.3s;
+    }
+    .product-card:hover .img-frame { transform: translateY(-8px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .img-frame img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Text info below box */
+    .prod-info-row { display: flex; justify-content: space-between; align-items: center; }
+    .prod-name { font-weight: 800; color: var(--text-brown); font-size: 1.05rem; }
+    .prod-price { font-weight: 800; color: var(--text-brown); font-size: 1.05rem; }
+    .prod-artist { color: #bbb; font-size: 0.85rem; font-weight: 600; display: block; margin-top: 2px; }
+</style>
+
+<div class="cat-detail-wrapper">
+    <div class="breadcrumb-nav">
+        <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a> 
+        <span> > </span> CATEGORIES 
+        <span> > </span> <span class="breadcrumb-active">{{ category.category_name|upper }}</span>
+    </div>
+
+    <div class="cat-header-container">
+        <a href="{% url 'category_detail' prev_id %}" class="nav-arrow-cat"><i class="fas fa-caret-left"></i></a>
+        <h1 class="cat-title-main">{{ category.category_name }}</h1>
+        <a href="{% url 'category_detail' next_id %}" class="nav-arrow-cat"><i class="fas fa-caret-right"></i></a>
+    </div>
+
+    <div class="product-grid">
+        {% for art in artworks %}
+        <a href="{% url 'product_detail' art.prod_id %}" class="product-card">
+            <div class="img-frame shadow-sm">
+                {% if art.image %}<img src="{{ art.image.url }}">{% endif %}
+            </div>
+            <div class="prod-info-row">
+                <span class="prod-name">{{ art.title }}</span>
+                <span class="prod-price">P{{ art.price|floatformat:0 }}</span>
+            </div>
+            <span class="prod-artist">{{ art.artist.artist_name }}</span>
+        </a>
+        {% empty %}
+        <div class="text-center py-5 w-100">No products found in this category.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div style="background-color: var(--bicol-green); height: 120px; width: 100%;"></div>
+{% endblock %}

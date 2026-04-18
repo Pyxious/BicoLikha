@@ -1,7 +1,7 @@
 {% extends 'products/base.html' %}
 
 {% block content %}
-<!-- 1. Leaflet Map CSS & JS -->
+<!-- Leaflet Map CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -32,22 +32,31 @@
     .btn-save-changes { background: #8d5e4a; color: white; border: none; padding: 10px 40px; border-radius: 25px; font-weight: 700; transition: 0.3s; }
     .btn-save-changes:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
 
-    /* Modal Styling */
-    .delivery-modal .modal-content { border-radius: 12px; border: none; padding: 0; overflow: hidden; }
-    .del-header { background: #8d5e4a; color: white; padding: 20px; }
-    .del-input-group { border: 1.5px solid #eee; border-radius: 8px; padding: 6px 15px; margin-bottom: 12px; background: white; }
-    .del-input-group label { display: block; font-size: 0.65rem; color: #bbb; font-weight: bold; text-transform: uppercase; margin-bottom: -2px; }
-    .del-input-group input { border: none; width: 100%; outline: none; font-size: 0.95rem; color: #333; background: transparent; padding: 2px 0; }
-    
-    #map { height: 300px; width: 100%; border-radius: 10px; border: 1px solid #ddd; }
+    /* Address Cards */
+    .address-display-box { transition: 0.2s; border: 1.5px solid #eee !important; margin-bottom: 15px; position: relative; }
+    .address-display-box:hover { border-color: #8d5e4a !important; }
 
-    /* Purchases & Messages Tabs */
+    /* Purchases Section */
     .purchase-tabs { display: flex; border-bottom: 1px solid #eee; background: white; position: sticky; top: -50px; z-index: 10; margin-bottom: 20px; }
     .p-tab { flex: 1; text-align: center; padding: 15px 5px; color: #333; text-decoration: none; font-size: 0.8rem; border-bottom: 2px solid transparent; }
     .p-tab.active { color: #8d5e4a; border-bottom: 2px solid #8d5e4a; font-weight: 700; }
-    .order-card { background: white; margin-bottom: 15px; border-radius: 8px; padding: 20px; border: 1px solid #f0f0f0; }
+    .order-card { background: white; margin-bottom: 20px; border-radius: 12px; padding: 25px; border: 1px solid #f0f0f0; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
 
-    .msg-card { border-left: 5px solid #8d5e4a !important; border-radius: 15px; margin-bottom: 15px; }
+    /* Action Buttons */
+    .btn-received { background: #5f9e40; color: white; border: none; font-weight: bold; transition: 0.3s; }
+    .btn-rate { border: 1.5px solid #8d5e4a; color: #8d5e4a; background: transparent; font-size: 0.75rem; font-weight: 700; padding: 5px 15px; border-radius: 8px; transition: 0.2s; }
+    .btn-rate:hover { background: #8d5e4a; color: white; }
+
+    /* Screenshot Modal Design */
+    .modal-content { border-radius: 20px; border: none; overflow: hidden; }
+    .del-header { background: #8d5e4a; color: white; padding: 20px; border-radius: 20px 20px 0 0; }
+    .del-input-group { border: 1.5px solid #f8f9fa; background: #f8f9fa; border-radius: 12px; padding: 8px 15px; margin-bottom: 12px; }
+    .del-input-group label { display: block; font-size: 0.65rem; color: #bbb; font-weight: bold; text-transform: uppercase; margin-bottom: -2px; }
+    .del-input-group input { border: none; width: 100%; outline: none; font-size: 0.95rem; color: #333; background: transparent; }
+    .map-container { height: 350px; width: 100%; border-radius: 15px; border: 1px solid #eee; }
+
+    /* Notifs */
+    .notif-unread { background-color: #fdfcfb !important; border-left: 4px solid #8d5e4a !important; }
 </style>
 
 <div class="container-fluid">
@@ -69,11 +78,14 @@
             <nav class="mt-5 w-100">
                 <a href="?tab=account" class="sidebar-link {% if active_tab == 'account' %}active{% endif %}"><i class="far fa-user"></i> My Account</a>
                 <a href="?tab=purchases" class="sidebar-link {% if active_tab == 'purchases' %}active{% endif %}"><i class="fas fa-shopping-bag"></i> My Purchases</a>
-                
+                <a href="?tab=notifications" class="sidebar-link {% if active_tab == 'notifications' %}active{% endif %}">
+                    <i class="far fa-bell"></i> Notifications
+                    {% if unread_count > 0 %}<span class="badge bg-danger ms-auto rounded-pill" style="font-size: 0.6rem; padding: 4px 8px;">{{ unread_count }}</span>{% endif %}
+                </a>
                 {% if is_artist %}
                 <a href="?tab=messages" class="sidebar-link {% if active_tab == 'messages' %}active{% endif %}">
-                    <i class="fas fa-envelope"></i> Artist Messages 
-                    <span class="badge bg-danger ms-auto rounded-pill" style="font-size: 0.6rem;">NEW</span>
+                    <i class="fas fa-envelope"></i> Artist Messages
+                    {% if unread_artist_count > 0 %}<span class="badge bg-danger ms-auto rounded-pill" style="font-size: 0.6rem;">NEW</span>{% endif %}
                 </a>
                 {% endif %}
             </nav>
@@ -87,7 +99,6 @@
         <!-- CONTENT AREA -->
         <div class="scroll-content">
             
-            <!-- TAB: ACCOUNT SETTINGS -->
             {% if active_tab == 'account' %}
                 <form method="POST" enctype="multipart/form-data" id="personalInfoForm">
                     {% csrf_token %}
@@ -99,32 +110,46 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 pe-lg-4 border-end text-start">
+                        <div class="col-md-5 pe-lg-4 border-end text-start">
                             <span class="form-section-title">PERSONAL INFORMATION</span>
                             <div class="mb-3"><label class="small fw-bold text-muted">First Name</label><input type="text" name="fname" id="id_fname" value="{{ user.first_name }}" class="bicol-input"></div>
                             <div class="mb-3"><label class="small text-muted fw-bold">Last Name</label><input type="text" name="lname" id="id_lname" value="{{ user.last_name }}" class="bicol-input"></div>
                             <div class="mb-3"><label class="small text-muted fw-bold">Email Address</label><input type="email" value="{{ user.email }}" class="bicol-input" readonly></div>
+                            <!-- RESTORED PHONE NUMBER -->
                             <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" value="{{ address.phone_num|default:'' }}" class="bicol-input" readonly></div>
                         </div>
 
-                        <div class="col-md-6 ps-lg-4 text-start">
-                            <span class="form-section-title">MY ADDRESSES</span>
-                            <div class="address-display-box shadow-sm border p-4 rounded-4">
-                                <div class="small">
-                                    <div class="fw-bold mb-1" style="color: #333;">{{ user.first_name }} {{ user.last_name }} | (+63) {{ address.phone_num }}</div>
-                                    <div class="text-muted mb-2">
-                                        {{ address.street|default:"No street details" }}, {{ address.brgy|default:"No Barangay" }}<br>
-                                        {{ address.municipality|default:"No City" }}, {{ address.zipcode|default:"" }}
-                                    </div>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Default</span>
-                                </div>
-                                <a href="#" class="fw-bold text-primary text-decoration-none small d-block mt-3" data-bs-toggle="modal" data-bs-target="#deliveryModal">Edit Details</a>
+                        <div class="col-md-7 ps-lg-4 text-start">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="form-section-title mb-0 border-0 p-0">MY ADDRESSES</span>
+                                <button type="button" class="btn btn-sm text-white rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addAddressModal" style="background:#8d5e4a; font-weight:700; font-size:0.7rem;">+ ADD NEW ADDRESS</button>
                             </div>
+
+                            {% for addr in all_addresses %}
+                            <div class="address-display-box shadow-sm p-4 rounded-4">
+                                <div class="small">
+                                    <div class="fw-bold mb-1" style="color: #333;">{{ user.get_full_name }} | (+63) {{ addr.phone_num }}</div>
+                                    <div class="text-muted mb-2">{{ addr.street }}, {{ addr.brgy }}<br>{{ addr.municipality }}, {{ addr.zipcode }}</div>
+                                    {% if addr.is_default %}<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Default</span>{% endif %}
+                                </div>
+                                <div class="d-flex gap-3 mt-3">
+                                    <a href="#" class="fw-bold text-primary text-decoration-none small" data-bs-toggle="modal" data-bs-target="#editAddressModal{{ addr.address_id }}">Edit Details</a>
+                                    <!-- DELETE ADDRESS BUTTON -->
+                                    {% if not addr.is_default %}
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete this address?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="address_id" value="{{ addr.address_id }}">
+                                    <!-- MUST HAVE name="delete_address" -->
+                                    <button type="submit" name="delete_address" class="btn p-0 text-danger fw-bold small border-0 bg-transparent">Delete</button>
+                                </form>
+                                {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </form>
 
-            <!-- TAB: PURCHASES -->
             {% elif active_tab == 'purchases' %}
                 <div class="purchase-tabs">
                     <a href="?tab=purchases&status=all" class="p-tab {% if status_tab == 'all' %}active{% endif %}">All</a>
@@ -134,112 +159,270 @@
                     <a href="?tab=purchases&status=completed" class="p-tab {% if status_tab == 'completed' %}active{% endif %}">Completed</a>
                     <a href="?tab=purchases&status=cancelled" class="p-tab {% if status_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
                 </div>
+
                 {% for order in orders %}
-                    <div class="order-card shadow-sm mb-3 text-start">
+                    <div class="order-card shadow-sm text-start">
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
                             <div class="fw-bold small text-muted">Order ID: #BK-{{ order.order_id }}</div>
-                            <div class="text-danger fw-bold small text-uppercase">{{ order.status }}</div>
+                            <div class="fw-bold small text-uppercase {% if order.status == 'Cancelled' %}text-danger{% else %}text-success{% endif %}">{{ order.status }}</div>
                         </div>
+                        
                         {% for item in order.items %}
                         <div class="d-flex align-items-center mb-3">
-                            <img src="{{ item.product.image.url }}" style="width:60px; height:60px; object-fit:cover;" class="rounded border me-3">
-                            <div class="flex-grow-1"><div class="fw-bold small">{{ item.product.title }}</div><div class="text-muted small">x{{ item.quantity }}</div></div>
+                            <img src="{{ item.product.image.url }}" style="width:60px; height:60px; object-fit:cover;" class="rounded border me-3 shadow-sm">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold small">{{ item.product.title }}</div>
+                                <div class="text-muted small">x{{ item.quantity }}</div>
+                                {% if order.status == 'Delivered' %}
+                                    {% if item.product.prod_id in reviewed_products %}
+                                        <button class="btn btn-sm btn-light mt-2 fw-bold text-muted border-0" disabled style="font-size:0.75rem;"><i class="fas fa-check-circle me-1"></i> RATED</button>
+                                    {% else %}
+                                        <button class="btn-rate mt-2" data-bs-toggle="modal" data-bs-target="#rateModal{{ item.id }}">Rate Item</button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                             <div class="fw-bold" style="color: #8d5e4a;">₱{{ item.subtotal }}</div>
                         </div>
                         {% endfor %}
+
                         <div class="text-end border-top pt-3 d-flex justify-content-between align-items-center">
-                            {% if order.status == 'Processing' or order.status == 'To Pay' %}
-                                <a href="{% url 'cancel_order' order.order_id %}" class="btn btn-sm btn-outline-danger px-4 rounded-pill" onclick="return confirm('Cancel this order?')">Cancel Order</a>
-                            {% else %}<div></div>{% endif %}
-                            <div><span class="text-muted small">Order Total: </span><span class="fs-5 fw-bold" style="color:#8d5e4a">₱{{ order.total_amount }}</span></div>
+                            <div>
+                                {% if order.status == 'Shipped' %}
+                                    <button class="btn btn-sm btn-received rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">ORDER RECEIVED</button>
+                                {% elif order.status == 'Processing' or order.status == 'To Pay' %}
+                                    <a href="{% url 'cancel_order' order.order_id %}" class="btn btn-sm btn-outline-danger px-4 rounded-pill" onclick="return confirm('Cancel this order?')">Cancel Order</a>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="text-muted small">Order Total: </span>
+                                <span class="fs-4 fw-bold" style="color:#8d5e4a">₱{{ order.total_amount }}</span>
+                            </div>
                         </div>
                     </div>
                 {% empty %}
-                    <div class="text-center py-5 opacity-50"><p>No orders found in this category.</p></div>
+                    <div class="text-center py-5 opacity-50"><p>No orders found here.</p></div>
                 {% endfor %}
 
-            <!-- TAB: ARTIST MESSAGES -->
-            {% elif active_tab == 'messages' %}
-                <h2 class="fw-bold mb-4 text-start" style="color: #5d3a2d;">Artist Dashboard Messages</h2>
-                {% for msg in artist_messages %}
-                <div class="card msg-card border-0 shadow-sm mb-3 text-start">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <span class="badge bg-brown-subtle text-brown mb-2 text-uppercase" style="font-size: 0.6rem; background: #f0ebe8; color: #8d5e4a;">FROM: {{ msg.sender_role }}</span>
-                                <h6 class="fw-bold mb-1">Update for Order #BK-{{ msg.order.order_id }}</h6>
-                                <p class="text-muted small mb-0">{{ msg.message_text }}</p>
+            {% elif active_tab == 'notifications' %}
+                <h2 class="fw-bold mb-4 text-start" style="color: #5d3a2d;">Notifications</h2>
+                {% for n in customer_notifications %}
+                <div class="card border-0 shadow-sm mb-3 text-start {% if not n.is_read %}notif-unread{% endif %}" style="border-radius: 15px;">
+                    <div class="card-body p-4 d-flex align-items-center">
+                        <div class="me-4"><div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="fas fa-info-circle fa-lg"></i></div></div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="fw-bold mb-1">Order #BK-{{ n.order.order_id }}</h6>
+                                <small class="text-muted">{{ n.timestamp|timesince }} ago</small>
                             </div>
-                            <div class="text-end ms-3" style="min-width: 150px;">
-                                <div class="small text-muted mb-3">{{ msg.timestamp|timesince }} ago</div>
-                                {% if msg.sender_role == 'Admin' %}
-                                <form method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="notif_id" value="{{ msg.id }}">
-                                    <input type="hidden" name="artist_update_status" value="1">
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" name="status_val" value="Items Prepared" class="btn btn-sm btn-outline-success rounded-pill px-3">Prepared</button>
-                                        <button type="submit" name="status_val" value="Ready for Pickup" class="btn btn-sm btn-success rounded-pill px-3">Ready for Pick Up</button>
-                                        <button type="submit" name="status_val" value="Item Picked Up" 
-                                            class="btn btn-sm btn-primary rounded-pill px-3">
-                                        <i class="fas fa-truck-loading me-1"></i> Picked Up
-                                        </button>
-                                    </div>
-                                </form>
-                                {% endif %}
-                            </div>
+                            <p class="mb-0 text-muted small">{{ n.message_text }}</p>
                         </div>
                     </div>
                 </div>
-                {% empty %}
-                <div class="text-center py-5 opacity-50"><p>No management notifications found.</p></div>
                 {% endfor %}
+
+            {% elif active_tab == 'messages' %}
+                <h2 class="fw-bold mb-4 text-start" style="color: #5d3a2d;">Artist Notifications</h2>
+
+{% for msg in artist_messages %}
+<div class="card border-0 shadow-sm mb-3 text-start" style="border-left: 5px solid #8d5e4a !important; border-radius: 15px;">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="flex-grow-1">
+                <span class="badge bg-light text-brown border small text-uppercase mb-2" style="font-size: 0.6rem;">Order Update</span>
+                <h6 class="fw-bold mb-1">Order #BK-{{ msg.order.order_id }}</h6>
+                <p class="text-muted small mb-0">{{ msg.message_text }}</p>
+            </div>
+
+            <div class="text-end ms-4">
+    <div class="small text-muted mb-3" style="font-size: 0.7rem;">{{ msg.timestamp|timesince }} ago</div>
+    
+    {% if msg.order.status == 'Delivered' %}
+        <!-- STAGE 4: Final Completed State -->
+        <div class="d-flex flex-column align-items-end">
+            <span class="badge bg-success rounded-pill px-3 py-2 mb-1" style="font-size: 0.75rem;">
+                <i class="fas fa-check-double me-1"></i> ITEM DELIVERED
+            </span>
+            <div class="fw-bold" style="color: #8d5e4a;">Earnings: ₱{{ msg.artist_subtotal|floatformat:2 }}</div>
+        </div>
+
+    {% elif msg.current_artist_status == 'Shipped!' %}
+        <!-- STAGE 3: Artist has shipped, waiting for customer -->
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2" style="font-size: 0.75rem;">
+            <i class="fas fa-truck me-1"></i> SHIPPED (WAITING FOR CUSTOMER)
+        </span>
+
+    {% else %}
+        <!-- ACTION BUTTONS -->
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="notif_id" value="{{ msg.id }}">
+            <input type="hidden" name="artist_update_status" value="1">
+            
+            <div class="d-flex gap-2">
+                <!-- Button 1: Waiting for Courier (Disable if already clicked) -->
+                {% if msg.current_artist_status == 'Waiting for Courier' %}
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3 text-muted border" disabled style="font-size: 0.7rem;">
+                        <i class="fas fa-clock me-1"></i> Waiting for Courier...
+                    </button>
+                {% else %}
+                    <button type="submit" name="status_val" value="Waiting for Courier" 
+                            class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">
+                        Waiting for Courier
+                    </button>
+                {% endif %}
+                
+                <!-- Button 2: Shipped! (Always active until clicked) -->
+                <button type="submit" name="status_val" value="Shipped!" 
+                        class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm" style="font-size: 0.7rem;">
+                    Shipped!
+                </button>
+            </div>
+        </form>
+    {% endif %}
+</div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="text-center py-5 opacity-50"><p>No notifications from management.</p></div>
+{% endfor %}
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- MODAL: DELIVERY -->
-<div class="modal fade delivery-modal" id="deliveryModal" tabindex="-1" aria-hidden="true">
+<!-- ================= MODALS ================= -->
+
+<!-- ADD ADDRESS MODAL -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content shadow-lg">
             <form method="POST">
                 {% csrf_token %}
-                <div class="del-header"><h5 class="mb-0 fw-bold">Edit Delivery Location</h5></div>
+                <div class="del-header"><h5 class="mb-0 fw-bold">Add Delivery Location</h5></div>
                 <div class="modal-body p-4 text-start">
                     <div class="row">
                         <div class="col-md-6 border-end pe-4">
                             <div class="row g-2">
-                                <div class="col-6"><div class="del-input-group bg-light"><label>First name</label><input type="text" name="fname" value="{{ user.first_name }}" readonly></div></div>
-                                <div class="col-6"><div class="del-input-group bg-light"><label>Last name</label><input type="text" name="lname" value="{{ user.last_name }}" readonly></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>First name</label><input type="text" value="{{ user.first_name }}" readonly></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>Last name</label><input type="text" value="{{ user.last_name }}" readonly></div></div>
                             </div>
-                            <div class="del-input-group"><label>House number, street, etc.</label><input type="text" name="st_name" value="{{ address.street|default:'' }}"></div>
-                            <div class="del-input-group"><label>Barangay</label><input type="text" name="brgy" value="{{ address.brgy|default:'' }}"></div>
+                            <div class="del-input-group"><label>House number, street, etc.</label><input type="text" name="st_name" required></div>
+                            <div class="del-input-group"><label>Barangay</label><input type="text" name="brgy" required></div>
                             <div class="row g-2">
-                                <div class="col-6"><div class="del-input-group"><label>City</label><input type="text" name="municipality" value="{{ address.municipality|default:'' }}"></div></div>
-                                <div class="col-6"><div class="del-input-group"><label>ZIP Code</label><input type="text" name="zipcode" value="{{ address.zipcode|default:'' }}"></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>City</label><input type="text" name="municipality" required></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>ZIP Code</label><input type="text" name="zipcode" required></div></div>
                             </div>
-                            <div class="del-input-group bg-light"><label>Phone</label><input type="text" name="phone" value="{{ address.phone_num|default:'' }}" readonly></div>
+                            <div class="del-input-group"><label>Phone</label><input type="text" name="phone" required></div>
                         </div>
                         <div class="col-md-6 ps-4">
                             <span class="small fw-bold text-muted mb-2 d-block">Pinpoint Location</span>
-                            <div id="map"></div>
-                            <input type="hidden" name="lat" id="lat_input" value="{{ address.latitude|default:13.1391 }}">
-                            <input type="hidden" name="lng" id="lng_input" value="{{ address.longitude|default:123.7438 }}">
+                            <div id="addMap" class="map-container"></div>
+                            <input type="hidden" name="lat" id="add_lat" value="13.1391">
+                            <input type="hidden" name="lng" id="add_lng" value="123.7438">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" name="update_address" class="btn text-white px-5" style="background:#8d5e4a; font-weight:bold;">Save Changes</button>
+                    <button type="button" class="btn btn-light border px-4 rounded-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="add_new_address" class="btn text-white px-5 rounded-3" style="background:#8d5e4a; font-weight:bold;">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- EDIT ADDRESS MODAL -->
+{% for addr in all_addresses %}
+<div class="modal fade" id="editAddressModal{{ addr.address_id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="address_id" value="{{ addr.address_id }}">
+                <div class="del-header"><h5 class="mb-0 fw-bold">Edit Delivery Location</h5></div>
+                <div class="modal-body p-4 text-start">
+                    <div class="row">
+                        <div class="col-md-6 border-end pe-4">
+                            <div class="row g-2">
+                                <div class="col-6"><div class="del-input-group"><label>First name</label><input type="text" value="{{ user.first_name }}" readonly></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>Last name</label><input type="text" value="{{ user.last_name }}" readonly></div></div>
+                            </div>
+                            <div class="del-input-group"><label>House number, street, etc.</label><input type="text" name="st_name" value="{{ addr.street }}"></div>
+                            <div class="del-input-group"><label>Barangay</label><input type="text" name="brgy" value="{{ addr.brgy }}"></div>
+                            <div class="row g-2">
+                                <div class="col-6"><div class="del-input-group"><label>City</label><input type="text" name="municipality" value="{{ addr.municipality }}"></div></div>
+                                <div class="col-6"><div class="del-input-group"><label>ZIP Code</label><input type="text" name="zipcode" value="{{ addr.zipcode }}"></div></div>
+                            </div>
+                            <div class="del-input-group"><label>Phone</label><input type="text" name="phone" value="{{ addr.phone_num }}"></div>
+                        </div>
+                        <div class="col-md-6 ps-4">
+                            <span class="small fw-bold text-muted mb-2 d-block">Pinpoint Location</span>
+                            <div id="editMap{{ addr.address_id }}" class="map-container" data-lat="{{ addr.latitude|default:13.1391 }}" data-lng="{{ addr.longitude|default:123.7438 }}"></div>
+                            <input type="hidden" name="lat" id="lat{{ addr.address_id }}" value="{{ addr.latitude|default:13.1391 }}">
+                            <input type="hidden" name="lng" id="lng{{ addr.address_id }}" value="{{ addr.longitude|default:123.7438 }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light border px-4 rounded-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="update_address" class="btn text-white px-5 rounded-3" style="background:#8d5e4a; font-weight:bold;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- RATE MODAL -->
+{% for order in orders %}{% for item in order.items %}
+<div class="modal fade" id="rateModal{{ item.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <form method="POST" action="{% url 'submit_review' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="product_id" value="{{ item.product.prod_id }}">
+                <div class="del-header"><h5 class="mb-0 fw-bold">Rate Product</h5></div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">RATING</label>
+                        <select name="rating" class="form-select border-0 bg-light" required>
+                            <option value="5">⭐⭐⭐⭐⭐</option><option value="4">⭐⭐⭐⭐</option><option value="3">⭐⭐⭐</option><option value="2">⭐⭐</option><option value="1">⭐</option>
+                        </select>
+                    </div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-muted">COMMENT</label><textarea name="description" class="form-control bg-light border-0" rows="3"></textarea></div>
+                    <div><label class="form-label small fw-bold text-muted">ADD PHOTO</label><input type="file" name="review_image" class="form-control bg-light border-0"></div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-5" style="background:#8d5e4a; font-weight:bold;">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}{% endfor %}
+
+<!-- CONFIRM ORDER RECEIVED -->
+{% for order in orders %}
+<div class="modal fade" id="confirmModal{{ order.order_id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="modal-body">
+                <i class="fas fa-box-open fa-4x text-success mb-4"></i>
+                <h4 class="fw-bold">Order Received?</h4>
+                <p class="text-muted small">Confirm you received Order #BK-{{ order.order_id }} in good condition.</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-light w-100 rounded-pill border" data-bs-dismiss="modal">Cancel</button>
+                    <a href="{% url 'confirm_order_received' order.order_id %}" class="btn btn-success w-100 rounded-pill fw-bold">Yes, Received</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 <script>
-    // 1. Photo preview logic
     function previewProfile(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
@@ -253,38 +436,28 @@
         }
     }
 
-    // 2. Button locking logic for personal info
-    const fnameInput = document.getElementById('id_fname');
-    const lnameInput = document.getElementById('id_lname');
-    const saveBtn = document.getElementById('saveChangesBtn');
-    if(fnameInput && lnameInput) {
-        const initialFname = fnameInput.value;
-        const initialLname = lnameInput.value;
-        function checkChanges() {
-            saveBtn.disabled = (fnameInput.value.trim() === initialFname && lnameInput.value.trim() === initialLname);
-        }
-        fnameInput.addEventListener('input', checkChanges);
-        lnameInput.addEventListener('input', checkChanges);
-    }
-
-    // 3. Map Initialization logic
-    var map;
-    var marker;
-    const deliveryModal = document.getElementById('deliveryModal');
-    deliveryModal.addEventListener('shown.bs.modal', function () {
-        const startLat = parseFloat(document.getElementById('lat_input').value) || 13.1391;
-        const startLng = parseFloat(document.getElementById('lng_input').value) || 123.7438;
-        if (!map) {
-            map = L.map('map').setView([startLat, startLng], 15);
+    document.addEventListener('shown.bs.modal', function (event) {
+        const modal = event.target;
+        const mapDiv = modal.querySelector('.map-container');
+        if (!mapDiv) return;
+        const isAdd = mapDiv.id === 'addMap';
+        const latInput = isAdd ? document.getElementById('add_lat') : modal.querySelector('input[name="lat"]');
+        const lngInput = isAdd ? document.getElementById('add_lng') : modal.querySelector('input[name="lng"]');
+        const sLat = parseFloat(latInput.value); const sLng = parseFloat(lngInput.value);
+        if (!mapDiv._leaflet_id) {
+            const map = L.map(mapDiv.id).setView([sLat, sLng], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            marker = L.marker([startLat, startLng], {draggable: true}).addTo(map);
-            marker.on('dragend', function(e) {
-                document.getElementById('lat_input').value = marker.getLatLng().lat.toFixed(6);
-                document.getElementById('lng_input').value = marker.getLatLng().lng.toFixed(6);
-            });
-        } else {
-            map.invalidateSize();
-        }
+            const marker = L.marker([sLat, sLng], {draggable: true}).addTo(map);
+            marker.on('dragend', function() { const p = marker.getLatLng(); latInput.value = p.lat.toFixed(6); lngInput.value = p.lng.toFixed(6); });
+            mapDiv._mapObj = map;
+        } else { mapDiv._mapObj.invalidateSize(); }
     });
+
+    const fInput = document.getElementById('id_fname'); const lInput = document.getElementById('id_lname'); const sBtn = document.getElementById('saveChangesBtn');
+    if(fInput && lInput) {
+        const iF = fInput.value; const iL = lInput.value;
+        function c() { sBtn.disabled = (fInput.value.trim() === iF && lInput.value.trim() === iL); }
+        fInput.addEventListener('input', c); lInput.addEventListener('input', c);
+    }
 </script>
-{% endblock %}
+{% endblock %}  

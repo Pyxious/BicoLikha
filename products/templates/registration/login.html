@@ -6,14 +6,7 @@
     <p class="small text-muted mb-4">Hi there! Sign in to access your bicolikha account for a better shopping experience.</p>
     
     <!-- NUMBER 2: DJANGO MESSAGES (Portal Security Errors) -->
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} border-0 small fw-bold mb-4 py-2" 
-                 style="border-radius: 10px; background-color: #fceaea; color: #c0392b; text-align: left;">
-                <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+    
 
     <form method="post">
         {% csrf_token %}

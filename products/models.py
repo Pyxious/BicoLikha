@@ -45,6 +45,7 @@ class Address(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, db_column='LATITUDE', null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, db_column='LONGITUDE', null=True)
     profile_pix = models.ImageField(upload_to='profile_pics/', db_column='PROFILE_PIX', null=True, blank=True)
+    is_default = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'address'
@@ -101,12 +102,23 @@ class Payment(models.Model):
     class Meta:
         db_table = 'payment'
 
+class Shipment(models.Model):
+    shipment_id = models.AutoField(primary_key=True, db_column='SHIPMENT_ID')
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, db_column='ADDRESS_ID')
+    shipment_date = models.DateField(null=True, blank=True, db_column='SHIPMENT_DATE')
+    shipment_company = models.CharField(max_length=100, null=True, blank=True, db_column='SHIPMENT_COMPANY', default="Bicol Express Courier")
+    shipment_status = models.CharField(max_length=50, db_column='SHIPMENT_STATUS', default='Pending')
+
+    class Meta:
+        db_table = 'shipment'
+
 class Order(models.Model):
     order_id = models.AutoField(primary_key=True, db_column='ORDER_ID')
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
     payment = models.OneToOneField(Payment, on_delete=models.SET_NULL, null=True, db_column='PAYMENT_ID')
-    # shipment_id is in SQL but model not created yet, using Integer for now
-    shipment_id = models.IntegerField(db_column='SHIPMENT_ID', null=True, unique=True)
+    # UPDATED: Link to the Shipment model instead of just an Integer
+    shipment = models.OneToOneField(Shipment, on_delete=models.SET_NULL, null=True, db_column='SHIPMENT_ID')
+    
     total_qty = models.IntegerField(db_column='ORDER_TOTAL_QUANTITY', null=True)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_DELIVERY_FEE', null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_TOTAL_AMOUNT', null=True)
@@ -151,11 +163,11 @@ class Notification(models.Model):
 
 class Review(models.Model):
     review_id = models.AutoField(primary_key=True, db_column='REVIEW_ID')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
-    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID', null=True)
-    rating = models.IntegerField(db_column='REVIEW_RATING', null=True)
-    description = models.TextField(db_column='REVIEW_DESCRIPTION', null=True)
-    image = models.CharField(max_length=255, db_column='REVIEW_IMAGE', null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID')
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID')
+    rating = models.IntegerField(db_column='REVIEW_RATING')
+    description = models.TextField(db_column='REVIEW_DESCRIPTION', null=True, blank=True)
+    image = models.ImageField(upload_to='reviews/', db_column='REVIEW_IMAGE', null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True, db_column='DATE_CREATED')
 
     class Meta:

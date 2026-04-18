@@ -2,70 +2,153 @@
 
 {% block management_content %}
 <style>
-    .clickable-row { cursor: pointer; transition: background 0.2s; }
-    .clickable-row:hover { background-color: rgba(141, 94, 74, 0.05) !important; }
-    .order-table-container { background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+    /* Table Styling to match Enterprise Design */
+    .orders-card { background: white; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
+    .table thead th { 
+        background-color: #fcfaf9; 
+        color: #8d7367; 
+        font-weight: 700; 
+        font-size: 0.72rem; 
+        text-transform: uppercase; 
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        letter-spacing: 0.5px;
+    }
+    .table tbody td { padding: 18px 20px; vertical-align: middle; border-bottom: 1px solid #f8f8f8; font-size: 0.85rem; }
     
-    /* Status Badge Styling */
-    .badge-status { font-size: 0.7rem; letter-spacing: 0.5px; border: 1px solid transparent; }
-    
-    .modal-section-title { font-weight: 800; color: #8d5e4a; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 15px; display: block; }
-    .btn-update-order { background: #8d5e4a; color: white; font-weight: 800; transition: 0.3s; }
-    .btn-update-order:hover { opacity: 0.9; transform: translateY(-1px); color: white; }
+    /* Text Hierarchy */
+    .main-text { font-weight: 700; color: #5d3a2d; display: block; margin-bottom: 1px; }
+    .sub-text { color: #999; font-size: 0.72rem; display: block; font-weight: 500; }
+    .total-text { font-weight: 700; color: #333; }
 
-    /* Notify Button Style */
-    .btn-notify { font-size: 0.65rem; font-weight: 700; border: 1px solid #8d5e4a; color: #8d5e4a; background: transparent; transition: 0.2s; }
-    .btn-notify:hover { background: #8d5e4a; color: white; }
+    /* Enterprise Status Pills */
+    .badge-pill { 
+        padding: 5px 14px; 
+        border-radius: 20px; 
+        font-weight: 700; 
+        font-size: 0.7rem; 
+        display: inline-block;
+        border: 1px solid transparent;
+        text-transform: capitalize;
+    }
+    .st-pending { background: #e5f3f3; color: #5a9696; border-color: #c9e3e3; }
+    .st-processing { background: #fff9e6; color: #b38f00; border-color: #fcebb6; }
+    .st-shipped { background: #f3e5ff; color: #9c27b0; border-color: #ebccff; }
+    .st-delivered { background: #eff7e9; color: #6a9d4a; border-color: #d4e8c4; }
+    .st-cancelled { background: #fdf0f0; color: #d35e5e; border-color: #f9d7d7; }
+
+    /* Payment Status Colors */
+    .pay-paid { color: #5f9e40; font-weight: 700; font-size: 0.8rem; }
+    .pay-pending { color: #2e86de; font-weight: 700; font-size: 0.8rem; }
+    .pay-unpaid { color: #eb4d4b; font-weight: 700; font-size: 0.8rem; }
+
+    /* Action Dropdown Button */
+    .btn-action { 
+        border: 1.5px solid #ddd; 
+        background: white; 
+        border-radius: 8px; 
+        padding: 6px 12px; 
+        color: #666; 
+        transition: 0.2s;
+        font-size: 0.8rem;
+    }
+    .btn-action:hover { background: #f8f9fa; border-color: #8d5e4a; color: #8d5e4a; }
+
+    .form-check-input { width: 17px; height: 17px; border: 1.5px solid #ccc; cursor: pointer; }
+
+    /* Search/Header adjustments */
+    .modal-section-title { font-weight: 800; color: #8d5e4a; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 15px; display: block; }
+    .btn-update-order { background: #8d5e4a; color: white; font-weight: 800; transition: 0.3s; }
 </style>
 
-<div class="mb-4">
-    <h2 class="fw-bold mb-0" style="color: var(--text-brown);">Order Management</h2>
-    <p class="text-muted small">Monitor transactions, track fulfillment, and update delivery statuses.</p>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="fw-bold mb-0" style="color: var(--sidebar-brown);">Order Management</h2>
+        <p class="text-muted small mb-0">Monitor transactions and update fulfillment status.</p>
+    </div>
 </div>
 
-<!-- ORDERS TABLE -->
-<div class="order-table-container shadow-sm">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="bg-light">
-            <tr class="small text-uppercase fw-bold text-muted">
-                <th class="ps-4 py-3">Order ID</th>
+<div class="orders-card shadow-sm mb-5">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th style="width: 40px;"><input type="checkbox" class="form-check-input"></th>
+                <th>Order #</th>
                 <th>Customer</th>
-                <th>Items</th>
-                <th>Total Amount</th>
+                <th>Item</th>
+                <th>Total</th>
                 <th>Status</th>
-                <th class="text-center">Action</th>
+                <th>Payment</th>
+                <th>Date</th>
+                <th class="text-end">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
-            <tr class="clickable-row" data-bs-toggle="modal" data-bs-target="#orderModal{{ order.order_id }}">
-                <td class="ps-4 fw-bold">#BK-{{ order.order_id }}</td>
+            <tr>
+                <td><input type="checkbox" class="form-check-input"></td>
+                
+                <!-- ORDER # & ID -->
                 <td>
-                    <div class="fw-bold">{{ order.user.get_full_name|default:order.user.username }}</div>
-                    <div class="small text-muted">{{ order.user.email }}</div>
+                    <span class="main-text" style="color: #8d5e4a;">ORD-{{ order.payment.timestamp|date:"Ymd" }}{{ order.order_id }}</span>
+                    <span class="sub-text">ID: {{ order.order_id }}</span>
                 </td>
-                <td><span class="badge bg-light text-dark border">{{ order.items.count }} items</span></td>
-                <td class="fw-bold text-danger">₱{{ order.total_amount }}</td>
+
+                <!-- CUSTOMER -->
                 <td>
-                    <span class="badge rounded-pill px-3 py-2 badge-status 
-                        {% if order.status == 'Delivered' %}bg-success-subtle text-success border-success-subtle
-                        {% elif order.status == 'Cancelled' %}bg-danger-subtle text-danger border-danger-subtle
-                        {% elif order.status == 'Shipped' %}bg-primary-subtle text-primary border-primary-subtle
-                        {% elif order.status == 'Processing' %}bg-info-subtle text-info border-info-subtle
-                        {% else %}bg-warning-subtle text-warning border-warning-subtle{% endif %}">
-                        {{ order.status|upper }}
+                    <span class="main-text">{{ order.user.get_full_name|default:order.user.username }}</span>
+                    <span class="sub-text">{{ order.user.email }}</span>
+                </td>
+
+                <!-- ITEM SUMMARY -->
+                <td>
+                    <span class="main-text">{{ order.items.count }} Items</span>
+                    <span class="sub-text text-truncate" style="max-width: 150px;">
+                        {% with first=order.items.first %}
+                            {{ first.product.title }}
+                            {% if order.items.count > 1 %}+ {{ order.items.count|add:"-1" }} more{% endif %}
+                        {% endwith %}
                     </span>
                 </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-dark rounded-pill px-3">View Details</button>
+
+                <!-- TOTAL -->
+                <td class="total-text">PHP {{ order.total_amount|floatformat:0 }}</td>
+
+                <!-- STATUS PILLS -->
+                <td>
+                    <span class="badge-pill 
+                        {% if order.status == 'Delivered' %}st-delivered
+                        {% elif order.status == 'Cancelled' %}st-cancelled
+                        {% elif order.status == 'Shipped' %}st-shipped
+                        {% elif order.status == 'Processing' %}st-processing
+                        {% else %}st-pending{% endif %}">
+                        {{ order.status }}
+                    </span>
+                </td>
+
+                <!-- PAYMENT STATUS -->
+                <td>
+                    <span class="{% if order.payment.status == 'Paid' %}pay-paid{% elif order.payment.status == 'Pending' %}pay-pending{% else %}pay-unpaid{% endif %}">
+                        {{ order.payment.status }}
+                    </span>
+                </td>
+
+                <!-- DATE -->
+                <td class="text-muted" style="font-size: 0.8rem;">{{ order.payment.timestamp|date:"Y-m-d" }}</td>
+
+                <!-- ACTIONS -->
+                <td class="text-end">
+                    <button class="btn-action shadow-sm" data-bs-toggle="modal" data-bs-target="#orderModal{{ order.order_id }}">
+                        <i class="fas fa-ellipsis-h me-1"></i>
+                        <i class="fas fa-chevron-down" style="font-size: 0.5rem;"></i>
+                    </button>
                 </td>
             </tr>
 
-            <!-- ORDER DETAIL MODAL -->
+            <!-- MODAL (INTEGRATED WITH YOUR PREVIOUS DESIGN) -->
             <div class="modal fade" id="orderModal{{ order.order_id }}" tabindex="-1">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-                        
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="order_id" value="{{ order.order_id }}">
@@ -77,7 +160,6 @@
 
                             <div class="modal-body p-4">
                                 <div class="row">
-                                    <!-- LEFT COLUMN: CUSTOMER INFO -->
                                     <div class="col-md-5 border-end pe-4">
                                         <h6 class="modal-section-title">CUSTOMER INFORMATION</h6>
                                         <p class="mb-1 small"><strong>User ID:</strong> {{ order.user.id }}</p>
@@ -100,43 +182,26 @@
                                         </select>
                                     </div>
                                     
-                                    <!-- RIGHT COLUMN: ORDERED ITEMS -->
                                     <div class="col-md-7 ps-4">
                                         <h6 class="modal-section-title">ORDERED ITEMS</h6>
-                                        <div style="max-height: 280px; overflow-y: auto; padding-right: 5px;">
+                                        <div style="max-height: 250px; overflow-y: auto;">
                                             {% for item in order.items %}
                                             <div class="d-flex align-items-center mb-3 p-2 border rounded-3 bg-light-subtle">
-                                                <!-- Product Image -->
                                                 {% if item.product.image %}
-                                                    <img src="{{ item.product.image.url }}" class="me-3 border shadow-sm" style="width:45px; height:45px; object-fit:cover; border-radius:8px;">
-                                                {% else %}
-                                                    <div class="me-3 border d-flex align-items-center justify-content-center bg-light" style="width:45px; height:45px; border-radius:8px;">
-                                                        <i class="fas fa-image text-muted small"></i>
-                                                    </div>
+                                                    <img src="{{ item.product.image.url }}" class="me-3 border" style="width:40px; height:40px; object-fit:cover; border-radius:6px;">
                                                 {% endif %}
-                                                
-                                                <!-- Product Details -->
                                                 <div class="flex-grow-1 overflow-hidden">
-                                                    <div class="fw-bold small text-truncate" title="{{ item.product.title }}">{{ item.product.title }}</div>
-                                                    <div class="text-muted" style="font-size: 0.65rem;">
-                                                        ₱{{ item.price }} x {{ item.quantity }} | <span class="text-dark fw-bold">₱{{ item.subtotal }}</span>
-                                                    </div>
+                                                    <div class="fw-bold small text-truncate">{{ item.product.title }}</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">₱{{ item.price }} x {{ item.quantity }} | <span class="text-dark fw-bold">₱{{ item.subtotal }}</span></div>
                                                 </div>
-                                                
-                                                <!-- NOTIFY ARTIST ACTION -->
                                                 <div class="ms-2">
-                                                    <a href="{% url 'notify_artist' order.order_id item.product.artist.artist_id %}" 
-                                                       class="btn btn-sm btn-notify rounded-pill px-2 py-1 shadow-sm">
-                                                       <i class="fas fa-paper-plane me-1"></i> Notify
-                                                    </a>
+                                                    <a href="{% url 'notify_artist' order.order_id item.product.artist.artist_id %}" class="btn btn-sm btn-notify rounded-pill px-2 py-1 shadow-sm" style="font-size: 0.6rem; border: 1px solid #8d5e4a; color: #8d5e4a;">Notify</a>
                                                 </div>
                                             </div>
                                             {% endfor %}
                                         </div>
-                                        
                                         <hr class="my-3">
-                                        
-                                        <div class="d-flex justify-content-between align-items-center px-2">
+                                        <div class="d-flex justify-content-between align-items-center">
                                             <span class="fw-bold text-muted small">GRAND TOTAL</span>
                                             <span class="fs-4 fw-bold" style="color: #8d5e4a;">₱{{ order.total_amount }}</span>
                                         </div>
@@ -146,9 +211,7 @@
 
                             <div class="modal-footer border-0 p-4 pt-0">
                                 <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" name="update_status" class="btn btn-update-order px-5 rounded-pill shadow-sm">
-                                    Update Order Status
-                                </button>
+                                <button type="submit" name="update_status" class="btn btn-update-order px-5 rounded-pill shadow-sm">Update Status</button>
                             </div>
                         </form>
                     </div>
