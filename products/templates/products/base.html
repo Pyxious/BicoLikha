@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,12 +74,26 @@
         .header-logo {
             font-size: 2.2rem;
             font-weight: 800;
-            color: var(--text-brown);
+            color: var(--nav-brown);
             text-decoration: none;
             letter-spacing: -1.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .header-logo:hover { color: var(--text-brown); }
+        .header-logo-icon {
+            width: 48px;
+            height: auto;
+            display: block;
+            flex-shrink: 0;
+        }
+        .header-logo-text {
             display: inline-block;
         }
-        .header-logo:hover { color: var(--nav-brown); }
 
         /* --- 4. Action Icons (Right Column) --- */
         .header-right a {
@@ -219,15 +234,18 @@
                 <div class="header-left">
                     <div class="search-wrapper">
                         <i class="fas fa-search search-icon"></i>
-                        <form action="#" method="GET">
-                            <input type="text" name="q" placeholder="Search..." class="search-input">
+                        <form action="{% url 'search_results' %}" method="GET">
+                            <input type="text" name="q" placeholder="Search artists, artworks, categories..." class="search-input" value="{{ query|default:'' }}">
                         </form>
                     </div>
                 </div>
 
                 <!-- CENTER: LOGO -->
                 <div class="header-center text-center">
-                    <a href="{% url 'catalog' %}" class="header-logo">bicolikha</a>
+                    <a href="{% url 'catalog' %}" class="header-logo">
+                        <img src="{% static 'images/Vector1.png' %}" alt="Bicolikha icon" class="header-logo-icon">
+                        <span class="header-logo-text">bicolikha</span>
+                    </a>
                 </div>
 
                 <!-- RIGHT: ICONS -->
@@ -244,9 +262,17 @@
                         </a>
                     {% endif %}
                     
-                    <a href="#" title="Favorites">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'liked_items' %}" title="Favorites">
                         <i class="far fa-heart fa-lg"></i>
+                        <span class="icon-label">Likes</span>
                     </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" title="Favorites">
+                        <i class="far fa-heart fa-lg"></i>
+                        <span class="icon-label">Likes</span>
+                    </a>
+                    {% endif %}
                     
                     <a href="{% url 'view_cart' %}" title="Shopping Bag" class="position-relative d-inline-block" style="text-decoration: none;">
                     <i class="fas fa-bag-shopping fa-lg" style="color: var(--text-brown);"></i>

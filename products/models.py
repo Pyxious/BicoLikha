@@ -118,7 +118,7 @@ class Order(models.Model):
     payment = models.OneToOneField(Payment, on_delete=models.SET_NULL, null=True, db_column='PAYMENT_ID')
     # UPDATED: Link to the Shipment model instead of just an Integer
     shipment = models.OneToOneField(Shipment, on_delete=models.SET_NULL, null=True, db_column='SHIPMENT_ID')
-    
+    created_at = models.DateTimeField(db_column='ORDER_CREATED_AT', auto_now_add=True)
     total_qty = models.IntegerField(db_column='ORDER_TOTAL_QUANTITY', null=True)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_DELIVERY_FEE', null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, db_column='ORDER_TOTAL_AMOUNT', null=True)

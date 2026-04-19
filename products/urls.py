@@ -20,6 +20,10 @@ urlpatterns = [
     path('place-order/', views.place_order, name='place_order'),
     path('cart/toggle/<int:item_id>/', views.toggle_cart_item, name='toggle_cart_item'),
     path('category/<int:cat_id>/', views.category_detail, name='category_detail'),
+    path('search/', views.search_results, name='search_results'),
+    path('orders/<int:order_id>/', views.order_detail, name='order_detail'),
+    path('likes/', views.liked_items, name='liked_items'),
+    path('likes/toggle/<int:product_id>/', views.toggle_like, name='toggle_like'),
 
 
     path('product/<int:prod_id>/', views.product_detail, name='product_detail'),

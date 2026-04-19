@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 16, 2026 at 11:45 PM
+-- Generation Time: Apr 18, 2026 at 02:32 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -39,17 +39,19 @@ CREATE TABLE `address` (
   `CUST_ZIPCODE` varchar(10) DEFAULT NULL,
   `LATITUDE` decimal(9,6) DEFAULT 13.139100,
   `LONGITUDE` decimal(9,6) DEFAULT 123.743800,
-  `PROFILE_PIX` varchar(255) DEFAULT NULL
+  `PROFILE_PIX` varchar(255) DEFAULT NULL,
+  `is_default` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `address`
 --
 
-INSERT INTO `address` (`ADDRESS_ID`, `USER_ID`, `ADDRESS_TYPE`, `ADDRESS_PHONE_NUM`, `ADDRESS_HOUSE_NUM`, `ADDRESS_STREET`, `ADDRESS_MUNICIPALITY`, `ADDRESS_BRGY`, `CUST_ZIPCODE`, `LATITUDE`, `LONGITUDE`, `PROFILE_PIX`) VALUES
-(1, 3, 'Default', '09123456789', NULL, '1233454676', 'Legazpi ', '1231231', '123123', 13.139100, 123.743800, 'profile_pics/dmtry_2.png'),
-(4, 11, 'Default', '09123457896', NULL, NULL, NULL, NULL, NULL, NULL, NULL, ''),
-(5, 12, 'Default', '09123987594', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'profile_pics/loselose_2.png');
+INSERT INTO `address` (`ADDRESS_ID`, `USER_ID`, `ADDRESS_TYPE`, `ADDRESS_PHONE_NUM`, `ADDRESS_HOUSE_NUM`, `ADDRESS_STREET`, `ADDRESS_MUNICIPALITY`, `ADDRESS_BRGY`, `CUST_ZIPCODE`, `LATITUDE`, `LONGITUDE`, `PROFILE_PIX`, `is_default`) VALUES
+(1, 3, 'Default', '09123456789', NULL, '1233454676', 'Legazpi ', '1231231', '123123', 13.139100, 123.743800, 'profile_pics/dmtry_2.png', 0),
+(4, 11, 'Default', '09123457896', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', 0),
+(5, 12, 'Default', '09712321786', NULL, '13', 'Daraga', 'Bagumbayan', '4501', 13.146969, 123.714219, 'profile_pics/ver_b_2_4ylkZnA.png', 0),
+(6, 13, 'Default', '09981273123', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', 0);
 
 -- --------------------------------------------------------
 
@@ -238,9 +240,10 @@ CREATE TABLE `auth_user` (
 INSERT INTO `auth_user` (`id`, `password`, `last_login`, `is_superuser`, `username`, `first_name`, `last_name`, `email`, `is_staff`, `is_active`, `date_joined`) VALUES
 (1, 'pbkdf2_sha256$600000$wgfOT8hOuFJhVBwEkoZO6p$xeOKBY+DK6hkK+A9E1SU4x51gRm2ypFtAhlwfeVZVbA=', NULL, 1, 'justin', '', '', 'vincealcayde2@gmail.com', 1, 1, '2026-04-15 18:06:49.842838'),
 (2, 'pbkdf2_sha256$600000$7nbVq40El59uHEYvWfwbJc$HsxElMeJosjbLoSd4aRu3Pr36TOFO/57wJDAIyNDO4Q=', '2026-04-16 21:18:01.384349', 1, 'vince', 'Justin', 'Alcayde', 'vincealcayde@gmail.com', 1, 1, '2026-04-15 19:24:19.339945'),
-(3, 'pbkdf2_sha256$600000$pK1pUk0mhwidCmOfDXDD1e$BS8XLfPRAed3QRYBjDiRKx/USWp4Flee4pGE9hfR1f8=', '2026-04-16 21:39:32.427217', 0, 'jesslyn@gmail.com', 'Jess', 'Lyn', 'jesslyn@gmail.com', 0, 1, '2026-04-15 20:21:37.375875'),
+(3, 'pbkdf2_sha256$600000$pK1pUk0mhwidCmOfDXDD1e$BS8XLfPRAed3QRYBjDiRKx/USWp4Flee4pGE9hfR1f8=', '2026-04-17 21:12:42.460687', 0, 'jesslyn@gmail.com', 'Jess', 'Lyn', 'jesslyn@gmail.com', 0, 1, '2026-04-15 20:21:37.375875'),
 (11, 'pbkdf2_sha256$600000$PNU4WANke4CLsYCN3gxWz0$F0XW+64Q4i0MZeNQ/z6QBM0YaDjPSDq0Z8ZBlkUl498=', '2026-04-16 21:08:04.037758', 0, 'kirsten@gmail.com', 'Kirs', 'Ten', 'kirsten@gmail.com', 0, 1, '2026-04-16 21:08:03.746138'),
-(12, 'pbkdf2_sha256$600000$9owoX5CmEjIGqRFmpLDimR$MozYP//FuOkWOl8gVrt60Wyp5dZw0W6Ni88uw+8XWnI=', '2026-04-16 21:42:11.392704', 0, 'kristine@gmail.com', 'Kristine', 'Antegra', 'kristine@gmail.com', 0, 1, '2026-04-16 21:08:32.353015');
+(12, 'pbkdf2_sha256$600000$9owoX5CmEjIGqRFmpLDimR$MozYP//FuOkWOl8gVrt60Wyp5dZw0W6Ni88uw+8XWnI=', '2026-04-18 00:07:22.758939', 0, 'kristine@gmail.com', 'Kristine', 'Antegra', 'kristine@gmail.com', 0, 1, '2026-04-16 21:08:32.353015'),
+(13, 'pbkdf2_sha256$600000$DD5VE8eecA9UI09D4XvcsY$0VyXMHRPoCxjArDHUld8KIiUrfh2qI8fJU1MS5wFHpQ=', '2026-04-17 20:57:06.031845', 0, 'james@gmail.com', 'James', 'Go', 'james@gmail.com', 0, 1, '2026-04-17 20:57:05.715092');
 
 -- --------------------------------------------------------
 
@@ -285,10 +288,7 @@ CREATE TABLE `cart` (
 --
 
 INSERT INTO `cart` (`CART_ID`, `USER_ID`, `TOTAL_ITEMS`, `DATE_CREATED`, `DATE_DELETED`) VALUES
-(1, 2, 0, '2026-04-15 12:11:48', NULL),
-(2, 3, 0, '2026-04-15 12:21:37', NULL),
-(5, 11, 0, '2026-04-16 13:08:04', NULL),
-(6, 12, 0, '2026-04-16 13:08:32', NULL);
+(8, 12, 0, '2026-04-17 16:28:56', NULL);
 
 -- --------------------------------------------------------
 
@@ -311,7 +311,7 @@ CREATE TABLE `cart_items` (
 --
 
 INSERT INTO `cart_items` (`id`, `CART_ID`, `PRODUCT_ID`, `QUANTITY`, `DATE_CREATED`, `DATE_DELETED`, `is_selected`) VALUES
-(18, 2, 13, 1, '2026-04-16 21:39:41', NULL, 1);
+(68, 8, 7, 3, '2026-04-18 00:29:52', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -455,7 +455,7 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('50gv1ovwx8hfy7kgdcxwn8fjmvbkikm7', '.eJxVjDEOgzAMAP_iuYpCEkLM2L1viGzHFNoKJAJT1b9XSAztene6N2TatzHvVdc8FejBweWXMclT50OUB833xcgyb-vE5kjMaau5LUVf17P9G4xUR-jBu0BSIkXvOHhqAorT1lKyqF1k6TpOqKmJ5Bp0KMI4WFbkQG1IQ4LPF9sdN9s:1wDU65:5Y1x0IQXJtJgQBhsuO0fVWfebwLQBfDHg8pbrQ2d3Ts', '2026-04-30 21:18:01.386548'),
 ('a46ghnbp5l9ggza2beff93tey4cpu00j', 'e30:1wD5yN:Td9HetbggeJ7z3Y_J25ljfUAcKDZzIHAZzq7BBE1Ce8', '2026-04-29 19:32:27.391387'),
 ('ivu35aodlxahfoqo7b7sz8ye3uepvi1l', '.eJxVjMsOgjAQAP9lz6ahlL44evcbml26a1FDEwon478bEg56nZnMGxLuW0l74zXNGUYwcPllhNOTl0PkBy73qqa6bOtM6kjUaZu61cyv69n-DQq2AiOId06YyHVDdNRjjsFrdIOxJCbmrHXH1noftKUgPSF6hyzcC4nGyPD5Au0DOKI:1wDU9f:Gx8xX-Mj6V049fRc6-BmulQ0eyU0VDqLRv6HxIr5-XI', '2026-04-30 21:21:43.193886'),
-('vukxv7rc4tayli3haudih43bkrjrbzwv', '.eJxVjDkOwjAQAP-yNbJ8bNZ2Svq8wVof4ABypDipEH9HkVJAOzOaNwTetxr2XtYwZxhBabj8wsjpWdph8oPbfRFpads6R3Ek4rRdTEsur-vZ_g0q9wojkEwstbE6Z4rRZndTVCQbsoyGkdUQMRlLVrGXDj2jI0_JD8pjcqTg8wX4HDcW:1wDUTT:x6JdMTzc_WqoG0KQzGFGfYDqN1ZLuJff1R3A4IZnWjY', '2026-04-30 21:42:11.396097'),
+('lyu3q05eik1xg4uo5ne45d7xd93oqm1c', '.eJxVjDkOwjAQAP-yNbJ8bNZ2Svq8wVof4ABypDipEH9HkVJAOzOaNwTetxr2XtYwZxhBabj8wsjpWdph8oPbfRFpads6R3Ek4rRdTEsur-vZ_g0q9wojkEwstbE6Z4rRZndTVCQbsoyGkdUQMRlLVrGXDj2jI0_JD8pjcqTg8wX4HDcW:1wDtDW:x5N5l6Mf04XfYWh_yvYJPjOfqVvpbvZKLRO4Zn2ofdM', '2026-05-02 00:07:22.761956'),
 ('z01ot9oe3wkxe2vupylahn95t07nn48w', '.eJxVjMsOgjAQAP9lz6ahlL44evcbml26a1FDEwon478bEg56nZnMGxLuW0l74zXNGUYwcPllhNOTl0PkBy73qqa6bOtM6kjUaZu61cyv69n-DQq2AiOId06YyHVDdNRjjsFrdIOxJCbmrHXH1noftKUgPSF6hyzcC4nGyPD5Au0DOKI:1wDUCK:As5TGYO2TsZO6LzU3YTYzxl09SYzdffXRK-CZBt48Jc', '2026-04-30 21:24:28.017822');
 
 -- --------------------------------------------------------
@@ -489,19 +489,6 @@ CREATE TABLE `notifications` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `order_id`, `artist_id`, `message_text`, `sender_role`, `status_update`, `is_read`, `timestamp`) VALUES
-(7, 12, 25, 'New Order #BK-12. Please prepare the items.', 'Admin', NULL, 0, '2026-04-16 13:21:57'),
-(8, 12, 25, 'ARTIST UPDATE: Status changed to Ready for Pickup.', 'Artist', 'Ready for Pickup', 0, '2026-04-16 13:22:08'),
-(9, 12, 25, 'ARTIST UPDATE: Status changed to Item Picked Up.', 'Artist', 'Item Picked Up', 0, '2026-04-16 13:22:10'),
-(11, 13, 25, 'New Order #BK-13. Please prepare the items.', 'Admin', NULL, 0, '2026-04-16 13:23:05'),
-(12, 13, 25, 'ARTIST UPDATE: Status changed to Items Prepared.', 'Artist', 'Items Prepared', 0, '2026-04-16 13:23:10'),
-(13, 13, 25, 'ARTIST UPDATE: Status changed to Ready for Pickup.', 'Artist', 'Ready for Pickup', 0, '2026-04-16 13:23:16'),
-(14, 13, 25, 'ARTIST UPDATE: Status changed to Item Picked Up.', 'Artist', 'Item Picked Up', 0, '2026-04-16 13:23:20');
-
 -- --------------------------------------------------------
 
 --
@@ -519,14 +506,6 @@ CREATE TABLE `orders` (
   `ORDER_STATUS` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `orders`
---
-
-INSERT INTO `orders` (`ORDER_ID`, `USER_ID`, `PAYMENT_ID`, `SHIPMENT_ID`, `ORDER_TOTAL_QUANTITY`, `ORDER_DELIVERY_FEE`, `ORDER_TOTAL_AMOUNT`, `ORDER_STATUS`) VALUES
-(12, 12, 12, NULL, 1, 60.00, 110.00, 'Shipped'),
-(13, 12, 13, NULL, 1, 60.00, 110.00, 'Delivered');
-
 -- --------------------------------------------------------
 
 --
@@ -543,14 +522,6 @@ CREATE TABLE `order_details` (
   `SUBTOTAL` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `order_details`
---
-
-INSERT INTO `order_details` (`id`, `ORDER_ID`, `PROD_ID`, `PRICE`, `QUANTITY`, `DISCOUNT`, `SUBTOTAL`) VALUES
-(12, 12, 5, 50.00, 1, NULL, 50.00),
-(13, 13, 5, 50.00, 1, NULL, 50.00);
-
 -- --------------------------------------------------------
 
 --
@@ -563,14 +534,6 @@ CREATE TABLE `payment` (
   `PAYMENT_METHOD` varchar(50) DEFAULT NULL,
   `PAYMENT_STATUS` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `payment`
---
-
-INSERT INTO `payment` (`PAYMENT_ID`, `PAYMENT_TIMESTAMP`, `PAYMENT_METHOD`, `PAYMENT_STATUS`) VALUES
-(12, '2026-04-16 13:21:13', 'Cash on Delivery', 'Pending'),
-(13, '2026-04-16 13:22:46', 'Cash on Delivery', 'Pending');
 
 -- --------------------------------------------------------
 
@@ -595,17 +558,33 @@ CREATE TABLE `product` (
 
 INSERT INTO `product` (`PROD_ID`, `ARTIST_ID`, `CATEGORY_ID`, `PROD_NAME`, `PROD_DESCRIPTION`, `PROD_PRICE`, `PROD_STOCK_QTY`, `PROD_IMAGE`) VALUES
 (5, 25, 3, 'Fish', 'Fishes', 50.00, 48, 'artwork_pics/misteryoso_2.png'),
-(6, 26, 3, 'K3 Artwork', 'High-quality digital print', 150.00, 10, 'artwork_pics/K3 2.png'),
+(6, 26, 3, 'K3 Artwork', 'High-quality digital print', 150.00, 7, 'artwork_pics/K3 2.png'),
 (7, 25, 1, 'K4 Artwork', 'Limited edition Bicolano art', 200.00, 5, 'artwork_pics/K4 2.png'),
 (8, 27, 8, 'LoseLose', 'Modern abstract concept', 120.00, 15, 'artwork_pics/loselose 2.png'),
 (9, 25, 4, 'Lyrics 4Wx3H', 'Typography focused artwork', 85.00, 20, 'artwork_pics/LYRICS 4Wx3H INCHES 2.png'),
-(10, 26, 2, 'Matcha', 'Minimalist green aesthetic', 95.00, 12, 'artwork_pics/matcha 2.png'),
+(10, 26, 2, 'Matcha', 'Minimalist green aesthetic', 95.00, 9, 'artwork_pics/matcha 2.png'),
 (11, 27, 5, 'Meowcean Eyes', 'Surreal ocean-themed illustration', 350.00, 3, 'artwork_pics/meowcean eyes 2.png'),
 (12, 25, 6, 'Version B', 'Alternative design variant', 110.00, 8, 'artwork_pics/ver b 2.png'),
-(13, 26, 1, 'Yellow Study', 'Vibrant yellow composition', 130.00, 7, 'artwork_pics/yellow 2.png'),
+(13, 26, 1, 'Yellow Study', 'Vibrant yellow composition', 130.00, 4, 'artwork_pics/yellow 2.png'),
 (14, 27, 3, 'A Version', 'Primary concept artwork', 140.00, 9, 'artwork_pics/a ver 2.png'),
 (15, 25, 7, 'And If I Cry', 'Emotional expressionist piece', 500.00, 2, 'artwork_pics/and if I cry 2.png'),
-(16, 26, 2, 'Dmtry', 'Experimental portraiture', 275.00, 4, 'artwork_pics/dmtry 2.png');
+(16, 26, 2, 'Dmtry', 'Experimental portraiture', 275.00, 0, 'artwork_pics/dmtry 2.png'),
+(17, 25, 3, 'Mamay', 'Traditional Bicolano inspired portrait', 250.00, 5, 'artwork_pics/Mamay.png'),
+(18, 26, 8, 'Critters of The Land of Blubs', 'Whimsical creature illustration', 180.00, 10, 'artwork_pics/Critters of The Land of Blubs.png'),
+(19, 27, 4, 'In a State of Almost', 'Conceptual abstract piece', 320.00, 3, 'artwork_pics/In a State of Almost.png'),
+(20, 25, 1, 'Unbecoming', 'Expressive modern artwork', 210.00, 5, 'artwork_pics/Unbecoming.png'),
+(21, 26, 5, 'Forever Yearning', 'Deep emotional composition', 450.00, 2, 'artwork_pics/Forever Yearning.png'),
+(22, 27, 2, 'Abstract Series #67', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 67.png'),
+(23, 25, 2, 'Abstract Series #68', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 68.png'),
+(24, 26, 2, 'Abstract Series #69', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 69.png'),
+(25, 27, 6, 'Abstract Series #70', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 70.png'),
+(26, 25, 6, 'Abstract Series #71', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 71.png'),
+(27, 26, 6, 'Abstract Series #72', 'Part of the contemporary series', 100.00, 20, 'artwork_pics/image 72.png'),
+(28, 27, 3, 'Misteryoso Study', 'Mysterious figurative art', 155.00, 8, 'artwork_pics/misteryoso 2.png'),
+(29, 25, 1, 'Archive Piece 231312', 'Limited edition archive print', 280.00, 4, 'artwork_pics/5_20221015_231312_0004 2.png'),
+(30, 26, 7, 'Memory of 2022', 'Digital landscape composition', 190.00, 6, 'artwork_pics/20220727_051058_0002 2.png'),
+(31, 27, 8, 'Fireworks Display', 'Vibrant light and color study', 135.00, 15, 'artwork_pics/Fireworks 2 2.png'),
+(32, 25, 4, 'Photo Series 170322', 'Photography-based digital art', 125.00, 10, 'artwork_pics/photo1703229898 2.png');
 
 -- --------------------------------------------------------
 
@@ -847,7 +826,7 @@ ALTER TABLE `supply_inventory`
 -- AUTO_INCREMENT for table `address`
 --
 ALTER TABLE `address`
-  MODIFY `ADDRESS_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `ADDRESS_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `artist`
@@ -883,7 +862,7 @@ ALTER TABLE `auth_permission`
 -- AUTO_INCREMENT for table `auth_user`
 --
 ALTER TABLE `auth_user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `auth_user_groups`
@@ -901,13 +880,13 @@ ALTER TABLE `auth_user_user_permissions`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `CART_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `CART_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `category`
@@ -943,37 +922,43 @@ ALTER TABLE `likes`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=115;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `ORDER_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `ORDER_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `PAYMENT_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `PAYMENT_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `PROD_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `PROD_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `review`
 --
 ALTER TABLE `review`
-  MODIFY `REVIEW_ID` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `REVIEW_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `shipment`
+--
+ALTER TABLE `shipment`
+  MODIFY `SHIPMENT_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- Constraints for dumped tables

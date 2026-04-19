@@ -2,153 +2,430 @@
 
 {% block content %}
 <style>
-    /* Background and Layout */
-    .artist-detail-wrapper {
+.artist-detail-wrapper {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 85vh;
-        gap: 50px;
-        padding: 40px;
+        gap: 18px;
+        padding: 36px 18px 70px;
     }
-
-    /* Large Navigation Arrows */
     .nav-arrow-link {
-        font-size: 5rem;
-        color: #5f9e40; /* Mockup Green */
+        font-size: 4.2rem;
+        color: #5f9e40;
         text-decoration: none;
-        transition: 0.3s;
-        opacity: 0.8;
+        transition: 0.25s ease;
+        opacity: 0.85;
+        flex-shrink: 0;
     }
-    .nav-arrow-link:hover { transform: scale(1.2); opacity: 1; color: #8d5e4a; }
-
-    /* The Main Card */
-    .artist-card-container {
-        width: 1000px;
-        height: 550px;
-        display: flex;
-        border: 2.5px solid #8d5e4a;
-        border-radius: 50px; /* Matching the deep roundness */
-        overflow: hidden;
-        background: white;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    .nav-arrow-link:hover {
+        transform: scale(1.12);
+        opacity: 1;
+        color: #8d5e4a;
     }
-
-    /* LEFT SIDE (Green) */
-    .card-panel-left {
-        flex: 1;
-        background-color: #e9fcd9;
+    .artist-page-shell {
+        width: min(1340px, 100%);
+    }
+    .artist-hero-wrap {
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        border-right: 2.5px solid #8d5e4a;
-    }
-
-    .artist-circle {
-        width: 240px;
-        height: 240px;
-        border-radius: 50%;
-        background: #5f9e40;
-        border: 4px solid #8d5e4a;
-        overflow: hidden;
+        gap: 22px;
         margin-bottom: 30px;
     }
-    .artist-circle img { width: 100%; height: 100%; object-fit: cover; }
-
-    .artist-display-name {
-        font-size: 3.5rem;
-        font-weight: 900;
-        color: #5d3a2d;
-        letter-spacing: -2px;
+    .artist-nav-label {
+        color: #8d5e4a;
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-align: center;
+        flex: 1;
     }
-
-    /* RIGHT SIDE (Grey) */
-    .card-panel-right {
-        flex: 1.6;
-        padding: 60px;
-        background: #e6e6e6; /* Mockup Grey */
+    .artist-hero {
+        border: 2.5px solid #8d5e4a;
+        border-radius: 34px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 18px 40px rgba(93, 58, 45, 0.08);
+        margin-bottom: 30px;
+    }
+    .artist-hero-grid {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        min-height: 360px;
+    }
+    .artist-hero-left {
+        background: linear-gradient(180deg, #eefddb 0%, #e4f7cf 100%);
+        border-right: 2.5px solid #8d5e4a;
+        padding: 34px 28px;
         display: flex;
         flex-direction: column;
+        align-items: center;
         justify-content: center;
+        text-align: center;
+    }
+    .artist-circle {
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 4px solid #8d5e4a;
+        background: #fff;
+        box-shadow: 0 12px 24px rgba(93, 58, 45, 0.14);
+        margin-bottom: 24px;
+    }
+    .artist-circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .artist-name {
+        font-size: 3.2rem;
+        font-weight: 900;
+        color: #5d3a2d;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        margin-bottom: 12px;
+        width: 100%;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+    .artist-subtext {
+        color: #7b6558;
+        font-size: 0.92rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+    .artist-hero-right {
+        background: linear-gradient(180deg, #fcfaf8 0%, #f4efeb 100%);
+        padding: 34px 38px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .artist-kicker {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #8d5e4a;
+        margin-bottom: 12px;
+    }
+    .artist-bio {
+        color: #5f534c;
+        font-size: 1rem;
+        line-height: 1.75;
+        max-width: 820px;
+        margin-bottom: 26px;
+    }
+    .artist-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 14px;
+        max-width: 760px;
+    }
+    .artist-stat {
+        border: 1.5px solid #e0d2ca;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 16px 18px;
+    }
+    .artist-stat-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #a28b7e;
+        margin-bottom: 8px;
+    }
+    .artist-stat-value {
+        color: #5d3a2d;
+        font-size: 1.45rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+    .artist-section {
+        border: 2px solid #eadfd8;
+        border-radius: 30px;
+        background: #fff;
+        padding: 28px 28px 34px;
+        box-shadow: 0 12px 28px rgba(93, 58, 45, 0.05);
+    }
+    .artist-section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: baseline;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+    .artist-section-title {
+        color: #5d3a2d;
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        margin: 0;
+    }
+    .artist-section-note {
+        color: #9a8b83;
+        font-size: 0.88rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+    .artist-controls {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        padding: 18px 20px;
+        border: 1.5px solid #eadfd8;
+        border-radius: 22px;
+        background: #fcfaf8;
+    }
+    .artist-controls-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .artist-select {
+        min-width: 190px;
+        border: 1.5px solid #d8c1b6;
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        color: #5d3a2d;
+        background: #fff;
+        outline: none;
+    }
+    .artist-filter-btn {
+        border: none;
+        border-radius: 14px;
+        background: #8d5e4a;
+        color: #fff;
+        font-weight: 800;
+        padding: 10px 18px;
+        font-size: 0.84rem;
+    }
+    .artist-clear-link {
+        color: #8d5e4a;
+        font-size: 0.84rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .artist-clear-link:hover {
+        text-decoration: underline;
+    }
+    .art-card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    .art-image-wrap {
+        background: #e9fcd9;
+        aspect-ratio: 1 / 1;
+        border-radius: 20px;
+        border: 2px solid transparent;
+        overflow: hidden;
+        transition: 0.2s ease;
+        box-shadow: 0 10px 22px rgba(93, 58, 45, 0.05);
+    }
+    .art-card:hover .art-image-wrap {
+        transform: translateY(-4px);
+        border-color: #8d5e4a;
+    }
+    .art-image-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .art-meta {
+        padding-top: 12px;
         text-align: left;
     }
-
-    .meta-label {
+    .art-title {
+        color: #5d3a2d;
+        font-size: 0.98rem;
         font-weight: 800;
+        margin-bottom: 4px;
+        line-height: 1.3;
+    }
+    .art-category {
+        color: #9a8b83;
+        font-size: 0.82rem;
+        margin-bottom: 6px;
+    }
+    .art-price {
         color: #8d5e4a;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
+        font-size: 0.96rem;
+        font-weight: 900;
     }
-
-    .bio-paragraph {
-        font-size: 1.05rem;
-        color: #444;
-        line-height: 1.6;
-        margin-bottom: 45px;
+    .artist-empty {
+        border: 1.5px dashed #d8c1b6;
+        border-radius: 24px;
+        padding: 48px 24px;
+        text-align: center;
+        color: #8b766b;
+        background: #fcfaf8;
     }
-
-    /* Thumbnail Grid */
-    .featured-thumbs-row {
-        display: flex;
-        gap: 15px;
+    @media (max-width: 1199.98px) {
+        .artist-hero-grid {
+            grid-template-columns: 320px 1fr;
+        }
+        .artist-name {
+            font-size: 2.7rem;
+        }
     }
-    .thumb-item {
-        width: 75px;
-        height: 75px;
-        background: white;
-        border-radius: 12px;
-        border: 1.5px solid #ccc;
-        padding: 5px;
-        transition: 0.2s;
+    @media (max-width: 991.98px) {
+        .artist-hero-grid {
+            grid-template-columns: 1fr;
+        }
+        .artist-hero-left {
+            border-right: none;
+            border-bottom: 2.5px solid #8d5e4a;
+        }
+        .artist-stats {
+            grid-template-columns: 1fr;
+            max-width: none;
+        }
+        .nav-arrow-link {
+            font-size: 3.5rem;
+        }
+        .artist-hero-wrap {
+            gap: 10px;
+        }
+        .artist-nav-label {
+            font-size: 0.75rem;
+        }
     }
-    .thumb-item:hover { transform: translateY(-5px); border-color: #8d5e4a; }
-    .thumb-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
 </style>
 
 <div class="artist-detail-wrapper">
-    <!-- PREVIOUS ARTIST -->
-    <a href="{% url 'artist_detail' prev_id %}" class="nav-arrow-link">
-        <i class="fas fa-caret-left"></i>
-    </a>
+    <div class="artist-page-shell">
+        <div class="artist-nav-label mb-3 text-center">browse artists</div>
 
-    <!-- MAIN SPLIT CARD -->
-    <div class="artist-card-container">
-        <!-- LEFT PANEL -->
-        <div class="card-panel-left">
-            <div class="artist-circle shadow-sm">
-                {% if address.profile_pix %}
-                    <img src="{{ address.profile_pix.url }}" alt="{{ artist.artist_name }}">
-                {% endif %}
-            </div>
-            <div class="artist-display-name">{{ artist.artist_name|lower }}</div>
+        <div class="artist-hero-wrap">
+            <a href="{% url 'artist_detail' prev_id %}" class="nav-arrow-link" aria-label="Previous artist">
+                <i class="fas fa-caret-left"></i>
+            </a>
+
+            <section class="artist-hero flex-grow-1">
+                <div class="artist-hero-grid">
+                    <div class="artist-hero-left">
+                        <div class="artist-circle">
+                            {% if address and address.profile_pix %}
+                                <img src="{{ address.profile_pix.url }}" alt="{{ artist.artist_name }}">
+                            {% else %}
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center" style="background:#fff;">
+                                    <i class="fas fa-user" style="font-size:4rem; color:#8d5e4a;"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="artist-name">{{ artist.artist_name|lower }}</div>
+                        <div class="artist-subtext">
+                            {% if artist.artist_municipality %}
+                                {{ artist.artist_municipality }}{% if artist.artist_brgy %}, {{ artist.artist_brgy }}{% endif %}
+                            {% else %}
+                                verified local artist
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="artist-hero-right">
+                        <div>
+                            <div class="artist-kicker">About the Artist</div>
+                            <div class="artist-bio">
+                                {{ artist.artist_description|default:"This artist is part of the bicolikha creative community." }}
+                            </div>
+                        </div>
+
+                        <div class="artist-stats">
+                            <div class="artist-stat">
+                                <div class="artist-stat-label">Products</div>
+                                <div class="artist-stat-value">{{ artworks|length }}</div>
+                            </div>
+                            <div class="artist-stat">
+                                <div class="artist-stat-label">Location</div>
+                                <div class="artist-stat-value" style="font-size:1.05rem; line-height:1.2;">
+                                    {{ artist.artist_municipality|default:"Bicol" }}
+                                </div>
+                            </div>
+                            <div class="artist-stat">
+                                <div class="artist-stat-label">Verified</div>
+                                <div class="artist-stat-value" style="font-size:1.05rem; line-height:1.2;">
+                                    local artist
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <a href="{% url 'artist_detail' next_id %}" class="nav-arrow-link" aria-label="Next artist">
+                <i class="fas fa-caret-right"></i>
+            </a>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="card-panel-right">
-            <div class="meta-label">About the Artist</div>
-            <p class="bio-paragraph">
-                {{ artist.artist_description|default:"No bio available." }}
-            </p>
+        <section class="artist-section">
+            <div class="artist-section-head">
+                <h2 class="artist-section-title">all products</h2>
+                <div class="artist-section-note">{{ artworks|length }} artwork{{ artworks|length|pluralize }}</div>
+            </div>
 
-            <div class="meta-label">Featured Products</div>
-            <div class="featured-thumbs-row">
+            <div class="artist-controls">
+                <form method="GET" class="artist-controls-form">
+                    <select name="sort" class="artist-select">
+                        <option value="latest" {% if current_sort == 'latest' %}selected{% endif %}>Latest</option>
+                        <option value="popularity" {% if current_sort == 'popularity' %}selected{% endif %}>Popularity</option>
+                        <option value="top_sales" {% if current_sort == 'top_sales' %}selected{% endif %}>Top Sales</option>
+                        <option value="category" {% if current_sort == 'category' %}selected{% endif %}>Category</option>
+                    </select>
+                    <select name="category" class="artist-select">
+                        <option value="">All Categories</option>
+                        {% for category in artist_categories %}
+                        <option value="{{ category.category_id }}" {% if selected_category == category.category_id|stringformat:'s' %}selected{% endif %}>
+                            {{ category.category_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="artist-filter-btn">Apply</button>
+                </form>
+                <a href="{% url 'artist_detail' artist.artist_id %}" class="artist-clear-link">Clear filters</a>
+            </div>
+
+            {% if artworks %}
+            <div class="row g-4">
                 {% for art in artworks %}
-                <a href="{% url 'product_detail' art.prod_id %}" class="thumb-item shadow-sm">
-                    <img src="{{ art.image.url }}">
-                </a>
-                {% empty %}
-                <span class="small text-muted">No products yet.</span>
+                <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                    <a href="{% url 'product_detail' art.prod_id %}" class="art-card">
+                        <div class="art-image-wrap">
+                            {% if art.image %}
+                                <img src="{{ art.image.url }}" alt="{{ art.title }}">
+                            {% else %}
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                    <i class="fas fa-image fa-2x"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="art-meta">
+                            <div class="art-title">{{ art.title }}</div>
+                            <div class="art-category">{{ art.category.category_name|default:"Uncategorized" }}</div>
+                            <div class="art-price">&#8369;{{ art.price|floatformat:0 }}</div>
+                        </div>
+                    </a>
+                </div>
                 {% endfor %}
             </div>
-        </div>
+            {% else %}
+            <div class="artist-empty">
+                <h4 class="fw-bold mb-2">No products yet</h4>
+                <p class="mb-0">This artist has not added artworks to the store yet.</p>
+            </div>
+            {% endif %}
+        </section>
     </div>
-
-    <!-- NEXT ARTIST -->
-    <a href="{% url 'artist_detail' next_id %}" class="nav-arrow-link">
-        <i class="fas fa-caret-right"></i>
-    </a>
 </div>
 {% endblock %}

@@ -3,13 +3,12 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, F
 from django.http import JsonResponse
 from django.utils import timezone
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
-from django.db.models import F, Sum
 
 # Models
 from .models import (
@@ -17,7 +16,7 @@ from .models import (
     Order, Cart, CartItem, OrderDetail, Payment, Like, Review, Notification, Shipment
 )
 
-# Forms (Ensure these match your forms.py exactly)
+# Forms
 from .forms import (
     ProductForm, CategoryForm, BicolikhaSignupForm,
     CustomerAuthenticationForm, AdminAuthenticationForm
@@ -372,10 +371,16 @@ def product_detail(request, prod_id):
     product = get_object_or_404(Artwork, prod_id=prod_id)
     # Fetch all reviews for this specific product
     reviews = Review.objects.filter(product=product).order_by('-date_created')
+    liked_product_ids = []
+    if request.user.is_authenticated:
+        liked_product_ids = list(
+            Like.objects.filter(user=request.user, product=product).values_list('product_id', flat=True)
+        )
     
     return render(request, 'products/product_detail.html', {
         'product': product,
-        'reviews': reviews
+        'reviews': reviews,
+        'liked_product_ids': liked_product_ids
     })
 
 @login_required
@@ -406,6 +411,151 @@ def about(request):
 def popular(request):
     trending = Artwork.objects.annotate(sold_count=Sum('orderdetail__quantity')).order_by('-sold_count')[:8]
     return render(request, 'products/popular.html', {'artworks': trending})
+
+def _build_order_timeline(order):
+    timeline = []
+    order_timestamp = getattr(order, 'created_at', None)
+
+    if order_timestamp:
+        timeline.append({
+            'title': 'Order placed',
+            'description': 'Your order has been received and is being prepared.',
+            'timestamp': order_timestamp,
+            'timestamp_format': 'm/d/Y h:i A',
+            'is_current': order.status in ['Processing', 'To Pay', 'Pending']
+        })
+
+    if order.shipment and order.shipment.shipment_date:
+        timeline.append({
+            'title': 'Shipment update',
+            'description': f"Shipment status: {order.shipment.shipment_status}.",
+            'timestamp': order.shipment.shipment_date,
+            'timestamp_format': 'm/d/Y',
+            'is_current': order.status == 'Shipped'
+        })
+
+    latest_notification = Notification.objects.filter(order=order).order_by('-timestamp').first()
+    if latest_notification:
+        timeline.append({
+            'title': 'Latest update',
+            'description': latest_notification.message_text,
+            'timestamp': latest_notification.timestamp,
+            'timestamp_format': 'm/d/Y h:i A',
+            'is_current': order.status not in ['Delivered', 'Cancelled']
+        })
+
+    if order.status == 'Delivered':
+        delivered_timestamp = order.shipment.shipment_date if order.shipment and order.shipment.shipment_date else order_timestamp
+        timeline.append({
+            'title': 'Delivered',
+            'description': 'Your order has been marked as delivered.',
+            'timestamp': delivered_timestamp,
+            'timestamp_format': 'm/d/Y' if order.shipment and order.shipment.shipment_date else 'm/d/Y h:i A',
+            'is_current': True
+        })
+
+    if order.status == 'Cancelled':
+        timeline.append({
+            'title': 'Cancelled',
+            'description': 'This order was cancelled.',
+            'timestamp': order_timestamp,
+            'timestamp_format': 'm/d/Y h:i A',
+            'is_current': True
+        })
+
+    return timeline
+
+def _get_artist_status_map(order):
+    status_map = {}
+    artist_updates = Notification.objects.filter(
+        order=order,
+        sender_role='Artist'
+    ).select_related('artist').order_by('artist_id', '-timestamp')
+
+    for notif in artist_updates:
+        if notif.artist_id not in status_map:
+            status_map[notif.artist_id] = notif
+
+    return status_map
+
+def _build_order_artist_groups(order, reviewed_products):
+    artist_groups = []
+    artist_status_map = _get_artist_status_map(order)
+    grouped_items = {}
+
+    for item in order.items:
+        artist = item.product.artist
+        if not artist:
+            continue
+        grouped_items.setdefault(artist.artist_id, {
+            'artist': artist,
+            'items': [],
+        })
+        grouped_items[artist.artist_id]['items'].append(item)
+
+    total_artists = len(grouped_items)
+    shipping_share = (order.delivery_fee / total_artists) if total_artists and order.delivery_fee else 0
+
+    for artist_id, group in grouped_items.items():
+        items = group['items']
+        status_notif = artist_status_map.get(artist_id)
+        current_artist_status = status_notif.status_update if status_notif else None
+
+        if order.status == 'Delivered':
+            display_status = 'Delivered'
+        elif order.status == 'Cancelled':
+            display_status = 'Cancelled'
+        elif current_artist_status == 'Shipped!':
+            display_status = 'Shipped'
+        elif current_artist_status == 'Waiting for Courier':
+            display_status = 'Waiting for Courier'
+        else:
+            display_status = 'Processing'
+
+        first_unrated_item = next(
+            (item for item in items if item.product.prod_id not in reviewed_products),
+            None
+        )
+        has_unrated_items = order.status == 'Delivered' and first_unrated_item is not None
+
+        artist_groups.append({
+            'artist': group['artist'],
+            'items': items,
+            'preview_items': items[:4],
+            'item_count': sum(item.quantity or 0 for item in items),
+            'subtotal': sum(item.subtotal or 0 for item in items),
+            'shipping_fee': shipping_share,
+            'status': display_status,
+            'status_update': current_artist_status,
+            'latest_update_at': status_notif.timestamp if status_notif else None,
+            'first_unrated_item': first_unrated_item,
+            'has_unrated_items': has_unrated_items,
+        })
+
+    return artist_groups
+
+def _decorate_order(order, reviewed_products):
+    order.items = list(OrderDetail.objects.filter(order=order).select_related('product', 'product__artist'))
+    order.is_cancellable = not Notification.objects.filter(
+        order=order,
+        status_update__in=['Items Prepared', 'Ready for Pickup', 'Item Picked Up', 'Waiting for Courier', 'Shipped!']
+    ).exists()
+    order.order_date = getattr(order, 'created_at', None)
+    order.item_count = sum(item.quantity or 0 for item in order.items)
+    order.preview_items = order.items[:4]
+    order.extra_item_count = max(len(order.items) - len(order.preview_items), 0)
+    order.first_item = order.items[0] if order.items else None
+    order.first_unrated_item = next(
+        (item for item in order.items if item.product.prod_id not in reviewed_products),
+        None
+    )
+    order.has_unrated_items = order.status == 'Delivered' and any(
+        item.product.prod_id not in reviewed_products for item in order.items
+    )
+    order.artist_groups = _build_order_artist_groups(order, reviewed_products)
+    order.artist_group_count = len(order.artist_groups)
+    order.timeline = _build_order_timeline(order)
+    return order
 
 @login_required
 def profile_view(request):
@@ -494,6 +644,10 @@ def profile_view(request):
             new_status = request.POST.get('status_val') 
             orig_notif = get_object_or_404(Notification, id=notif_id, artist=artist_obj)
 
+            # Cancelled orders are locked and cannot receive new artist status updates.
+            if orig_notif.order.status == 'Cancelled':
+                return redirect('/profile/?tab=messages')
+
             # Check if this specific update already exists for this order
             already_sent = Notification.objects.filter(
                 order=orig_notif.order, 
@@ -516,12 +670,24 @@ def profile_view(request):
                 # SYNC ORDER/SHIPMENT STATUS
                 if new_status == 'Shipped!':
                     order = orig_notif.order
-                    order.status = 'Shipped'
-                    if order.shipment:
-                        order.shipment.shipment_status = 'In Transit'
-                        order.shipment.shipment_date = timezone.now().date()
-                        order.shipment.save()
-                    order.save()
+                    order_artist_ids = set(
+                        OrderDetail.objects.filter(order=order).values_list('product__artist_id', flat=True)
+                    )
+                    shipped_artist_ids = set(
+                        Notification.objects.filter(
+                            order=order,
+                            sender_role='Artist',
+                            status_update='Shipped!'
+                        ).values_list('artist_id', flat=True)
+                    )
+
+                    if order_artist_ids and order_artist_ids.issubset(shipped_artist_ids):
+                        order.status = 'Shipped'
+                        if order.shipment:
+                            order.shipment.shipment_status = 'In Transit'
+                            order.shipment.shipment_date = timezone.now().date()
+                            order.shipment.save()
+                        order.save()
 
             return redirect('/profile/?tab=messages')
 
@@ -530,10 +696,9 @@ def profile_view(request):
     if status_tab != 'all':
         orders_query = orders_query.filter(status=status_map.get(status_tab, 'Processing'))
     
-    orders = orders_query.order_by('-order_id')
+    orders = orders_query.order_by('-order_id').select_related('payment', 'shipment', 'shipment__address')
     for o in orders:
-        o.items = OrderDetail.objects.filter(order=o).select_related('product')
-        o.is_cancellable = not Notification.objects.filter(order=o, status_update__in=['Items Prepared', 'Ready for Pickup', 'Item Picked Up', 'Waiting for Courier', 'Shipped!']).exists()
+        _decorate_order(o, reviewed_products)
 
     # 4. CUSTOMER NOTIFICATIONS (System Alerts)
     customer_notifications = Notification.objects.filter(
@@ -549,21 +714,29 @@ def profile_view(request):
     artist_messages = []
     unread_artist_count = 0
     if is_artist:
-        artist_messages = Notification.objects.filter(artist=artist_obj, sender_role='Admin').order_by('-timestamp')
+        artist_messages_qs = Notification.objects.filter(artist=artist_obj, sender_role='Admin').order_by('-timestamp')
         if active_tab == 'messages':
-            artist_messages.filter(is_read=False).update(is_read=True)
-        unread_artist_count = artist_messages.filter(is_read=False).count()
+            artist_messages_qs.filter(is_read=False).update(is_read=True)
+        unread_artist_count = artist_messages_qs.filter(is_read=False).count()
 
-        for msg in artist_messages:
+        seen_order_ids = set()
+        for msg in artist_messages_qs:
+            if msg.order_id in seen_order_ids:
+                continue
+            seen_order_ids.add(msg.order_id)
+
             # Calculate earnings for this artist for this specific order
             artist_items = OrderDetail.objects.filter(order=msg.order, product__artist=artist_obj)
             msg.artist_subtotal = artist_items.aggregate(Sum('subtotal'))['subtotal__sum'] or 0
+            msg.artist_items = list(artist_items.select_related('product')[:4])
+            msg.artist_item_count = sum(item.quantity or 0 for item in msg.artist_items)
             
             # Find current status to disable buttons in HTML
             latest_reply = Notification.objects.filter(
                 order=msg.order, artist=artist_obj, sender_role='Artist'
             ).order_by('-timestamp').first()
             msg.current_artist_status = latest_reply.status_update if latest_reply else None
+            artist_messages.append(msg)
 
     # 6. RENDER
     return render(request, 'products/profile.html', {
@@ -572,6 +745,67 @@ def profile_view(request):
         'artist_messages': artist_messages, 'reviewed_products': reviewed_products,
         'customer_notifications': customer_notifications, 'unread_count': unread_count,
         'unread_artist_count': unread_artist_count
+    })
+
+@login_required
+def order_detail(request, order_id):
+    if request.user.is_staff:
+        return redirect('admin_dashboard')
+
+    order = get_object_or_404(
+        Order.objects.select_related('payment', 'shipment', 'shipment__address'),
+        order_id=order_id,
+        user=request.user
+    )
+    reviewed_products = list(Review.objects.filter(user=request.user).values_list('product_id', flat=True))
+    liked_product_ids = list(Like.objects.filter(user=request.user).values_list('product_id', flat=True))
+    _decorate_order(order, reviewed_products)
+
+    subtotal = sum(item.subtotal or 0 for item in order.items)
+    shipping_fee = order.delivery_fee or 0
+    address = order.shipment.address if order.shipment and order.shipment.address else None
+    latest_notification = Notification.objects.filter(order=order).order_by('-timestamp').first()
+
+    return render(request, 'products/order_detail.html', {
+        'order': order,
+        'reviewed_products': reviewed_products,
+        'liked_product_ids': liked_product_ids,
+        'subtotal': subtotal,
+        'shipping_fee': shipping_fee,
+        'address': address,
+        'latest_notification': latest_notification
+    })
+
+@login_required
+def toggle_like(request, product_id):
+    if request.user.is_staff:
+        return redirect('admin_dashboard')
+
+    product = get_object_or_404(Artwork, prod_id=product_id)
+    next_url = request.POST.get('next') or request.GET.get('next') or reverse_lazy('liked_items')
+
+    like = Like.objects.filter(user=request.user, product=product).first()
+    if like:
+        like.delete()
+    else:
+        Like.objects.create(user=request.user, product=product)
+
+    return redirect(next_url)
+
+@login_required
+def liked_items(request):
+    if request.user.is_staff:
+        return redirect('admin_dashboard')
+
+    liked_products = Artwork.objects.filter(
+        like__user=request.user
+    ).select_related('artist', 'category').distinct().order_by('-like__date_liked')
+
+    liked_product_ids = list(liked_products.values_list('prod_id', flat=True))
+
+    return render(request, 'products/liked_items.html', {
+        'liked_products': liked_products,
+        'liked_product_ids': liked_product_ids
     })
 
 # --- 4. SHOPPING BAG & CHECKOUT ---
@@ -761,6 +995,7 @@ def place_order(request):
                 )
 
                 # 6. Save Details, Deduct Stock, and Notify Artists
+                artist_order_items = {}
                 for item in order_items:
                     OrderDetail.objects.create(
                         order=order, product=item['prod'], price=item['prod'].price,
@@ -770,11 +1005,18 @@ def place_order(request):
                     if item['prod'].stock_qty is not None:
                         item['prod'].stock_qty -= item['qty']
                         item['prod'].save()
-                    
-                    # Auto-Notification
+
+                    # Group ordered products per artist so each artist gets one notification per order.
+                    artist_order_items.setdefault(item['prod'].artist, []).append(item)
+
+                for artist, items in artist_order_items.items():
+                    item_summaries = ', '.join(
+                        f"{entry['prod'].title} x{entry['qty']}" for entry in items
+                    )
                     Notification.objects.create(
-                        order=order, artist=item['prod'].artist,
-                        message_text=f"New Order #BK-{order.order_id} for {item['prod'].title}.",
+                        order=order,
+                        artist=artist,
+                        message_text=f"New Order #BK-{order.order_id}: {item_summaries}.",
                         sender_role='Admin'
                     )
 
@@ -856,12 +1098,33 @@ def artist_detail(request, artist_id):
     next_id = all_ids[curr_index + 1] if curr_index < len(all_ids) - 1 else all_ids[0]
 
     # 3. Get Artworks and Profile Picture
-    artworks = Artwork.objects.filter(artist=artist)[:5] # Limit to 5 for the mockup
+    sort_by = request.GET.get('sort', 'latest')
+    selected_category = request.GET.get('category', '')
+
+    artworks_query = Artwork.objects.filter(artist=artist).select_related('category').annotate(
+        like_count=Count('like', distinct=True),
+        sold_count=Sum('orderdetail__quantity')
+    )
+
+    if selected_category:
+        artworks_query = artworks_query.filter(category_id=selected_category)
+
+    sort_mapping = {
+        'latest': '-prod_id',
+        'top_sales': '-sold_count',
+        'popularity': '-like_count',
+        'category': 'category__category_name',
+    }
+    artworks = artworks_query.order_by(sort_mapping.get(sort_by, '-prod_id'), '-prod_id')
+    artist_categories = Category.objects.filter(artwork__artist=artist).distinct().order_by('category_name')
     address = Address.objects.filter(user=artist.user, address_type='Default').first()
 
     return render(request, 'products/artist_detail.html', {
         'artist': artist,
         'artworks': artworks,
+        'artist_categories': artist_categories,
+        'current_sort': sort_by,
+        'selected_category': selected_category,
         'address': address,
         'prev_id': prev_id,
         'next_id': next_id
@@ -888,6 +1151,62 @@ def category_detail(request, cat_id):
         'artworks': artworks,
         'prev_id': prev_id,
         'next_id': next_id
+    })
+
+def search_results(request):
+    query = (request.GET.get('q') or '').strip()
+    search_terms = [term for term in query.split() if term]
+
+    artists_query = Artist.objects.all()
+    artworks_query = Artwork.objects.select_related('artist', 'category')
+
+    if search_terms:
+        artist_filter = Q()
+        artwork_filter = Q()
+
+        for term in search_terms:
+            artist_filter |= (
+                Q(artist_name__icontains=term) |
+                Q(artist_description__icontains=term) |
+                Q(artist_municipality__icontains=term) |
+                Q(artist_brgy__icontains=term)
+            )
+            artwork_filter |= (
+                Q(title__icontains=term) |
+                Q(description__icontains=term) |
+                Q(category__category_name__icontains=term) |
+                Q(category__category_desc__icontains=term)
+            )
+
+        artists_query = artists_query.filter(artist_filter).distinct().order_by('artist_name')
+        matched_artworks = list(artworks_query.filter(artwork_filter).distinct().order_by('category__category_name', 'title'))
+    else:
+        artists_query = Artist.objects.none()
+        matched_artworks = []
+
+    grouped_artworks = []
+    grouped_lookup = {}
+
+    for artwork in matched_artworks:
+        category = artwork.category
+        if not category:
+            continue
+
+        category_id = category.category_id
+        if category_id not in grouped_lookup:
+            grouped_lookup[category_id] = {
+                'category': category,
+                'artworks': []
+            }
+            grouped_artworks.append(grouped_lookup[category_id])
+
+        grouped_lookup[category_id]['artworks'].append(artwork)
+
+    return render(request, 'products/search_results.html', {
+        'query': query,
+        'artists': artists_query,
+        'grouped_artworks': grouped_artworks,
+        'results_count': len(matched_artworks) + artists_query.count()
     })
 
 @login_required

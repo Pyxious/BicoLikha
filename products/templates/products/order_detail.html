@@ -1,0 +1,605 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<style>
+    .order-detail-page {
+        padding: 36px 0 64px;
+    }
+    .detail-shell {
+        border: 2.5px solid #8d5e4a;
+        border-radius: 28px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 14px 34px rgba(93, 58, 45, 0.06);
+    }
+    .detail-header {
+        padding: 28px 34px;
+        background: linear-gradient(135deg, #eefddb 0%, #faf6f1 100%);
+        border-bottom: 1px solid #eadfd8;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .detail-kicker {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #a68a7a;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+    .detail-title {
+        font-size: 2rem;
+        font-weight: 900;
+        color: #5d3a2d;
+        margin-bottom: 6px;
+    }
+    .detail-sub {
+        color: #7d675c;
+        font-size: 0.92rem;
+    }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .status-pill.processing, .status-pill.to-pay {
+        background: #eef5ff;
+        color: #1f78d1;
+    }
+    .status-pill.shipped {
+        background: #edf8f0;
+        color: #3f8f54;
+    }
+    .status-pill.delivered {
+        background: #e9fcd9;
+        color: #4f8e34;
+    }
+    .status-pill.cancelled {
+        background: #fff2ed;
+        color: #b5533f;
+    }
+    .detail-content {
+        padding: 32px 34px 36px;
+    }
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 28px;
+        margin-bottom: 26px;
+    }
+    .detail-panel {
+        border: 1.5px solid #eadfd8;
+        border-radius: 22px;
+        background: #fff;
+        padding: 24px;
+    }
+    .panel-title {
+        font-size: 0.85rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8d5e4a;
+        font-weight: 800;
+        margin-bottom: 16px;
+    }
+    .address-name {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #5d3a2d;
+        margin-bottom: 8px;
+    }
+    .address-line {
+        color: #7e6d64;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+    .timeline {
+        position: relative;
+        padding-left: 24px;
+    }
+    .timeline::before {
+        content: "";
+        position: absolute;
+        top: 6px;
+        bottom: 6px;
+        left: 7px;
+        width: 2px;
+        background: #e7ddd7;
+    }
+    .timeline-item {
+        position: relative;
+        padding-bottom: 18px;
+    }
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -24px;
+        top: 5px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #d8cbc4;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 1px #d8cbc4;
+    }
+    .timeline-item.current .timeline-dot {
+        background: #5f9e40;
+        box-shadow: 0 0 0 1px #5f9e40;
+    }
+    .timeline-date {
+        color: #8d5e4a;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .timeline-title {
+        color: #5d3a2d;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+    .timeline-desc {
+        color: #7d6b61;
+        font-size: 0.88rem;
+    }
+    .item-card {
+        display: grid;
+        grid-template-columns: 92px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        padding: 18px 0;
+        border-top: 1px solid #f0e8e3;
+    }
+    .item-card:first-child {
+        border-top: none;
+        padding-top: 0;
+    }
+    .item-card:last-child {
+        padding-bottom: 0;
+    }
+    .artist-group-box {
+        border: 1.5px solid #eadfd8;
+        border-radius: 20px;
+        padding: 22px;
+        background: #fcfaf8;
+        margin-bottom: 18px;
+    }
+    .artist-group-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+    .artist-group-name {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #5d3a2d;
+        margin-bottom: 4px;
+    }
+    .artist-group-meta {
+        font-size: 0.84rem;
+        color: #857067;
+    }
+    .artist-group-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .artist-group-status.processing {
+        background: #f5efe9;
+        color: #8d5e4a;
+    }
+    .artist-group-status.waiting-for-courier {
+        background: #eef5ff;
+        color: #1f78d1;
+    }
+    .artist-group-status.shipped {
+        background: #edf8f0;
+        color: #3f8f54;
+    }
+    .artist-group-status.delivered {
+        background: #e9fcd9;
+        color: #4f8e34;
+    }
+    .artist-group-status.cancelled {
+        background: #fff2ed;
+        color: #b5533f;
+    }
+    .item-thumb {
+        width: 92px;
+        height: 92px;
+        border-radius: 18px;
+        border: 2px solid #8d5e4a;
+        background: #e9fcd9;
+        overflow: hidden;
+    }
+    .item-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .item-name {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #5d3a2d;
+        margin-bottom: 5px;
+    }
+    .item-meta {
+        font-size: 0.86rem;
+        color: #857067;
+        margin-bottom: 8px;
+    }
+    .item-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .btn-like {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1.5px solid #d8c1b6;
+        background: #fff;
+        color: #8d5e4a;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s ease;
+    }
+    .btn-like:hover {
+        background: #f8f1ec;
+        color: #754b39;
+    }
+    .btn-like.liked {
+        background: #8d5e4a;
+        border-color: #8d5e4a;
+        color: #fff;
+    }
+    .btn-like.liked:hover {
+        background: #754b39;
+        border-color: #754b39;
+    }
+    .summary-box {
+        margin-top: 26px;
+        border-top: 1px dashed #d8c1b6;
+        padding-top: 22px;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        align-items: start;
+    }
+    .summary-card {
+        border: 1.5px solid #eadfd8;
+        border-radius: 22px;
+        padding: 22px;
+        background: #fcfaf8;
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+        color: #7d6b61;
+        font-size: 0.92rem;
+    }
+    .summary-row.total {
+        margin-top: 12px;
+        padding-top: 14px;
+        border-top: 1px solid #eadfd8;
+        color: #5d3a2d;
+        font-weight: 900;
+        font-size: 1.05rem;
+    }
+    .detail-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .detail-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 16px;
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 800;
+        border: 1.5px solid transparent;
+        transition: 0.2s ease;
+    }
+    .detail-btn-primary {
+        background: #8d5e4a;
+        color: #fff;
+    }
+    .detail-btn-primary:hover {
+        background: #754b39;
+        color: #fff;
+    }
+    .detail-btn-secondary {
+        background: #fff;
+        border-color: #d8c1b6;
+        color: #8d5e4a;
+    }
+    .detail-btn-secondary:hover {
+        background: #f8f1ec;
+        color: #754b39;
+    }
+    .detail-btn-danger {
+        background: #fff6f1;
+        border-color: #e4b7aa;
+        color: #b5533f;
+    }
+    .detail-btn-danger:hover {
+        background: #b5533f;
+        color: #fff;
+        border-color: #b5533f;
+    }
+    .btn-rate {
+        border: 1.5px solid #8d5e4a;
+        color: #8d5e4a;
+        background: transparent;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 7px 15px;
+        border-radius: 999px;
+        transition: 0.2s;
+    }
+    .btn-rate:hover {
+        background: #8d5e4a;
+        color: white;
+    }
+    .modal-content { border-radius: 20px; border: none; overflow: hidden; }
+    .del-header { background: #8d5e4a; color: white; padding: 20px; border-radius: 20px 20px 0 0; }
+    @media (max-width: 991.98px) {
+        .detail-grid,
+        .summary-box,
+        .item-card {
+            grid-template-columns: 1fr;
+        }
+        .artist-group-header {
+            flex-direction: column;
+        }
+        .detail-content,
+        .detail-header {
+            padding-left: 22px;
+            padding-right: 22px;
+        }
+    }
+</style>
+
+<div class="container order-detail-page">
+    <a href="{% url 'profile' %}?tab=purchases" class="detail-btn detail-btn-secondary mb-3">
+        <i class="fas fa-chevron-left"></i>
+        Back to My Orders
+    </a>
+
+    <div class="detail-shell">
+        <div class="detail-header">
+            <div>
+                <div class="detail-kicker">Order Details</div>
+                <div class="detail-title">Order #BK-{{ order.order_id }}</div>
+                <div class="detail-sub">
+                    {% if order.order_date %}
+                        Placed on {{ order.order_date|date:"F d, Y h:i A" }}
+                    {% endif %}
+                    {% if latest_notification %}
+                        &middot; {{ latest_notification.message_text }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="detail-actions">
+                <div class="status-pill {{ order.status|lower|slugify }}">
+                    {{ order.status }}
+                    {% if order.status == 'Processing' %}
+                        <i class="fas fa-arrow-right"></i>
+                    {% elif order.status == 'Shipped' %}
+                        <i class="fas fa-truck"></i>
+                    {% elif order.status == 'Delivered' %}
+                        <i class="fas fa-check"></i>
+                    {% elif order.status == 'Cancelled' %}
+                        <i class="fas fa-xmark"></i>
+                    {% endif %}
+                </div>
+                {% if order.status == 'Shipped' %}
+                    <button class="detail-btn detail-btn-secondary" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">Order Received</button>
+                {% elif order.status == 'Processing' or order.status == 'To Pay' %}
+                    {% if order.is_cancellable %}
+                    <a href="{% url 'cancel_order' order.order_id %}" class="detail-btn detail-btn-danger" onclick="return confirm('Cancel this order?')">Cancel Order</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="detail-content">
+            <div class="detail-grid">
+                <div class="detail-panel">
+                    <div class="panel-title">Delivery Address</div>
+                    {% if address %}
+                        <div class="address-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                        <div class="address-line">{{ address.phone_num|default:"N/A" }}</div>
+                        <div class="address-line">{{ address.street|default:"" }}</div>
+                        <div class="address-line">{{ address.brgy|default:"" }}, {{ address.municipality|default:"" }}</div>
+                        <div class="address-line">{{ address.zipcode|default:"" }}</div>
+                    {% else %}
+                        <div class="address-line">No shipping address available.</div>
+                    {% endif %}
+                </div>
+
+                <div class="detail-panel">
+                    <div class="panel-title">Tracking Timeline</div>
+                    <div class="timeline">
+                        {% for step in order.timeline %}
+                        <div class="timeline-item {% if step.is_current %}current{% endif %}">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-date">
+                                {% if step.timestamp %}
+                                    {{ step.timestamp|date:step.timestamp_format }}
+                                {% else %}
+                                    Update pending
+                                {% endif %}
+                            </div>
+                            <div class="timeline-title">{{ step.title }}</div>
+                            <div class="timeline-desc">{{ step.description }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="timeline-item current">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-title">No updates yet</div>
+                            <div class="timeline-desc">We will post order progress here.</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-panel" id="order-items">
+                <div class="panel-title">Ordered Items</div>
+                {% for group in order.artist_groups %}
+                <div class="artist-group-box" id="artist-group-{{ group.artist.artist_id }}">
+                    <div class="artist-group-header">
+                        <div>
+                            <div class="artist-group-name">{{ group.artist.artist_name }}</div>
+                            <div class="artist-group-meta">{{ group.item_count }} item{{ group.item_count|pluralize }} by this artist</div>
+                            <div class="artist-group-meta">Items subtotal: &#8369;{{ group.subtotal|floatformat:2 }} &middot; Shipping: &#8369;{{ group.shipping_fee|floatformat:2 }}</div>
+                        </div>
+                        <div class="artist-group-status {{ group.status|lower|slugify }}">
+                            {{ group.status }}
+                            {% if group.status == 'Processing' %}
+                                <i class="fas fa-brush"></i>
+                            {% elif group.status == 'Waiting for Courier' %}
+                                <i class="fas fa-clock"></i>
+                            {% elif group.status == 'Shipped' %}
+                                <i class="fas fa-truck"></i>
+                            {% elif group.status == 'Delivered' %}
+                                <i class="fas fa-check"></i>
+                            {% elif group.status == 'Cancelled' %}
+                                <i class="fas fa-xmark"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% for item in group.items %}
+                    <div class="item-card">
+                        <div class="item-thumb">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.title }}">
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="item-name">{{ item.product.title }}</div>
+                            <div class="item-meta">Qty: {{ item.quantity }} &middot; Category: {{ item.product.category.category_name|default:"Uncategorized" }}</div>
+                            <div class="item-actions">
+                                <a href="{% url 'product_detail' item.product.prod_id %}" class="detail-btn detail-btn-secondary">View Product</a>
+                                {% if order.status == 'Delivered' %}
+                                    {% if item.product.prod_id in reviewed_products %}
+                                        <span class="detail-btn detail-btn-secondary"><i class="fas fa-check-circle"></i> Rated</span>
+                                    {% else %}
+                                        <button class="btn-rate" data-bs-toggle="modal" data-bs-target="#rateModal{{ item.id }}">Rate Item</button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="fw-bold" style="color:#8d5e4a; font-size:1.05rem;">&#8369;{{ item.subtotal }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="summary-box">
+                <div class="detail-actions">
+                    {% if order.has_unrated_items %}
+                        <div class="detail-sub">You can rate each delivered item from this page.</div>
+                    {% endif %}
+                </div>
+                <div class="summary-card">
+                    <div class="panel-title mb-3">Payment Summary</div>
+                    <div class="summary-row">
+                        <span>Merchandise Subtotal</span>
+                        <strong>&#8369;{{ subtotal }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping Fee</span>
+                        <strong>&#8369;{{ shipping_fee }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Payment Method</span>
+                        <strong>{{ order.payment.method|default:"Cash on Delivery" }}</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Payment Status</span>
+                        <strong>{{ order.payment.status|default:"Pending" }}</strong>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Order Total</span>
+                        <span>&#8369;{{ order.total_amount }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for item in order.items %}
+<div class="modal fade" id="rateModal{{ item.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <form method="POST" action="{% url 'submit_review' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="product_id" value="{{ item.product.prod_id }}">
+                <div class="del-header"><h5 class="mb-0 fw-bold">Rate Product</h5></div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">RATING</label>
+                        <select name="rating" class="form-select border-0 bg-light" required>
+                            <option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option>
+                        </select>
+                    </div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-muted">COMMENT</label><textarea name="description" class="form-control bg-light border-0" rows="3"></textarea></div>
+                    <div><label class="form-label small fw-bold text-muted">ADD PHOTO</label><input type="file" name="review_image" class="form-control bg-light border-0"></div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white px-5" style="background:#8d5e4a; font-weight:bold;">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal fade" id="confirmModal{{ order.order_id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="modal-body">
+                <i class="fas fa-box-open fa-4x text-success mb-4"></i>
+                <h4 class="fw-bold">Order Received?</h4>
+                <p class="text-muted small">Confirm you received Order #BK-{{ order.order_id }} in good condition.</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-light w-100 rounded-pill border" data-bs-dismiss="modal">Cancel</button>
+                    <a href="{% url 'confirm_order_received' order.order_id %}" class="btn btn-success w-100 rounded-pill fw-bold">Yes, Received</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

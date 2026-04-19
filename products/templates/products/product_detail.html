@@ -79,6 +79,31 @@
     .btn-add-bag:hover { background: rgba(141, 94, 74, 0.05); }
     .btn-buy-now { background-color: var(--bicol-brown); color: white; }
     .btn-buy-now:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-like-product {
+        width: 58px;
+        flex: 0 0 58px;
+        padding: 0;
+        border-radius: 18px;
+        border: 2px solid var(--bicol-brown);
+        background: white;
+        color: var(--bicol-brown);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        transition: 0.2s ease;
+    }
+    .btn-like-product:hover {
+        background: rgba(141, 94, 74, 0.08);
+    }
+    .btn-like-product.liked {
+        background: var(--bicol-brown);
+        color: white;
+    }
+    .btn-like-product.liked:hover {
+        background: #754b39;
+        border-color: #754b39;
+    }
 
     /* Review Card Styling */
     .review-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 20px; padding: 30px; margin-bottom: 25px; transition: 0.3s; }
@@ -137,6 +162,11 @@
 
             <hr class="sep-line" style="border-top-style: dashed;">
 
+            <form action="{% url 'toggle_like' product.prod_id %}" method="POST" id="likeToggleForm">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            </form>
+
             <form action="{% url 'add_to_cart' product.prod_id %}" method="POST" id="addToCartForm">
                 {% csrf_token %}
                 <div class="qty-row">
@@ -152,6 +182,9 @@
                 </div>
 
                 <div class="btn-row">
+                    <button type="submit" form="likeToggleForm" class="btn-like-product {% if product.prod_id in liked_product_ids %}liked{% endif %}" aria-label="Toggle like for {{ product.title }}">
+                        <i class="{% if product.prod_id in liked_product_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+                    </button>
                     <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn-base btn-add-bag shadow-sm">
                         Add to bag
                     </button>

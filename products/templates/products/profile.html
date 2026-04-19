@@ -35,12 +35,330 @@
     /* Address Cards */
     .address-display-box { transition: 0.2s; border: 1.5px solid #eee !important; margin-bottom: 15px; position: relative; }
     .address-display-box:hover { border-color: #8d5e4a !important; }
+    .address-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 132px;
+        padding: 9px 18px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition: 0.2s ease;
+        border: 1.5px solid transparent;
+    }
+    .address-action-btn i {
+        font-size: 0.78rem;
+    }
+    .address-action-btn-edit {
+        background: #8d5e4a;
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(141, 94, 74, 0.18);
+    }
+    .address-action-btn-edit:hover {
+        background: #754b39;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+    .address-action-btn-delete {
+        background: #fff7f4;
+        color: #a34d39;
+        border-color: #d9b3a6;
+    }
+    .address-action-btn-delete:hover {
+        background: #a34d39;
+        color: #fff7f4;
+        border-color: #a34d39;
+        transform: translateY(-1px);
+    }
 
     /* Purchases Section */
-    .purchase-tabs { display: flex; border-bottom: 1px solid #eee; background: white; position: sticky; top: -50px; z-index: 10; margin-bottom: 20px; }
-    .p-tab { flex: 1; text-align: center; padding: 15px 5px; color: #333; text-decoration: none; font-size: 0.8rem; border-bottom: 2px solid transparent; }
-    .p-tab.active { color: #8d5e4a; border-bottom: 2px solid #8d5e4a; font-weight: 700; }
-    .order-card { background: white; margin-bottom: 20px; border-radius: 12px; padding: 25px; border: 1px solid #f0f0f0; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+    .purchase-tabs {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+        background: white;
+        position: sticky;
+        top: -50px;
+        z-index: 10;
+        margin-bottom: 26px;
+        padding-bottom: 10px;
+    }
+    .p-tab {
+        padding: 10px 18px;
+        color: #7f675a;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border-radius: 999px;
+        background: #f8f5f2;
+        border: 1.5px solid transparent;
+        transition: 0.2s ease;
+        text-align: center;
+    }
+    .p-tab:hover {
+        color: #8d5e4a;
+        border-color: #d8c1b6;
+    }
+    .p-tab.active {
+        color: #5d3a2d;
+        background: #e9fcd9;
+        border-color: #c8e3ae;
+        font-weight: 800;
+    }
+    .orders-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .order-card {
+        background: #fff;
+        border-radius: 22px;
+        padding: 24px 26px;
+        border: 1.5px solid #eadfd8;
+        box-shadow: 0 10px 24px rgba(93, 58, 45, 0.05);
+    }
+    .order-card-grid {
+        display: grid;
+        grid-template-columns: minmax(170px, 1.1fr) minmax(130px, 0.8fr) minmax(240px, 1.6fr) auto;
+        gap: 18px;
+        align-items: center;
+    }
+    .order-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #b19789;
+        margin-bottom: 6px;
+    }
+    .order-id-text {
+        font-size: 1rem;
+        font-weight: 900;
+        color: #5d3a2d;
+        margin-bottom: 4px;
+    }
+    .order-title-text {
+        color: #6c564b;
+        font-size: 0.92rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    .order-meta-line {
+        color: #8f7c72;
+        font-size: 0.82rem;
+        margin-bottom: 4px;
+    }
+    .order-status-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .order-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    .order-status-pill.processing,
+    .order-status-pill.to-pay {
+        background: #eef5ff;
+        color: #1f78d1;
+    }
+    .order-status-pill.shipped {
+        background: #edf8f0;
+        color: #3f8f54;
+    }
+    .order-status-pill.delivered {
+        background: #e9fcd9;
+        color: #4f8e34;
+    }
+    .order-status-pill.cancelled {
+        background: #fff2ed;
+        color: #b5533f;
+    }
+    .order-status-note {
+        color: #8f7c72;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .order-preview-strip {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    .order-thumb-stack {
+        position: relative;
+        width: 74px;
+        height: 74px;
+        flex-shrink: 0;
+    }
+    .order-thumb {
+        width: 74px;
+        height: 74px;
+        border-radius: 18px;
+        border: 2px solid #8d5e4a;
+        background: #e9fcd9;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .order-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .order-thumb-qty {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        min-width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: #8d5e4a;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 800;
+        padding: 0 7px;
+        border: 3px solid #fff;
+    }
+    .order-actions-column {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+    }
+    .order-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 16px;
+        padding: 12px 20px;
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 800;
+        transition: 0.2s ease;
+        border: 1.5px solid transparent;
+    }
+    .order-btn-primary {
+        background: #8d5e4a;
+        color: #fff;
+        min-width: 150px;
+    }
+    .order-btn-primary:hover {
+        background: #754b39;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+    .order-btn-secondary {
+        background: #fff;
+        color: #8d5e4a;
+        border-color: #d8c1b6;
+    }
+    .order-btn-secondary:hover {
+        background: #f8f1ec;
+        color: #754b39;
+    }
+    .order-btn-danger {
+        background: #fff6f1;
+        color: #b5533f;
+        border-color: #e4b7aa;
+    }
+    .order-btn-danger:hover {
+        background: #b5533f;
+        color: #fff;
+        border-color: #b5533f;
+    }
+    .order-groups {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    .artist-order-box {
+        border: 1.5px solid #eadfd8;
+        border-radius: 20px;
+        padding: 18px 20px;
+        background: #fcfaf8;
+    }
+    .artist-order-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+    }
+    .artist-order-name {
+        color: #5d3a2d;
+        font-size: 1rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+    .artist-order-meta {
+        color: #8f7c72;
+        font-size: 0.84rem;
+        margin-bottom: 2px;
+    }
+    .artist-order-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .artist-order-status.processing {
+        background: #f5efe9;
+        color: #8d5e4a;
+    }
+    .artist-order-status.waiting-for-courier {
+        background: #eef5ff;
+        color: #1f78d1;
+    }
+    .artist-order-status.shipped {
+        background: #edf8f0;
+        color: #3f8f54;
+    }
+    .artist-order-status.delivered {
+        background: #e9fcd9;
+        color: #4f8e34;
+    }
+    .artist-order-status.cancelled {
+        background: #fff2ed;
+        color: #b5533f;
+    }
+    .artist-order-body {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .artist-order-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+    }
 
     /* Action Buttons */
     .btn-received { background: #5f9e40; color: white; border: none; font-weight: bold; transition: 0.3s; }
@@ -57,6 +375,141 @@
 
     /* Notifs */
     .notif-unread { background-color: #fdfcfb !important; border-left: 4px solid #8d5e4a !important; }
+    .notification-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    .notification-card {
+        border-radius: 20px;
+        border: 1.5px solid #eadfd8;
+        background: #fff;
+        box-shadow: 0 10px 22px rgba(93, 58, 45, 0.05);
+        transition: 0.2s ease;
+        overflow: hidden;
+    }
+    .notification-link:hover .notification-card {
+        transform: translateY(-2px);
+        border-color: #d6b8aa;
+    }
+    .notification-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: #e9fcd9;
+        color: #8d5e4a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .notification-card.notif-unread .notification-icon {
+        background: #f4e8e0;
+        color: #8d5e4a;
+    }
+    .artist-message-card {
+        border-radius: 20px;
+        border: 1.5px solid #eadfd8;
+        border-left: 5px solid #8d5e4a !important;
+        background: #fff;
+        box-shadow: 0 10px 22px rgba(93, 58, 45, 0.05);
+        overflow: hidden;
+    }
+    .artist-message-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f8f1ec;
+        color: #8d5e4a;
+        border: 1px solid #e2cfc5;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .artist-status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .artist-status-chip.cancelled {
+        background: #fff2ed;
+        color: #b5533f;
+        border: 1px solid #e8c0b4;
+    }
+    .artist-status-chip.delivered {
+        background: #e9fcd9;
+        color: #4f8e34;
+        border: 1px solid #cbe2b6;
+    }
+    .artist-status-chip.shipped {
+        background: #f4e8e0;
+        color: #8d5e4a;
+        border: 1px solid #e2cfc5;
+    }
+    .artist-action-btn {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        border: 1.5px solid #d6b8aa;
+        background: #fff;
+        color: #8d5e4a;
+        transition: 0.2s ease;
+    }
+    .artist-action-btn:hover {
+        background: #f8f1ec;
+        color: #754b39;
+    }
+    .artist-action-btn.primary {
+        background: #8d5e4a;
+        border-color: #8d5e4a;
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(141, 94, 74, 0.15);
+    }
+    .artist-action-btn.primary:hover {
+        background: #754b39;
+        border-color: #754b39;
+        color: #fff;
+    }
+    .artist-action-btn.disabled {
+        background: #f5f1ed;
+        color: #af9f96;
+        border-color: #e1d6cf;
+        cursor: default;
+        box-shadow: none;
+    }
+
+    @media (max-width: 991.98px) {
+        .order-card-grid {
+            grid-template-columns: 1fr;
+        }
+        .purchase-tabs {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .order-actions-column {
+            align-items: stretch;
+        }
+        .artist-order-head,
+        .artist-order-body {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .artist-order-actions {
+            align-items: stretch;
+        }
+        .order-btn-primary {
+            min-width: 0;
+        }
+    }
 </style>
 
 <div class="container-fluid">
@@ -128,19 +581,25 @@
                             {% for addr in all_addresses %}
                             <div class="address-display-box shadow-sm p-4 rounded-4">
                                 <div class="small">
-                                    <div class="fw-bold mb-1" style="color: #333;">{{ user.get_full_name }} | (+63) {{ addr.phone_num }}</div>
+                                    <div class="fw-bold mb-1" style="color: #333;">{{ user.get_full_name }} | {{ addr.phone_num }}</div>
                                     <div class="text-muted mb-2">{{ addr.street }}, {{ addr.brgy }}<br>{{ addr.municipality }}, {{ addr.zipcode }}</div>
                                     {% if addr.is_default %}<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Default</span>{% endif %}
                                 </div>
-                                <div class="d-flex gap-3 mt-3">
-                                    <a href="#" class="fw-bold text-primary text-decoration-none small" data-bs-toggle="modal" data-bs-target="#editAddressModal{{ addr.address_id }}">Edit Details</a>
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <a href="#" class="address-action-btn address-action-btn-edit" data-bs-toggle="modal" data-bs-target="#editAddressModal{{ addr.address_id }}">
+                                        <i class="fas fa-pen"></i>
+                                        <span>Edit Details</span>
+                                    </a>
                                     <!-- DELETE ADDRESS BUTTON -->
                                     {% if not addr.is_default %}
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete this address?')">
                                     {% csrf_token %}
                                     <input type="hidden" name="address_id" value="{{ addr.address_id }}">
                                     <!-- MUST HAVE name="delete_address" -->
-                                    <button type="submit" name="delete_address" class="btn p-0 text-danger fw-bold small border-0 bg-transparent">Delete</button>
+                                    <button type="submit" name="delete_address" class="address-action-btn address-action-btn-delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                        <span>Delete</span>
+                                    </button>
                                 </form>
                                 {% endif %}
                                 </div>
@@ -160,86 +619,157 @@
                     <a href="?tab=purchases&status=cancelled" class="p-tab {% if status_tab == 'cancelled' %}active{% endif %}">Cancelled</a>
                 </div>
 
-                {% for order in orders %}
-                    <div class="order-card shadow-sm text-start">
-                        <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
-                            <div class="fw-bold small text-muted">Order ID: #BK-{{ order.order_id }}</div>
-                            <div class="fw-bold small text-uppercase {% if order.status == 'Cancelled' %}text-danger{% else %}text-success{% endif %}">{{ order.status }}</div>
-                        </div>
-                        
-                        {% for item in order.items %}
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{{ item.product.image.url }}" style="width:60px; height:60px; object-fit:cover;" class="rounded border me-3 shadow-sm">
-                            <div class="flex-grow-1">
-                                <div class="fw-bold small">{{ item.product.title }}</div>
-                                <div class="text-muted small">x{{ item.quantity }}</div>
-                                {% if order.status == 'Delivered' %}
-                                    {% if item.product.prod_id in reviewed_products %}
-                                        <button class="btn btn-sm btn-light mt-2 fw-bold text-muted border-0" disabled style="font-size:0.75rem;"><i class="fas fa-check-circle me-1"></i> RATED</button>
-                                    {% else %}
-                                        <button class="btn-rate mt-2" data-bs-toggle="modal" data-bs-target="#rateModal{{ item.id }}">Rate Item</button>
+                <div class="orders-stack">
+                    {% for order in orders %}
+                        <div class="order-card text-start">
+                            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                <div>
+                                    <div class="order-label">Order #BK-{{ order.order_id }}</div>
+                                    <div class="order-id-text">{{ order.artist_group_count }} artist group{{ order.artist_group_count|pluralize }}</div>
+                                    <div class="order-title-text">{{ order.item_count }} item{{ order.item_count|pluralize }}</div>
+                                    <div class="order-meta-line fw-bold" style="color:#8d5e4a;">&#8369;{{ order.total_amount }}</div>
+                                    <div class="order-meta-line">
+                                        {% if order.order_date %}
+                                            {{ order.order_date|date:"F d, Y h:i A" }}
+                                        {% else %}
+                                            Date unavailable
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="order-groups">
+                                {% for group in order.artist_groups %}
+                                <div class="artist-order-box">
+                                    <div class="artist-order-head">
+                                        <div>
+                                            <div class="artist-order-name">{{ group.artist.artist_name }}</div>
+                                            <div class="artist-order-meta">{{ group.item_count }} item{{ group.item_count|pluralize }} · Products by this artist</div>
+                                            <div class="artist-order-meta">Items subtotal: &#8369;{{ group.subtotal|floatformat:2 }} · Shipping: &#8369;{{ group.shipping_fee|floatformat:2 }}</div>
+                                        </div>
+                                        <div class="artist-order-status {{ group.status|lower|slugify }}">
+                                            {{ group.status }}
+                                            {% if group.status == 'Processing' %}
+                                                <i class="fas fa-brush"></i>
+                                            {% elif group.status == 'Waiting for Courier' %}
+                                                <i class="fas fa-clock"></i>
+                                            {% elif group.status == 'Shipped' %}
+                                                <i class="fas fa-truck"></i>
+                                            {% elif group.status == 'Delivered' %}
+                                                <i class="fas fa-check"></i>
+                                            {% elif group.status == 'Cancelled' %}
+                                                <i class="fas fa-xmark"></i>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="artist-order-body">
+                                        <div class="order-preview-strip">
+                                            {% for item in group.preview_items %}
+                                            <div class="order-thumb-stack">
+                                                <div class="order-thumb">
+                                                    {% if item.product.image %}
+                                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.title }}">
+                                                    {% endif %}
+                                                </div>
+                                                <span class="order-thumb-qty">{{ item.quantity }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+
+                                        <div class="artist-order-actions">
+                                            <a href="{% url 'order_detail' order.order_id %}" class="order-btn order-btn-primary">View Details</a>
+                                            {% if group.has_unrated_items %}
+                                                {% if group.item_count == 1 and group.first_unrated_item %}
+                                                    <button class="order-btn order-btn-secondary" data-bs-toggle="modal" data-bs-target="#rateModal{{ group.first_unrated_item.id }}">Rate Item</button>
+                                                {% else %}
+                                                    <a href="{% url 'order_detail' order.order_id %}#artist-group-{{ group.artist.artist_id }}" class="order-btn order-btn-secondary">Rate Items</a>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="order-actions-column mt-3">
+                                {% if order.status == 'Shipped' %}
+                                    <button class="order-btn order-btn-secondary" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">Order Received</button>
+                                {% elif order.status == 'Processing' or order.status == 'To Pay' %}
+                                    {% if order.is_cancellable %}
+                                    <a href="{% url 'cancel_order' order.order_id %}" class="order-btn order-btn-danger" onclick="return confirm('Cancel this order?')">Cancel Entire Order</a>
                                     {% endif %}
                                 {% endif %}
                             </div>
-                            <div class="fw-bold" style="color: #8d5e4a;">₱{{ item.subtotal }}</div>
                         </div>
-                        {% endfor %}
-
-                        <div class="text-end border-top pt-3 d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if order.status == 'Shipped' %}
-                                    <button class="btn btn-sm btn-received rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">ORDER RECEIVED</button>
-                                {% elif order.status == 'Processing' or order.status == 'To Pay' %}
-                                    <a href="{% url 'cancel_order' order.order_id %}" class="btn btn-sm btn-outline-danger px-4 rounded-pill" onclick="return confirm('Cancel this order?')">Cancel Order</a>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <span class="text-muted small">Order Total: </span>
-                                <span class="fs-4 fw-bold" style="color:#8d5e4a">₱{{ order.total_amount }}</span>
-                            </div>
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="text-center py-5 opacity-50"><p>No orders found here.</p></div>
-                {% endfor %}
+                    {% empty %}
+                        <div class="text-center py-5 opacity-50"><p>No orders found here.</p></div>
+                    {% endfor %}
+                </div>
 
             {% elif active_tab == 'notifications' %}
                 <h2 class="fw-bold mb-4 text-start" style="color: #5d3a2d;">Notifications</h2>
                 {% for n in customer_notifications %}
-                <div class="card border-0 shadow-sm mb-3 text-start {% if not n.is_read %}notif-unread{% endif %}" style="border-radius: 15px;">
-                    <div class="card-body p-4 d-flex align-items-center">
-                        <div class="me-4"><div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="fas fa-info-circle fa-lg"></i></div></div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="fw-bold mb-1">Order #BK-{{ n.order.order_id }}</h6>
-                                <small class="text-muted">{{ n.timestamp|timesince }} ago</small>
+                <a href="{% url 'order_detail' n.order.order_id %}" class="notification-link">
+                    <div class="notification-card mb-3 text-start {% if not n.is_read %}notif-unread{% endif %}">
+                        <div class="card-body p-4 d-flex align-items-center">
+                            <div class="me-4">
+                                <div class="notification-icon"><i class="fas fa-info-circle fa-lg"></i></div>
                             </div>
-                            <p class="mb-0 text-muted small">{{ n.message_text }}</p>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <h6 class="fw-bold mb-1">Order #BK-{{ n.order.order_id }}</h6>
+                                    <small class="text-muted">{{ n.timestamp|timesince }} ago</small>
+                                </div>
+                                <p class="mb-0 text-muted small">{{ n.message_text }}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
                 {% endfor %}
 
             {% elif active_tab == 'messages' %}
                 <h2 class="fw-bold mb-4 text-start" style="color: #5d3a2d;">Artist Notifications</h2>
 
 {% for msg in artist_messages %}
-<div class="card border-0 shadow-sm mb-3 text-start" style="border-left: 5px solid #8d5e4a !important; border-radius: 15px;">
+<div class="artist-message-card mb-3 text-start">
     <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
-                <span class="badge bg-light text-brown border small text-uppercase mb-2" style="font-size: 0.6rem;">Order Update</span>
+                <span class="artist-message-badge mb-2">Order Update</span>
                 <h6 class="fw-bold mb-1">Order #BK-{{ msg.order.order_id }}</h6>
                 <p class="text-muted small mb-0">{{ msg.message_text }}</p>
+                {% if msg.artist_items %}
+                <div class="d-flex flex-wrap gap-3 mt-3">
+                    {% for item in msg.artist_items %}
+                    <div class="text-center">
+                        <div class="position-relative">
+                            <div style="width:64px; height:64px; border-radius:14px; overflow:hidden; border:2px solid #8d5e4a; background:#e9fcd9;">
+                                {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.title }}" style="width:100%; height:100%; object-fit:cover;">
+                                {% endif %}
+                            </div>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill" style="background:#8d5e4a; font-size:0.65rem;">{{ item.quantity }}</span>
+                        </div>
+                        <div class="small fw-bold mt-2" style="color:#5d3a2d; max-width:80px; line-height:1.2;">{{ item.product.title }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="text-end ms-4">
     <div class="small text-muted mb-3" style="font-size: 0.7rem;">{{ msg.timestamp|timesince }} ago</div>
     
-    {% if msg.order.status == 'Delivered' %}
+    {% if msg.order.status == 'Cancelled' %}
+        <span class="artist-status-chip cancelled">
+            <i class="fas fa-ban me-1"></i> ORDER CANCELLED
+        </span>
+
+    {% elif msg.order.status == 'Delivered' %}
         <!-- STAGE 4: Final Completed State -->
         <div class="d-flex flex-column align-items-end">
-            <span class="badge bg-success rounded-pill px-3 py-2 mb-1" style="font-size: 0.75rem;">
+            <span class="artist-status-chip delivered mb-1">
                 <i class="fas fa-check-double me-1"></i> ITEM DELIVERED
             </span>
             <div class="fw-bold" style="color: #8d5e4a;">Earnings: ₱{{ msg.artist_subtotal|floatformat:2 }}</div>
@@ -247,7 +777,7 @@
 
     {% elif msg.current_artist_status == 'Shipped!' %}
         <!-- STAGE 3: Artist has shipped, waiting for customer -->
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2" style="font-size: 0.75rem;">
+        <span class="artist-status-chip shipped">
             <i class="fas fa-truck me-1"></i> SHIPPED (WAITING FOR CUSTOMER)
         </span>
 
@@ -261,19 +791,19 @@
             <div class="d-flex gap-2">
                 <!-- Button 1: Waiting for Courier (Disable if already clicked) -->
                 {% if msg.current_artist_status == 'Waiting for Courier' %}
-                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3 text-muted border" disabled style="font-size: 0.7rem;">
+                    <button type="button" class="artist-action-btn disabled" disabled>
                         <i class="fas fa-clock me-1"></i> Waiting for Courier...
                     </button>
                 {% else %}
                     <button type="submit" name="status_val" value="Waiting for Courier" 
-                            class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">
+                            class="artist-action-btn">
                         Waiting for Courier
                     </button>
                 {% endif %}
                 
                 <!-- Button 2: Shipped! (Always active until clicked) -->
                 <button type="submit" name="status_val" value="Shipped!" 
-                        class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm" style="font-size: 0.7rem;">
+                        class="artist-action-btn primary">
                     Shipped!
                 </button>
             </div>
