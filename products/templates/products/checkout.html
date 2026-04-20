@@ -29,11 +29,28 @@
     .address-option { transition: 0.2s; border-radius: 10px; margin-bottom: 10px; border: 1.5px solid #eee !important; }
     .address-option:hover { background: #fdfcfb; border-color: #8d5e4a !important; }
     .address-option.selected { border-color: #8d5e4a !important; background: #fff9f6; }
+    .theme-alert {
+        margin-bottom: 24px;
+        border-radius: 18px;
+        border: 1.5px solid #d9a38f;
+        background: linear-gradient(135deg, #fff3ee, #fffaf7);
+        color: #8d5e4a;
+        padding: 16px 18px;
+        box-shadow: 0 8px 24px rgba(141, 94, 74, 0.08);
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
 </style>
 
 <div class="checkout-wrapper text-start">
     <h1 class="checkout-title">checkout</h1>
     <hr class="dashed-sep">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="theme-alert"><i class="fas fa-exclamation-circle me-2"></i>{{ message }}</div>
+        {% endfor %}
+    {% endif %}
 
     <div class="breadcrumb-text">CART <span> > </span> CHECKOUT</div>
 
@@ -154,7 +171,7 @@
 <script>
     function updateAddress(id, fullText, phone) {
         // 1. Update Hidden Input
-        document.getElementById('selected_address_id').value = id;
+        document.getElementById('hidden_addr_id').value = id;
         
         // 2. Update UI Displays
         document.getElementById('address-display').innerText = fullText;

@@ -1,12 +1,19 @@
+import re
+
 from django import forms
-from django.contrib.auth.models import User
-from .models import Artwork, Category, Artist, Address
 from django.contrib.auth.forms import AuthenticationForm
-from django import forms
+from django.contrib.auth.models import User
+
+from .models import Artwork, Category, Artist, Address
 
 # --- CUSTOM SIGNUP FORM ---
 
 class CustomerAuthenticationForm(AuthenticationForm):
+    error_messages = {
+        'invalid_login': "We couldn't sign you in with that email or phone number and password.",
+        'inactive': "This account is currently inactive.",
+    }
+
     def confirm_login_allowed(self, user):
         if user.is_staff:
             raise forms.ValidationError(
@@ -16,6 +23,11 @@ class CustomerAuthenticationForm(AuthenticationForm):
         super().confirm_login_allowed(user)
 
 class AdminAuthenticationForm(AuthenticationForm):
+    error_messages = {
+        'invalid_login': "That admin email and password combination wasn't recognized.",
+        'inactive': "This account is currently inactive.",
+    }
+
     def confirm_login_allowed(self, user):
         if not user.is_staff:
             raise forms.ValidationError(
@@ -36,12 +48,36 @@ class BicolikhaSignupForm(forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'email', 'password']
 
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+
+        if User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
+            raise forms.ValidationError("This email address is already registered.")
+
+        return email
+
     def clean_phone_number(self):
-        phone = self.cleaned_data.get('phone_number')
-        # 2. UPDATED: Use 'Address' and the correct field name 'phone_num'
+        phone = re.sub(r'\D', '', self.cleaned_data.get('phone_number') or '')
+
+        if len(phone) != 11:
+            raise forms.ValidationError("Phone number must be exactly 11 digits.")
+
         if Address.objects.filter(phone_num=phone).exists():
             raise forms.ValidationError("This phone number is already registered.")
+
         return phone
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password') or ''
+
+        if len(password) < 8:
+            raise forms.ValidationError("Password must be at least 8 characters long.")
+        if not re.search(r'[A-Z]', password):
+            raise forms.ValidationError("Password must include at least 1 uppercase letter.")
+        if not re.search(r'\d', password):
+            raise forms.ValidationError("Password must include at least 1 number.")
+
+        return password
 
 # --- ADMIN FORMS ---
 class CategoryForm(forms.ModelForm):

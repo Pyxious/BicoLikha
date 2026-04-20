@@ -79,7 +79,9 @@
     .prod-info-row { display: flex; justify-content: space-between; align-items: center; }
     .prod-name { font-weight: 800; color: var(--text-brown); font-size: 1.05rem; }
     .prod-price { font-weight: 800; color: var(--text-brown); font-size: 1.05rem; }
-    .prod-artist { color: #bbb; font-size: 0.85rem; font-weight: 600; display: block; margin-top: 2px; }
+    .prod-artist { color: #bbb; font-size: 0.85rem; font-weight: 600; display: block; margin-top: 6px; }
+    .prod-stock { color: #8f7a72; font-size: 0.8rem; font-weight: 700; display: block; margin-top: 4px; }
+    .prod-stock.out { color: #b3634d; }
 </style>
 
 <div class="cat-detail-wrapper">
@@ -105,6 +107,13 @@
                 <span class="prod-name">{{ art.title }}</span>
                 <span class="prod-price">P{{ art.price|floatformat:0 }}</span>
             </div>
+            <span class="prod-stock {% if art.stock_qty|default:0 <= 0 %}out{% endif %}">
+                {% if art.stock_qty|default:0 > 0 %}
+                    Stock: {{ art.stock_qty }}
+                {% else %}
+                    Out of stock
+                {% endif %}
+            </span>
             <span class="prod-artist">{{ art.artist.artist_name }}</span>
         </a>
         {% empty %}

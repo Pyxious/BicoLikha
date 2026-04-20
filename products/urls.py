@@ -1,5 +1,4 @@
 from django.urls import path, include
-from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
@@ -40,8 +39,6 @@ urlpatterns = [
 
 
     # --- Authentication ---
-    path('signup/', views.signup, name='signup'),
-    path('accounts/login/', views.UserLoginView.as_view(), name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/login/', views.UserLoginView.as_view(), name='login'),
     path('signup/', views.signup, name='signup'),
@@ -49,7 +46,6 @@ urlpatterns = [
     # --- Administrative / Management Hub ---
     path('management/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('management/analytics/', views.admin_analytics, name='admin_analytics'),
-    path('admin/', admin.site.urls), 
     path('bk-staff-entry-7721/login/', views.HiddenAdminLoginView.as_view(), name='admin_login'),
     path('bk-staff-entry-7721/logout/', views.admin_logout, name='admin_logout'),
     

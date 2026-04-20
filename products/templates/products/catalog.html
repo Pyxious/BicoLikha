@@ -44,20 +44,22 @@
     .art-top-row { display: flex; justify-content: space-between; align-items: center; }
     .art-name-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; margin: 0; }
     .art-price-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; }
-    .art-artist-text { color: #aaa; font-size: 0.8rem; font-weight: 600; display: block; margin-top: 2px; }
+    .art-artist-text { color: #aaa; font-size: 0.8rem; font-weight: 600; display: block; margin-top: 6px; }
+    .art-stock-text { color: #8f7a72; font-size: 0.78rem; font-weight: 700; display: block; margin-top: 4px; }
+    .art-stock-text.out { color: #b3634d; }
 
-    /* Navigation Arrow (Triangle Shape) */
+    /* Navigation Arrow */
     .arrow-btn {
-        background-color: var(--bicol-green);
-        width: 45px;
-        height: 60px;
-        clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
-        cursor: pointer;
-        display: block;
-        transition: opacity 0.2s;
-        border: none;
+        font-size: 4.5rem;
+        color: var(--bicol-green);
+        text-decoration: none;
+        transition: 0.3s;
+        line-height: 1;
     }
-    .arrow-btn:hover { opacity: 0.8; }
+    .arrow-btn:hover {
+        color: var(--nav-brown);
+        transform: scale(1.1);
+    }
 
     /* Dashed Separator */
     .dashed-separator { border: none; border-top: 3px dashed var(--nav-brown); margin: 60px 0; opacity: 0.4; }
@@ -84,6 +86,13 @@
                             <span class="art-name-text">{{ artwork.title }}</span>
                             <span class="art-price-text">P{{ artwork.price|floatformat:0 }}</span>
                         </div>
+                        <span class="art-stock-text {% if artwork.stock_qty|default:0 <= 0 %}out{% endif %}">
+                            {% if artwork.stock_qty|default:0 > 0 %}
+                                Stock: {{ artwork.stock_qty }}
+                            {% else %}
+                                Out of stock
+                            {% endif %}
+                        </span>
                         <span class="art-artist-text">{{ artwork.artist.artist_name }}</span>
                     </div>
                 </a>
@@ -106,6 +115,20 @@
                                 <div class="artwork-box shadow-sm">
                                     {% if prod.image %}<img src="{{ prod.image.url }}">{% endif %}
                                 </div>
+                                <div class="art-info-container">
+                                    <div class="art-top-row">
+                                        <span class="art-name-text">{{ prod.title }}</span>
+                                        <span class="art-price-text">P{{ prod.price|floatformat:0 }}</span>
+                                    </div>
+                                    <span class="art-stock-text {% if prod.stock_qty|default:0 <= 0 %}out{% endif %}">
+                                        {% if prod.stock_qty|default:0 > 0 %}
+                                            Stock: {{ prod.stock_qty }}
+                                        {% else %}
+                                            Out of stock
+                                        {% endif %}
+                                    </span>
+                                    <span class="art-artist-text">{{ prod.artist.artist_name }}</span>
+                                </div>
                             </a>
                         </div>
                         {% endfor %}
@@ -113,7 +136,9 @@
                 </div>
                 
                 <div class="col-1 text-center">
-                    <a href="{% url 'category_detail' item.category.category_id %}" class="arrow-btn"></a>
+                    <a href="{% url 'category_detail' item.category.category_id %}" class="arrow-btn" aria-label="View {{ item.category.category_name }}">
+                        <i class="fas fa-caret-right"></i>
+                    </a>
                 </div>
             </div>
 

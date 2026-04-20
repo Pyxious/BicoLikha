@@ -3,8 +3,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction
-from django.db.models import Q, Sum, Count, F
+from django.db.models import Q, Sum, Count, F, Case, When, Value, IntegerField
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from django.utils import timezone
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
@@ -358,10 +359,19 @@ def catalog(request):
     if request.user.is_authenticated and request.user.is_staff: return redirect('admin_dashboard')
     cat_id = request.GET.get('category')
     categories = Category.objects.all()
+    stock_order = Case(
+        When(stock_qty__gt=0, then=Value(0)),
+        default=Value(1),
+        output_field=IntegerField()
+    )
     if cat_id:
         cat = get_object_or_404(Category, category_id=cat_id)
-        return render(request, 'products/catalog.html', {'view_all': True, 'category': cat, 'artworks': Artwork.objects.filter(category=cat), 'categories': categories})
-    data = [{'category': c, 'products': Artwork.objects.filter(category=c)[:4]} for c in categories if Artwork.objects.filter(category=c).exists()]
+        artworks = Artwork.objects.filter(category=cat).annotate(stock_order=stock_order).order_by('stock_order', '-prod_id')
+        return render(request, 'products/catalog.html', {'view_all': True, 'category': cat, 'artworks': artworks, 'categories': categories})
+    data = [{
+        'category': c,
+        'products': Artwork.objects.filter(category=c).annotate(stock_order=stock_order).order_by('stock_order', '-prod_id')[:4]
+    } for c in categories if Artwork.objects.filter(category=c).exists()]
     return render(request, 'products/catalog.html', {'view_all': False, 'category_data': data, 'categories': categories})
 
 def product_detail(request, prod_id):
@@ -409,8 +419,15 @@ def about(request):
     return render(request, 'products/about.html')
 
 def popular(request):
-    trending = Artwork.objects.annotate(sold_count=Sum('orderdetail__quantity')).order_by('-sold_count')[:8]
-    return render(request, 'products/popular.html', {'artworks': trending})
+    trending = Artwork.objects.annotate(
+        sold_count=Sum('orderdetail__quantity')
+    ).order_by('-sold_count', '-prod_id')
+    paginator = Paginator(trending, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'products/popular.html', {
+        'artworks': page_obj.object_list,
+        'page_obj': page_obj
+    })
 
 def _build_order_timeline(order):
     timeline = []
@@ -810,6 +827,18 @@ def liked_items(request):
 
 # --- 4. SHOPPING BAG & CHECKOUT ---
 
+def _get_stock_error(product, quantity):
+    quantity = max(int(quantity or 0), 1)
+
+    if product.stock_qty is None:
+        return None
+    if product.stock_qty <= 0:
+        return f"{product.title} is currently out of stock."
+    if quantity > product.stock_qty:
+        return f"Only {product.stock_qty} item(s) of {product.title} are available right now."
+
+    return None
+
 @login_required
 def add_to_cart(request, product_id):
     # 1. SECURITY: Block admins from shopping
@@ -818,8 +847,19 @@ def add_to_cart(request, product_id):
 
     if request.method == 'POST':
         product = get_object_or_404(Artwork, prod_id=product_id)
-        qty = int(request.POST.get('quantity', 1))
         submit_type = request.POST.get('submit_type') # From the button name/value
+
+        try:
+            qty = max(int(request.POST.get('quantity', 1)), 1)
+        except (TypeError, ValueError):
+            qty = 1
+
+        stock_error = _get_stock_error(product, qty)
+        if stock_error:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == 'true':
+                return JsonResponse({'status': 'error', 'message': stock_error}, status=400)
+            messages.error(request, stock_error)
+            return redirect('product_detail', prod_id=product.prod_id)
 
         # --- OPTION A: BUY NOW (Does NOT touch the database) ---
         if submit_type == 'buy_now':
@@ -831,11 +871,13 @@ def add_to_cart(request, product_id):
             with transaction.atomic():
                 user_cart, _ = Cart.objects.get_or_create(user=request.user)
                 item, created = CartItem.objects.get_or_create(cart=user_cart, product=product)
-                
-                if created:
-                    item.quantity = qty
-                else:
-                    item.quantity += qty # Increment if already in bag
+
+                requested_quantity = qty if created else item.quantity + qty
+                stock_error = _get_stock_error(product, requested_quantity)
+                if stock_error:
+                    raise ValueError(stock_error)
+
+                item.quantity = requested_quantity
                 item.save()
 
             # Handle AJAX for the flying bag animation
@@ -853,6 +895,7 @@ def add_to_cart(request, product_id):
         except Exception as e:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            messages.error(request, str(e))
             return redirect('product_detail', prod_id=product.prod_id)
             
     return redirect('catalog')
@@ -861,9 +904,26 @@ def add_to_cart(request, product_id):
 def view_cart(request):
     if request.user.is_staff: return redirect('admin_dashboard')
     user_cart, _ = Cart.objects.get_or_create(user=request.user)
-    items = CartItem.objects.filter(cart=user_cart)
+    items = CartItem.objects.filter(cart=user_cart).select_related('product', 'product__category')
+    has_invalid_selected_items = False
+
+    for item in items:
+        if item.product.stock_qty is not None and item.product.stock_qty <= 0:
+            item.stock_message = 'Out of stock'
+        elif item.product.stock_qty is not None and item.quantity > item.product.stock_qty:
+            item.stock_message = f'Only {item.product.stock_qty} in stock'
+        else:
+            item.stock_message = ''
+
+        if item.is_selected and item.stock_message:
+            has_invalid_selected_items = True
+
     total = sum(i.product.price * i.quantity for i in items if i.is_selected)
-    return render(request, 'products/cart.html', {'cart_items': items, 'grand_total': total})
+    return render(request, 'products/cart.html', {
+        'cart_items': items,
+        'grand_total': total,
+        'has_invalid_selected_items': has_invalid_selected_items
+    })
 
 @login_required
 def toggle_cart_item(request, item_id):
@@ -876,7 +936,8 @@ def toggle_cart_item(request, item_id):
 @login_required
 def update_cart_quantity(request, item_id, action):
     item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-    if action == 'increment' and (item.product.stock_qty is None or item.quantity < item.product.stock_qty): item.quantity += 1
+    if action == 'increment' and (item.product.stock_qty is None or item.quantity < item.product.stock_qty):
+        item.quantity += 1
     elif action == 'decrement' and item.quantity > 1: item.quantity -= 1
     item.save(); return redirect('view_cart')
 
@@ -898,6 +959,10 @@ def checkout_view(request):
         prod_id = request.GET.get('prod_id')
         qty = int(request.GET.get('qty', 1))
         product = get_object_or_404(Artwork, prod_id=prod_id)
+        stock_error = _get_stock_error(product, qty)
+        if stock_error:
+            messages.error(request, stock_error)
+            return redirect('product_detail', prod_id=product.prod_id)
         
         # We create a dictionary that mimics the CartItem structure so the template works
         virtual_item = {
@@ -915,6 +980,17 @@ def checkout_view(request):
         selected_items = CartItem.objects.filter(cart=user_cart, is_selected=True).select_related('product', 'product__artist')
         
         if not selected_items.exists():
+            messages.error(request, "Select at least one item from your bag before checking out.")
+            return redirect('view_cart')
+
+        invalid_items = []
+        for item in selected_items:
+            stock_error = _get_stock_error(item.product, item.quantity)
+            if stock_error:
+                invalid_items.append(stock_error)
+
+        if invalid_items:
+            messages.error(request, invalid_items[0])
             return redirect('view_cart')
 
         for i in selected_items:
@@ -959,18 +1035,25 @@ def place_order(request):
                 if buy_now_id:
                     # MODE: Buy Now (Single Item)
                     product = get_object_or_404(Artwork, prod_id=buy_now_id)
+                    stock_error = _get_stock_error(product, buy_now_qty)
+                    if stock_error:
+                        messages.error(request, stock_error)
+                        return redirect('product_detail', prod_id=product.prod_id)
                     order_items.append({'prod': product, 'qty': buy_now_qty})
                 else:
                     # MODE: Cart Purchase (Multiple Items)
                     user_cart = get_object_or_404(Cart, user=request.user)
-                    cart_items = CartItem.objects.filter(cart=user_cart, is_selected=True)
-                    if not cart_items.exists(): return redirect('view_cart')
+                    cart_items = CartItem.objects.filter(cart=user_cart, is_selected=True).select_related('product', 'product__artist')
+                    if not cart_items.exists():
+                        messages.error(request, "Select at least one item from your bag before placing an order.")
+                        return redirect('view_cart')
                     
                     for item in cart_items:
+                        stock_error = _get_stock_error(item.product, item.quantity)
+                        if stock_error:
+                            messages.error(request, stock_error)
+                            return redirect('view_cart')
                         order_items.append({'prod': item.product, 'qty': item.quantity})
-                    
-                    # Clear these specific items from the DB cart
-                    cart_items.delete()
 
                 # 2. Get Shipping Address
                 addr_id = request.POST.get('selected_address_id')
@@ -997,6 +1080,10 @@ def place_order(request):
                 # 6. Save Details, Deduct Stock, and Notify Artists
                 artist_order_items = {}
                 for item in order_items:
+                    stock_error = _get_stock_error(item['prod'], item['qty'])
+                    if stock_error:
+                        raise ValueError(stock_error)
+
                     OrderDetail.objects.create(
                         order=order, product=item['prod'], price=item['prod'].price,
                         quantity=item['qty'], subtotal=item['prod'].price * item['qty']
@@ -1020,10 +1107,17 @@ def place_order(request):
                         sender_role='Admin'
                     )
 
+                if not buy_now_id:
+                    cart_items.delete()
+
                 return render(request, 'products/order_success.html', {'order': order})
 
         except Exception as e:
             print(f"CRITICAL ORDER ERROR: {e}")
+            messages.error(request, str(e) if str(e) else "We couldn't place your order right now. Please review your items and try again.")
+            if request.POST.get('buy_now_id'):
+                return redirect('product_detail', prod_id=request.POST.get('buy_now_id'))
+            return redirect('view_cart')
             
     return redirect('catalog')
 
@@ -1102,6 +1196,11 @@ def artist_detail(request, artist_id):
     selected_category = request.GET.get('category', '')
 
     artworks_query = Artwork.objects.filter(artist=artist).select_related('category').annotate(
+        stock_order=Case(
+            When(stock_qty__gt=0, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField()
+        ),
         like_count=Count('like', distinct=True),
         sold_count=Sum('orderdetail__quantity')
     )
@@ -1115,7 +1214,7 @@ def artist_detail(request, artist_id):
         'popularity': '-like_count',
         'category': 'category__category_name',
     }
-    artworks = artworks_query.order_by(sort_mapping.get(sort_by, '-prod_id'), '-prod_id')
+    artworks = artworks_query.order_by('stock_order', sort_mapping.get(sort_by, '-prod_id'), '-prod_id')
     artist_categories = Category.objects.filter(artwork__artist=artist).distinct().order_by('category_name')
     address = Address.objects.filter(user=artist.user, address_type='Default').first()
 
@@ -1144,7 +1243,13 @@ def category_detail(request, cat_id):
     next_id = all_cat_ids[curr_index + 1] if curr_index < len(all_cat_ids) - 1 else all_cat_ids[0]
 
     # 3. Fetch all products for this category
-    artworks = Artwork.objects.filter(category=category)
+    artworks = Artwork.objects.filter(category=category).annotate(
+        stock_order=Case(
+            When(stock_qty__gt=0, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField()
+        )
+    ).order_by('stock_order', '-prod_id')
 
     return render(request, 'products/category_detail.html', {
         'category': category,

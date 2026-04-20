@@ -7,15 +7,16 @@
 
     <!-- FORM ERROR DISPLAY (Matches Login style) -->
     {% if form.errors or messages %}
-        <div class="alert alert-danger border-0 small fw-bold mb-4 text-start" style="border-radius: 12px; background-color: #fceaea; color: #c0392b;">
-            <i class="fas fa-exclamation-circle me-2"></i> 
+        <div class="auth-warning text-start">
+            <div class="auth-warning-title">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Please review your sign up details
+            </div>
             {% if messages %}
                 {% for message in messages %}{{ message }}{% endfor %}
-            {% else %}
-                Please correct the errors below.
             {% endif %}
             
-            <ul class="mt-2 mb-0 ps-3" style="font-weight: normal; font-size: 0.8rem;">
+            <ul class="auth-warning-list">
                 {% for field in form %}
                     {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
                 {% endfor %}
@@ -117,6 +118,26 @@
     .btn-bicol:hover {
         opacity: 0.9;
         transform: translateY(-2px);
+    }
+    .auth-warning {
+        border-radius: 18px;
+        border: 1.5px solid #d9a38f;
+        background: linear-gradient(135deg, #fff3ee, #fffaf7);
+        color: var(--nav-brown);
+        padding: 16px 18px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(141, 94, 74, 0.08);
+    }
+    .auth-warning-title {
+        font-weight: 800;
+        font-size: 0.9rem;
+        letter-spacing: 0.4px;
+        margin-bottom: 8px;
+    }
+    .auth-warning-list {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 0.85rem;
     }
 </style>
 

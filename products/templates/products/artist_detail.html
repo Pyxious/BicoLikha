@@ -263,6 +263,15 @@
         font-size: 0.96rem;
         font-weight: 900;
     }
+    .art-stock {
+        color: #8f7a72;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+    .art-stock.out {
+        color: #b3634d;
+    }
     .artist-empty {
         border: 1.5px dashed #d8c1b6;
         border-radius: 24px;
@@ -414,6 +423,13 @@
                             <div class="art-title">{{ art.title }}</div>
                             <div class="art-category">{{ art.category.category_name|default:"Uncategorized" }}</div>
                             <div class="art-price">&#8369;{{ art.price|floatformat:0 }}</div>
+                            <div class="art-stock {% if art.stock_qty|default:0 <= 0 %}out{% endif %}">
+                                {% if art.stock_qty|default:0 > 0 %}
+                                    Stock: {{ art.stock_qty }}
+                                {% else %}
+                                    Out of stock
+                                {% endif %}
+                            </div>
                         </div>
                     </a>
                 </div>

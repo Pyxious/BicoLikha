@@ -3,21 +3,66 @@
 <style>
     .popular-title { color: #5d3a2d; font-weight: 800; font-size: 2.5rem; text-transform: lowercase; margin-bottom: 5px; }
     .trending-badge { background: #ffc107; color: #000; font-size: 0.65rem; font-weight: 800; padding: 3px 10px; border-radius: 5px; position: absolute; top: 10px; left: 10px; }
-    
+
     .art-card { text-decoration: none; color: inherit; display: block; transition: 0.3s; }
     .art-card:hover { transform: translateY(-8px); }
-    
+
     .img-box { background: #e6e6e6; aspect-ratio: 1/1; border-radius: 15px; overflow: hidden; position: relative; border: 2px solid transparent; transition: 0.3s; }
     .art-card:hover .img-box { border-color: #8d5e4a; }
     .img-box img { width: 100%; height: 100%; object-fit: cover; }
-    
+
     .dashed-line { border-top: 3px dashed #8d5e4a; margin: 40px 0; opacity: 0.4; }
+    .popular-meta { margin-top: 14px; text-align: center; }
+    .popular-title-text { color: #5d3a2d; font-weight: 800; }
+    .popular-price { color: #8d5e4a; font-weight: 900; margin-top: 4px; }
+    .popular-stock { color: #8f7a72; font-size: 0.82rem; font-weight: 700; margin-top: 4px; }
+    .popular-stock.out { color: #b3634d; }
+    .popular-artist { color: #9a8b83; font-size: 0.82rem; margin-top: 6px; }
+    .popular-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 36px;
+    }
+    .popular-page-link,
+    .popular-page-current {
+        min-width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 0.9rem;
+    }
+    .popular-page-link {
+        border: 1.5px solid #d8c1b6;
+        color: #8d5e4a;
+        background: #fff;
+        transition: 0.2s ease;
+    }
+    .popular-page-link:hover {
+        background: #f8f1eb;
+        border-color: #8d5e4a;
+    }
+    .popular-page-current {
+        background: #8d5e4a;
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(141, 94, 74, 0.16);
+    }
+    .popular-page-dots {
+        color: #9a8b83;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+    }
 </style>
 
 <div class="container mt-5 mb-5">
     <div class="d-flex align-items-center mb-2">
         <h1 class="popular-title me-3">popular</h1>
-        <span class="text-muted border-start ps-3" style="font-size: 0.9rem;">Most loved in Bicol</span>
+        <span class="text-muted border-start ps-3" style="font-size: 0.9rem;">Most loved artworks from Bicol</span>
     </div>
     <hr class="dashed-line">
 
@@ -26,19 +71,25 @@
         <div class="col-6 col-md-4 col-lg-3">
             <a href="{% url 'product_detail' artwork.prod_id %}" class="art-card">
                 <div class="img-box shadow-sm">
-                    <!-- If the item is in the top list, show a badge -->
                     <span class="trending-badge"><i class="fas fa-fire me-1"></i> TRENDING</span>
-                    
+
                     {% if artwork.image %}
                         <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}">
                     {% else %}
                         <div class="h-100 d-flex align-items-center justify-content-center text-muted opacity-50"><i class="fas fa-palette fa-3x"></i></div>
                     {% endif %}
                 </div>
-                <div class="mt-3 text-center">
-                    <div class="fw-bold" style="color: #5d3a2d;">{{ artwork.title }}</div>
-                    <div class="small text-muted">by {{ artwork.artist.artist_name }}</div>
-                    <div class="fw-bold mt-1" style="color: #8d5e4a;">₱{{ artwork.price }}</div>
+                <div class="popular-meta">
+                    <div class="popular-title-text">{{ artwork.title }}</div>
+                    <div class="popular-price">&#8369;{{ artwork.price|floatformat:0 }}</div>
+                    <div class="popular-stock {% if artwork.stock_qty|default:0 <= 0 %}out{% endif %}">
+                        {% if artwork.stock_qty|default:0 > 0 %}
+                            Stock: {{ artwork.stock_qty }}
+                        {% else %}
+                            Out of stock
+                        {% endif %}
+                    </div>
+                    <div class="popular-artist">by {{ artwork.artist.artist_name }}</div>
                 </div>
             </a>
         </div>
@@ -48,8 +99,35 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <div class="popular-pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="popular-page-link" aria-label="Previous page">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+                <span class="popular-page-current">{{ page_num }}</span>
+            {% elif page_num >= page_obj.number|add:'-2' and page_num <= page_obj.number|add:'2' %}
+                <a href="?page={{ page_num }}" class="popular-page-link">{{ page_num }}</a>
+            {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
+                <a href="?page={{ page_num }}" class="popular-page-link">{{ page_num }}</a>
+            {% elif page_num == page_obj.number|add:'-3' or page_num == page_obj.number|add:'3' %}
+                <span class="popular-page-dots">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="popular-page-link" aria-label="Next page">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
-<!-- Decorative block -->
 <div style="background-color: #5f9e40; height: 120px; width: 100%;"></div>
 {% endblock %}

@@ -4,9 +4,19 @@
 <div class="auth-card shadow-sm">
     <h1 style="color: var(--nav-brown); font-weight: 300;">Log In</h1>
     <p class="small text-muted mb-4">Hi there! Sign in to access your bicolikha account for a better shopping experience.</p>
-    
-    <!-- NUMBER 2: DJANGO MESSAGES (Portal Security Errors) -->
-    
+
+    {% if form.non_field_errors %}
+        <div class="auth-warning text-start">
+            <div class="auth-warning-title">
+                <i class="fas fa-exclamation-circle me-2"></i> Sign in issue
+            </div>
+            <ul class="auth-warning-list">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
     <form method="post">
         {% csrf_token %}
@@ -84,6 +94,26 @@
     .btn-bicol:hover {
         opacity: 0.9;
         transform: translateY(-2px);
+    }
+    .auth-warning {
+        border-radius: 18px;
+        border: 1.5px solid #d9a38f;
+        background: linear-gradient(135deg, #fff3ee, #fffaf7);
+        color: var(--nav-brown);
+        padding: 16px 18px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(141, 94, 74, 0.08);
+    }
+    .auth-warning-title {
+        font-weight: 800;
+        font-size: 0.9rem;
+        letter-spacing: 0.4px;
+        margin-bottom: 8px;
+    }
+    .auth-warning-list {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 0.85rem;
     }
 </style>
 

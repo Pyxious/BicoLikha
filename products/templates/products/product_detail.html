@@ -49,7 +49,14 @@
     .detail-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
     .detail-title { color: var(--bicol-green); font-weight: 900; font-size: 2.8rem; text-transform: lowercase; margin: 0; letter-spacing: -1.5px; }
     .detail-price { color: var(--bicol-green); font-weight: 900; font-size: 2.8rem; margin: 0; }
-    .detail-cat-name { color: #a8948d; font-size: 1.4rem; font-weight: 500; text-transform: lowercase; margin-bottom: 25px; }
+    .detail-cat-name { color: #a8948d; font-size: 1.4rem; font-weight: 500; text-transform: lowercase; margin-bottom: 10px; }
+    .detail-stock {
+        margin-bottom: 25px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-brown);
+    }
+    .detail-stock.out { color: #b3634d; }
     .sep-line { border: none; border-top: 2px solid var(--light-grey); margin: 25px 0; }
     .section-head { font-weight: 800; color: var(--text-brown); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
     .section-body { font-size: 0.95rem; color: #888; line-height: 1.6; margin-bottom: 30px; }
@@ -79,6 +86,12 @@
     .btn-add-bag:hover { background: rgba(141, 94, 74, 0.05); }
     .btn-buy-now { background-color: var(--bicol-brown); color: white; }
     .btn-buy-now:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-base:disabled,
+    .qty-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+    }
     .btn-like-product {
         width: 58px;
         flex: 0 0 58px;
@@ -111,9 +124,24 @@
     .reviewer-initials { width: 55px; height: 55px; border-radius: 50%; background: var(--light-green); color: var(--bicol-green); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
     .review-stars { color: #ffc107; font-size: 0.85rem; margin-top: 3px; }
     .review-img-thumb { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; cursor: pointer; border: 1px solid #eee; margin-top: 15px; }
+    .theme-alert {
+        margin-bottom: 24px;
+        border-radius: 18px;
+        border: 1.5px solid #d9a38f;
+        background: linear-gradient(135deg, #fff3ee, #fffaf7);
+        color: var(--bicol-brown);
+        padding: 16px 18px;
+        box-shadow: 0 8px 24px rgba(141, 94, 74, 0.08);
+    }
 </style>
 
 <div class="product-detail-wrapper">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="theme-alert"><i class="fas fa-exclamation-circle me-2"></i>{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
     <!-- BREADCRUMBS -->
     <div class="breadcrumb-nav text-start">
         <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a>
@@ -146,6 +174,13 @@
                 <div class="detail-price">₱{{ product.price|floatformat:0 }}</div>
             </div>
             <div class="detail-cat-name">{{ product.category.category_name }}</div>
+            <div class="detail-stock {% if product.stock_qty|default:0 <= 0 %}out{% endif %}">
+                {% if product.stock_qty|default:0 > 0 %}
+                    {{ product.stock_qty }} item{{ product.stock_qty|pluralize }} available
+                {% else %}
+                    Out of stock
+                {% endif %}
+            </div>
 
             <hr class="sep-line">
 
@@ -173,11 +208,17 @@
                     <div class="qty-label">Quantity</div>
                     <div class="d-flex align-items-center gap-3">
                         <div class="qty-controls">
-                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepDown()">-</button>
-                            <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_qty }}" class="qty-val" readonly>
-                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepUp()">+</button>
+                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepDown()" {% if product.stock_qty|default:0 <= 0 %}disabled{% endif %}>-</button>
+                            <input type="number" name="quantity" value="{% if product.stock_qty|default:0 > 0 %}1{% else %}0{% endif %}" min="1" max="{{ product.stock_qty|default:0 }}" class="qty-val" readonly>
+                            <button type="button" class="qty-btn" onclick="this.parentNode.querySelector('input').stepUp()" {% if product.stock_qty|default:0 <= 0 %}disabled{% endif %}>+</button>
                         </div>
-                        <div class="stock-info">{{ product.stock_qty }} units left</div>
+                        <div class="stock-info">
+                            {% if product.stock_qty|default:0 > 0 %}
+                                {{ product.stock_qty }} units left
+                            {% else %}
+                                Currently unavailable
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -185,10 +226,10 @@
                     <button type="submit" form="likeToggleForm" class="btn-like-product {% if product.prod_id in liked_product_ids %}liked{% endif %}" aria-label="Toggle like for {{ product.title }}">
                         <i class="{% if product.prod_id in liked_product_ids %}fas{% else %}far{% endif %} fa-heart"></i>
                     </button>
-                    <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn-base btn-add-bag shadow-sm">
+                    <button type="button" onclick="handleAddToCart(event, '{{ product.prod_id }}')" class="btn-base btn-add-bag shadow-sm" {% if product.stock_qty|default:0 <= 0 %}disabled{% endif %}>
                         Add to bag
                     </button>
-                    <button type="submit" name="submit_type" value="buy_now" class="btn-base btn-buy-now shadow-sm">
+                    <button type="submit" name="submit_type" value="buy_now" class="btn-base btn-buy-now shadow-sm" {% if product.stock_qty|default:0 <= 0 %}disabled{% endif %}>
                         Buy Now
                     </button>
                 </div>
