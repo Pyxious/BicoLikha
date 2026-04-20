@@ -23,6 +23,50 @@ from .forms import (
     CustomerAuthenticationForm, AdminAuthenticationForm
 )
 
+
+def _address_is_complete(address):
+    if not address:
+        return False
+    required_fields = [address.street, address.brgy, address.municipality, address.zipcode, address.phone_num]
+    return all((value or '').strip() for value in required_fields)
+
+
+def _get_user_addresses(user):
+    return Address.objects.filter(user=user).order_by('-is_default', '-address_id')
+
+
+def _get_primary_address(user):
+    addresses = _get_user_addresses(user)
+    primary = addresses.filter(is_default=True).first() or addresses.first()
+    return primary if _address_is_complete(primary) else None
+
+
+def _create_or_update_address_from_post(request, user, instance=None):
+    street = (request.POST.get('st_name') or '').strip()
+    brgy = (request.POST.get('brgy') or '').strip()
+    municipality = (request.POST.get('municipality') or '').strip()
+    zipcode = (request.POST.get('zipcode') or '').strip()
+    phone = (request.POST.get('phone') or '').strip()
+
+    if not all([street, brgy, municipality, zipcode, phone]):
+        raise ValueError("Please complete all address fields before saving.")
+
+    address = instance or Address(user=user)
+    address.street = street
+    address.brgy = brgy
+    address.municipality = municipality
+    address.zipcode = zipcode
+    address.phone_num = phone
+    address.latitude = request.POST.get('lat') or None
+    address.longitude = request.POST.get('lng') or None
+
+    if instance is None:
+        has_complete_address = any(_address_is_complete(existing) for existing in _get_user_addresses(user))
+        address.is_default = not has_complete_address
+
+    address.save()
+    return address
+
 # --- 1. AUTHENTICATION & PORTAL SECURITY ---
 
 class UserLoginView(LoginView):
@@ -60,13 +104,6 @@ def signup(request):
                     user.username = form.cleaned_data['email']
                     user.set_password(form.cleaned_data['password'])
                     user.save() # Names are saved here automatically by the form into auth_user
-
-                    # No more delivery names here
-                    Address.objects.create(
-                        user=user, 
-                        phone_num=form.cleaned_data['phone_number'],
-                        address_type='Default'
-                    )
                     Cart.objects.get_or_create(user=user)
 
 
@@ -357,22 +394,51 @@ def admin_messages(request):
 
 def catalog(request):
     if request.user.is_authenticated and request.user.is_staff: return redirect('admin_dashboard')
-    cat_id = request.GET.get('category')
-    categories = Category.objects.all()
+    categories = Category.objects.filter(artwork__isnull=False).distinct().order_by('category_name')
+    current_sort = request.GET.get('sort', 'latest')
     stock_order = Case(
         When(stock_qty__gt=0, then=Value(0)),
         default=Value(1),
         output_field=IntegerField()
     )
-    if cat_id:
-        cat = get_object_or_404(Category, category_id=cat_id)
-        artworks = Artwork.objects.filter(category=cat).annotate(stock_order=stock_order).order_by('stock_order', '-prod_id')
-        return render(request, 'products/catalog.html', {'view_all': True, 'category': cat, 'artworks': artworks, 'categories': categories})
-    data = [{
-        'category': c,
-        'products': Artwork.objects.filter(category=c).annotate(stock_order=stock_order).order_by('stock_order', '-prod_id')[:4]
-    } for c in categories if Artwork.objects.filter(category=c).exists()]
-    return render(request, 'products/catalog.html', {'view_all': False, 'category_data': data, 'categories': categories})
+    artworks = Artwork.objects.select_related('artist', 'category').annotate(stock_order=stock_order)
+
+    sort_map = {
+        'latest': ['stock_order', '-prod_id'],
+        'title_asc': ['stock_order', 'title', '-prod_id'],
+        'title_desc': ['stock_order', '-title', '-prod_id'],
+        'artist_asc': ['stock_order', 'artist__artist_name', 'title'],
+        'price_low': ['stock_order', 'price', 'title'],
+        'price_high': ['stock_order', '-price', 'title'],
+        'category_asc': ['stock_order', 'category__category_name', 'title'],
+    }
+    artworks = artworks.order_by(*sort_map.get(current_sort, sort_map['latest']))
+
+    return render(request, 'products/catalog.html', {
+        'artworks': artworks,
+        'categories': categories,
+        'current_sort': current_sort,
+    })
+
+
+def categories_overview(request):
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_dashboard')
+
+    categories = Category.objects.filter(artwork__isnull=False).distinct().order_by('category_name')
+    stock_order = Case(
+        When(stock_qty__gt=0, then=Value(0)),
+        default=Value(1),
+        output_field=IntegerField()
+    )
+    category_data = [{
+        'category': category,
+        'products': Artwork.objects.filter(category=category).annotate(stock_order=stock_order).order_by('stock_order', '-prod_id')[:4]
+    } for category in categories]
+
+    return render(request, 'products/categories.html', {
+        'category_data': category_data,
+    })
 
 def product_detail(request, prod_id):
     if request.user.is_authenticated and request.user.is_staff:
@@ -419,14 +485,23 @@ def about(request):
     return render(request, 'products/about.html')
 
 def popular(request):
-    trending = Artwork.objects.annotate(
+    selected_category = request.GET.get('category', '')
+    categories = Category.objects.filter(artwork__isnull=False).distinct().order_by('category_name')
+
+    trending = Artwork.objects.select_related('category').annotate(
         sold_count=Sum('orderdetail__quantity')
     ).order_by('-sold_count', '-prod_id')
+
+    if selected_category:
+        trending = trending.filter(category_id=selected_category)
+
     paginator = Paginator(trending, 12)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'products/popular.html', {
         'artworks': page_obj.object_list,
-        'page_obj': page_obj
+        'page_obj': page_obj,
+        'categories': categories,
+        'selected_category': selected_category
     })
 
 def _build_order_timeline(order):
@@ -585,11 +660,10 @@ def profile_view(request):
     status_tab = request.GET.get('status', 'all')
     
     # Primary address for Account Info display
-    address = Address.objects.filter(user=request.user, is_default=True).first() or \
-              Address.objects.filter(user=request.user).first()
+    address = _get_primary_address(request.user)
     
     # Full list for the Address section
-    all_addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-address_id')
+    all_addresses = [addr for addr in _get_user_addresses(request.user) if _address_is_complete(addr)]
     
     # Check if user is a promoted Artist
     artist_obj = Artist.objects.filter(user=request.user).first()
@@ -631,28 +705,20 @@ def profile_view(request):
 
         # --- ADD NEW ADDRESS ---
         elif 'add_new_address' in request.POST:
-            is_first = not Address.objects.filter(user=request.user).exists()
-            Address.objects.create(
-                user=request.user, street=request.POST.get('st_name'),
-                brgy=request.POST.get('brgy'), municipality=request.POST.get('municipality'),
-                zipcode=request.POST.get('zipcode'), phone_num=request.POST.get('phone'),
-                latitude=request.POST.get('lat'), longitude=request.POST.get('lng'),
-                is_default=is_first
-            )
+            try:
+                _create_or_update_address_from_post(request, request.user)
+            except ValueError as exc:
+                messages.error(request, str(exc))
             return redirect('/profile/?tab=account')
 
         # --- EDIT EXISTING ADDRESS ---
         elif 'update_address' in request.POST:
             addr_id = request.POST.get('address_id')
             addr = get_object_or_404(Address, address_id=addr_id, user=request.user)
-            addr.street = request.POST.get('st_name')
-            addr.brgy = request.POST.get('brgy')
-            addr.municipality = request.POST.get('municipality')
-            addr.zipcode = request.POST.get('zipcode')
-            addr.phone_num = request.POST.get('phone')
-            addr.latitude = request.POST.get('lat')
-            addr.longitude = request.POST.get('lng')
-            addr.save()
+            try:
+                _create_or_update_address_from_post(request, request.user, instance=addr)
+            except ValueError as exc:
+                messages.error(request, str(exc))
             return redirect('/profile/?tab=account')
 
         # --- ARTIST MESSAGE REPLY (With Duplicate Protection) ---
@@ -950,6 +1016,19 @@ def remove_from_cart(request, item_id):
 def checkout_view(request):
     if request.user.is_staff: return redirect('admin_dashboard')
 
+    if request.method == 'POST' and 'add_new_address' in request.POST:
+        try:
+            new_address = _create_or_update_address_from_post(request, request.user)
+            messages.success(request, "New address saved. You can use it for this checkout now.")
+            query_string = request.META.get('QUERY_STRING')
+            redirect_url = f"{request.path}?{query_string}" if query_string else request.path
+            redirect_url = f"{redirect_url}#addressSelectModal" if new_address else redirect_url
+            return redirect(redirect_url)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            query_string = request.META.get('QUERY_STRING')
+            return redirect(f"{request.path}?{query_string}" if query_string else request.path)
+
     # 1. IDENTIFY MODE: Buy Now vs Standard Cart
     buy_now_mode = request.GET.get('buy_now') == 'true'
     artist_groups = {}
@@ -1003,14 +1082,16 @@ def checkout_view(request):
 
     # 2. SHARED DATA (Totals & Addresses)
     total_shipping = len(artist_groups) * 60.0
+    artist_group_count = len(artist_groups)
     items_subtotal = sum(g['sub'] for g in artist_groups.values())
     grand_total = items_subtotal + total_shipping
 
-    all_addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-address_id')
-    selected_address = all_addresses.filter(is_default=True).first() or all_addresses.first()
+    all_addresses = [addr for addr in _get_user_addresses(request.user) if _address_is_complete(addr)]
+    selected_address = next((addr for addr in all_addresses if addr.is_default), None) or (all_addresses[0] if all_addresses else None)
 
     return render(request, 'products/checkout.html', {
         'artist_groups': artist_groups,
+        'artist_group_count': artist_group_count,
         'total_shipping': total_shipping,
         'items_subtotal': items_subtotal,
         'grand_total': grand_total,
@@ -1057,7 +1138,12 @@ def place_order(request):
 
                 # 2. Get Shipping Address
                 addr_id = request.POST.get('selected_address_id')
+                if not addr_id:
+                    raise ValueError("Please add and select a delivery address before placing your order.")
+
                 user_address = get_object_or_404(Address, address_id=addr_id, user=request.user)
+                if not _address_is_complete(user_address):
+                    raise ValueError("Please complete your delivery address before placing your order.")
 
                 # 3. Create Supporting Records
                 new_shipment = Shipment.objects.create(address=user_address, shipment_status='Preparing')
@@ -1116,8 +1202,10 @@ def place_order(request):
             print(f"CRITICAL ORDER ERROR: {e}")
             messages.error(request, str(e) if str(e) else "We couldn't place your order right now. Please review your items and try again.")
             if request.POST.get('buy_now_id'):
-                return redirect('product_detail', prod_id=request.POST.get('buy_now_id'))
-            return redirect('view_cart')
+                buy_now_id = request.POST.get('buy_now_id')
+                buy_now_qty = request.POST.get('buy_now_qty', 1)
+                return redirect(f'/checkout/?buy_now=true&prod_id={buy_now_id}&qty={buy_now_qty}')
+            return redirect('checkout')
             
     return redirect('catalog')
 
@@ -1250,10 +1338,13 @@ def category_detail(request, cat_id):
             output_field=IntegerField()
         )
     ).order_by('stock_order', '-prod_id')
+    paginator = Paginator(artworks, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'products/category_detail.html', {
         'category': category,
-        'artworks': artworks,
+        'artworks': page_obj.object_list,
+        'page_obj': page_obj,
         'prev_id': prev_id,
         'next_id': next_id
     })

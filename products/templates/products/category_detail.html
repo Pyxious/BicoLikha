@@ -82,13 +82,59 @@
     .prod-artist { color: #bbb; font-size: 0.85rem; font-weight: 600; display: block; margin-top: 6px; }
     .prod-stock { color: #8f7a72; font-size: 0.8rem; font-weight: 700; display: block; margin-top: 4px; }
     .prod-stock.out { color: #b3634d; }
+    .category-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 42px;
+    }
+    .category-page-link,
+    .category-page-current {
+        min-width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 0.9rem;
+    }
+    .category-page-link {
+        border: 1.5px solid #d8c1b6;
+        color: var(--nav-brown);
+        background: #fff;
+        transition: 0.2s ease;
+    }
+    .category-page-link:hover {
+        background: #f8f1eb;
+        border-color: var(--nav-brown);
+    }
+    .category-page-current {
+        background: var(--nav-brown);
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(141, 94, 74, 0.16);
+    }
+    .category-page-dots {
+        color: #9a8b83;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+    }
 </style>
 
 <div class="cat-detail-wrapper">
-    <div class="breadcrumb-nav">
+        <div class="breadcrumb-nav">
+        <!-- Clickable Shop -->
         <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a> 
-        <span> > </span> CATEGORIES 
-        <span> > </span> <span class="breadcrumb-active">{{ category.category_name|upper }}</span>
+        
+        <span> > </span> 
+        <!-- Clickable Categories Overview -->
+        <a href="{% url 'categories_overview' %}" style="color: inherit; text-decoration: none;">CATEGORIES</a> 
+        
+        <span> > </span> 
+        <!-- Current Category (Active) -->
+        <span class="breadcrumb-active">{{ category.category_name|upper }}</span>
     </div>
 
     <div class="cat-header-container">
@@ -120,7 +166,34 @@
         <div class="text-center py-5 w-100">No products found in this category.</div>
         {% endfor %}
     </div>
+
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <div class="category-pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="category-page-link" aria-label="Previous page">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+                <span class="category-page-current">{{ page_num }}</span>
+            {% elif page_num >= page_obj.number|add:'-2' and page_num <= page_obj.number|add:'2' %}
+                <a href="?page={{ page_num }}" class="category-page-link">{{ page_num }}</a>
+            {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
+                <a href="?page={{ page_num }}" class="category-page-link">{{ page_num }}</a>
+            {% elif page_num == page_obj.number|add:'-3' or page_num == page_obj.number|add:'3' %}
+                <span class="category-page-dots">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="category-page-link" aria-label="Next page">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
-<div style="background-color: var(--bicol-green); height: 120px; width: 100%;"></div>
 {% endblock %}

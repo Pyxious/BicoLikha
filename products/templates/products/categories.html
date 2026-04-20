@@ -1,0 +1,121 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --bicol-green: #5f9e40;
+        --theme-light-green: #e9fcd9;
+        --text-brown: #5d3a2d;
+        --nav-brown: #8d5e4a;
+    }
+
+    /* MATCHED TO CATEGORY_DETAIL: Identical width and padding */
+    .categories-shell {
+        max-width: 1400px; 
+        margin: 30px auto 90px;
+        padding: 0 60px;
+        text-align: left;
+    }
+
+    /* MATCHED TO CATEGORY_DETAIL: Identical Breadcrumb Styling */
+    .breadcrumb-nav { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        color: #555; 
+        margin-bottom: 40px; 
+        letter-spacing: 1.5px; 
+        text-transform: uppercase;
+    }
+    .breadcrumb-nav span { margin: 0 10px; color: #ddd; font-weight: 400; }
+    .breadcrumb-active { color: #8d5e4a; } /* Brown for the active 'Categories' end-cap */
+
+    .cat-title {
+        color: var(--bicol-green);
+        font-weight: 900;
+        font-size: 2.8rem;
+        margin-bottom: 25px;
+        text-transform: lowercase;
+        letter-spacing: -1.5px;
+    }
+
+    /* Product Cards / Grid */
+    .artwork-box {
+        background-color: var(--theme-light-green);
+        aspect-ratio: 1/1;
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .artwork-box img { width: 100%; height: 100%; object-fit: contain; }
+    
+    .art-info-container { margin-top: 12px; text-align: left; }
+    .art-top-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .art-name-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; margin: 0; }
+    .art-price-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; }
+    .art-artist-text { color: #aaa; font-size: 0.8rem; font-weight: 600; display: block; margin-top: 6px; }
+    .art-stock-text { color: #8f7a72; font-size: 0.78rem; font-weight: 700; display: block; margin-top: 4px; }
+    .art-stock-text.out { color: #b3634d; }
+
+    .arrow-btn { font-size: 4.5rem; color: var(--bicol-green); text-decoration: none; transition: 0.3s; line-height: 1; }
+    .arrow-btn:hover { color: var(--nav-brown); transform: scale(1.1); }
+
+    .dashed-separator { border: none; border-top: 3px dashed var(--nav-brown); margin: 60px 0; opacity: 0.4; }
+</style>
+
+<div class="categories-shell">
+    <!-- BREADCRUMBS: Now identical to Category Detail -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a>
+        <span> > </span>
+        <span class="breadcrumb-active">CATEGORIES</span>
+    </div>
+
+    {% for item in category_data %}
+    <div class="category-section mb-5">
+        <h2 class="cat-title">{{ item.category.category_name }}</h2>
+        
+        <div class="row align-items-center g-3">
+            <div class="col-11">
+                <div class="row g-3">
+                    {% for prod in item.products %}
+                    <div class="col-6 col-md-3">
+                        <a href="{% url 'product_detail' prod.prod_id %}" style="text-decoration: none;">
+                            <div class="artwork-box shadow-sm">
+                                {% if prod.image %}<img src="{{ prod.image.url }}" alt="{{ prod.title }}">
+                                {% else %}<i class="fas fa-image fa-2x text-white opacity-50"></i>{% endif %}
+                            </div>
+                            <div class="art-info-container">
+                                <div class="art-top-row">
+                                    <span class="art-name-text">{{ prod.title }}</span>
+                                    <span class="art-price-text">P{{ prod.price|floatformat:0 }}</span>
+                                </div>
+                                <span class="art-stock-text {% if prod.stock_qty|default:0 <= 0 %}out{% endif %}">
+                                    {% if prod.stock_qty|default:0 > 0 %}Stock: {{ prod.stock_qty }}{% else %}Out of stock{% endif %}
+                                </span>
+                                <span class="art-artist-text">{{ prod.artist.artist_name }}</span>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="col-1 text-center">
+                <a href="{% url 'category_detail' item.category.category_id %}" class="arrow-btn">
+                    <i class="fas fa-caret-right"></i>
+                </a>
+            </div>
+        </div>
+
+        {% if not forloop.last %}
+            <hr class="dashed-separator">
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

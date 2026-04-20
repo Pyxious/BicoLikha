@@ -4,152 +4,115 @@
 <style>
     :root {
         --bicol-green: #5f9e40;
-        --theme-light-green: #e9fcd9; /* The exact green from mockup */
+        --theme-light-green: #e9fcd9;
         --text-brown: #5d3a2d;
         --nav-brown: #8d5e4a;
     }
 
-    /* Category Title (Bold, Green, Lowercase) */
-    .cat-title {
-        color: var(--bicol-green);
-        font-weight: 900;
-        font-size: 2.8rem;
-        margin-bottom: 25px;
-        text-transform: lowercase;
-        letter-spacing: -1.5px;
-    }
+    .catalog-shell { max-width: 1380px; margin: 34px auto 90px; padding: 0 36px; text-align: left; }
+    .catalog-breadcrumb { font-size: 0.84rem; font-weight: 800; color: #8f7c72; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 24px; }
+    .catalog-breadcrumb .active { color: var(--nav-brown); }
 
-    /* THE PRODUCT BOX: Light green background, contain fit */
-    .artwork-box {
-        background-color: var(--theme-light-green);
-        aspect-ratio: 1/1;
-        border-radius: 6px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 15px; /* Creates the "green border" effect around the art */
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .artwork-box:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+    .catalog-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+    .catalog-title { color: var(--bicol-green); font-weight: 900; font-size: 3.2rem; letter-spacing: -0.05em; text-transform: lowercase; margin: 0; }
+    .catalog-subtitle { color: #8f7c72; font-size: 0.95rem; margin-top: 8px; }
 
-    .artwork-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* Shows entire art inside the green box */
-    }
+    .catalog-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .catalog-select { min-width: 220px; border: 1.5px solid #d8c1b6; border-radius: 999px; padding: 11px 16px; font-size: 0.88rem; font-weight: 700; color: var(--text-brown); background: #fff; outline: none; }
+    
+    .catalog-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 999px; padding: 0 25px; border: none; background: var(--nav-brown); color: #fff; font-size: 0.82rem; font-weight: 800; text-decoration: none; transition: 0.2s; }
+    .catalog-btn:hover { opacity: 0.9; transform: translateY(-2px); color: white; }
 
-    /* THE TEXT INFO: Aligned Name and Price */
-    .art-info-container { margin-top: 12px; text-align: left; }
-    .art-top-row { display: flex; justify-content: space-between; align-items: center; }
-    .art-name-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; margin: 0; }
-    .art-price-text { font-weight: 800; color: var(--text-brown); font-size: 0.95rem; }
-    .art-artist-text { color: #aaa; font-size: 0.8rem; font-weight: 600; display: block; margin-top: 6px; }
-    .art-stock-text { color: #8f7a72; font-size: 0.78rem; font-weight: 700; display: block; margin-top: 4px; }
+    /* White outlined button for Categories link */
+    .btn-cat-link { background: white !important; color: var(--nav-brown) !important; border: 1.5px solid #d8c1b6 !important; }
+    .btn-cat-link:hover { background: #f8f1eb !important; border-color: var(--nav-brown) !important; }
+
+    .catalog-divider { border: none; border-top: 3px dashed var(--nav-brown); margin: 28px 0 40px; opacity: 0.35; }
+
+    .catalog-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+    .product-card { text-decoration: none; color: inherit; display: block; transition: 0.3s; }
+    .product-card:hover { transform: translateY(-8px); }
+
+    .artwork-box { background-color: var(--theme-light-green); aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 25px; }
+    .artwork-box img { width: 100%; height: 100%; object-fit: contain; }
+
+    .art-info-container { margin-top: 15px; text-align: left; }
+    .art-top-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .art-name-text { font-weight: 800; color: var(--text-brown); font-size: 1rem; margin: 0; }
+    .art-price-text { font-weight: 900; color: var(--text-brown); font-size: 1rem; }
+    .art-artist-text { color: #bbb; font-size: 0.82rem; font-weight: 600; display: block; margin-top: 4px; }
+    .art-stock-text { color: #8f7a72; font-size: 0.75rem; font-weight: 700; display: block; margin-top: 2px; }
     .art-stock-text.out { color: #b3634d; }
-
-    /* Navigation Arrow */
-    .arrow-btn {
-        font-size: 4.5rem;
-        color: var(--bicol-green);
-        text-decoration: none;
-        transition: 0.3s;
-        line-height: 1;
+    .breadcrumb-nav { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        color: #555; 
+        letter-spacing: 1.5px; 
+        text-transform: uppercase;
+        margin-bottom: 40px;
     }
-    .arrow-btn:hover {
-        color: var(--nav-brown);
-        transform: scale(1.1);
-    }
+    .breadcrumb-active { color: #8d5e4a; }
 
-    /* Dashed Separator */
-    .dashed-separator { border: none; border-top: 3px dashed var(--nav-brown); margin: 60px 0; opacity: 0.4; }
-
-    .btn-back { color: var(--nav-brown); text-decoration: none; font-weight: 800; display: inline-block; margin-bottom: 25px; font-size: 0.8rem; letter-spacing: 1px; }
+    @media (max-width: 1199px) { .catalog-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 768px) { .catalog-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 
-<div class="container mt-5 mb-5">
+<div class="catalog-shell">
+    <div class="breadcrumb-nav">
+    </div>
 
-    {% if view_all %}
-        <!-- --- VIEW ALL MODE (Full Grid) --- -->
-        <a href="{% url 'catalog' %}" class="btn-back"><i class="fas fa-chevron-left me-2"></i> BACK TO CATALOG</a>
-        <h1 class="cat-title">{{ category.category_name }}</h1>
-        
-        <div class="row g-4">
-            {% for artwork in artworks %}
-            <div class="col-6 col-md-4 col-lg-3">
-                <a href="{% url 'product_detail' artwork.prod_id %}" style="text-decoration: none;">
-                    <div class="artwork-box shadow-sm">
-                        {% if artwork.image %}<img src="{{ artwork.image.url }}">{% endif %}
-                    </div>
-                    <div class="art-info-container">
-                        <div class="art-top-row">
-                            <span class="art-name-text">{{ artwork.title }}</span>
-                            <span class="art-price-text">P{{ artwork.price|floatformat:0 }}</span>
-                        </div>
-                        <span class="art-stock-text {% if artwork.stock_qty|default:0 <= 0 %}out{% endif %}">
-                            {% if artwork.stock_qty|default:0 > 0 %}
-                                Stock: {{ artwork.stock_qty }}
-                            {% else %}
-                                Out of stock
-                            {% endif %}
-                        </span>
-                        <span class="art-artist-text">{{ artwork.artist.artist_name }}</span>
-                    </div>
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-
-    {% else %}
-        <!-- --- OVERVIEW MODE (Row by Row) --- -->
-        {% for item in category_data %}
-        <div class="category-section mb-5">
-            <h1 class="cat-title">{{ item.category.category_name }}</h1>
+    <div class="catalog-header">
+        <div>
             
-            <div class="row align-items-center g-3">
-                <div class="col-11">
-                    <div class="row g-3">
-                        {% for prod in item.products %}
-                        <div class="col-3">
-                            <a href="{% url 'product_detail' prod.prod_id %}" style="text-decoration: none;">
-                                <div class="artwork-box shadow-sm">
-                                    {% if prod.image %}<img src="{{ prod.image.url }}">{% endif %}
-                                </div>
-                                <div class="art-info-container">
-                                    <div class="art-top-row">
-                                        <span class="art-name-text">{{ prod.title }}</span>
-                                        <span class="art-price-text">P{{ prod.price|floatformat:0 }}</span>
-                                    </div>
-                                    <span class="art-stock-text {% if prod.stock_qty|default:0 <= 0 %}out{% endif %}">
-                                        {% if prod.stock_qty|default:0 > 0 %}
-                                            Stock: {{ prod.stock_qty }}
-                                        {% else %}
-                                            Out of stock
-                                        {% endif %}
-                                    </span>
-                                    <span class="art-artist-text">{{ prod.artist.artist_name }}</span>
-                                </div>
-                            </a>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <div class="col-1 text-center">
-                    <a href="{% url 'category_detail' item.category.category_id %}" class="arrow-btn" aria-label="View {{ item.category.category_name }}">
-                        <i class="fas fa-caret-right"></i>
-                    </a>
-                </div>
-            </div>
-
-            {% if not forloop.last %}
-                <hr class="dashed-separator">
-            {% endif %}
         </div>
-        {% endfor %}
-    {% endif %}
+        
+        <div class="catalog-tools">
+            <!-- NEW CATEGORIES BUTTON -->
+            <a href="{% url 'categories_overview' %}" class="catalog-btn btn-cat-link shadow-sm">Categories</a>
+            
+            <!-- SORTING FORM -->
+            <form method="GET" class="d-flex gap-2">
+                <select name="sort" class="catalog-select">
+                    <option value="latest" {% if current_sort == 'latest' %}selected{% endif %}>Latest</option>
+                    <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                    <option value="title_asc" {% if current_sort == 'title_asc' %}selected{% endif %}>Name: A to Z</option>
+                </select>
+                <button type="submit" class="catalog-btn shadow-sm">Sort</button>
+            </form>
+        </div>
+    </div>
 
+    <hr class="catalog-divider">
+
+    <!-- PRODUCT GRID -->
+    <div class="catalog-grid">
+        {% for artwork in artworks %}
+        <a href="{% url 'product_detail' artwork.prod_id %}" class="product-card">
+            <div class="artwork-box shadow-sm">
+                {% if artwork.image %}
+                    <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}">
+                {% else %}
+                    <div class="text-muted opacity-25"><i class="fas fa-image fa-3x"></i></div>
+                {% endif %}
+            </div>
+            <div class="art-info-container">
+                <div class="art-top-row">
+                    <span class="art-name-text">{{ artwork.title }}</span>
+                    <span class="art-price-text">₱{{ artwork.price|floatformat:0 }}</span>
+                </div>
+                <span class="art-artist-text">{{ artwork.artist.artist_name }}</span>
+                <span class="art-stock-text {% if artwork.stock_qty <= 0 %}out{% endif %}">
+                    {% if artwork.stock_qty > 0 %}Stock: {{ artwork.stock_qty }}{% else %}Out of stock{% endif %}
+                </span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-5 w-100"><p class="text-muted">No products found.</p></div>
+        {% endfor %}
+    </div>
 </div>
 
 <div style="background-color: var(--bicol-green); height: 120px; width: 100%;"></div>
+
 {% endblock %}

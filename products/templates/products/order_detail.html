@@ -423,7 +423,7 @@
                     <button class="detail-btn detail-btn-secondary" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">Order Received</button>
                 {% elif order.status == 'Processing' or order.status == 'To Pay' %}
                     {% if order.is_cancellable %}
-                    <a href="{% url 'cancel_order' order.order_id %}" class="detail-btn detail-btn-danger" onclick="return confirm('Cancel this order?')">Cancel Order</a>
+                    <button type="button" class="detail-btn detail-btn-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal{{ order.order_id }}">Cancel Order</button>
                     {% endif %}
                 {% endif %}
             </div>
@@ -602,4 +602,23 @@
         </div>
     </div>
 </div>
+{% if order.is_cancellable %}
+{% if order.status == 'Processing' or order.status == 'To Pay' %}
+<div class="modal fade" id="cancelOrderModal{{ order.order_id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="modal-body">
+                <i class="fas fa-triangle-exclamation fa-4x mb-4" style="color:#b5533f;"></i>
+                <h4 class="fw-bold">Cancel this order?</h4>
+                <p class="text-muted small">Order #BK-{{ order.order_id }} will be cancelled and this action cannot be undone.</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-light w-100 rounded-pill border" data-bs-dismiss="modal">Keep Order</button>
+                    <a href="{% url 'cancel_order' order.order_id %}" class="btn w-100 rounded-pill fw-bold text-white" style="background:#b5533f;">Yes, Cancel Order</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
 {% endblock %}

@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     # --- Public Pages ---
     path('', views.catalog, name='catalog'),
+    path('categories/', views.categories_overview, name='categories_overview'),
     path('artists/', views.artists, name='artists'),
     path('artist/<int:artist_id>/', views.artist_detail, name='artist_detail'),
     path('about/', views.about, name='about'),

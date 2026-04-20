@@ -28,6 +28,9 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         /* --- 1. Top Header Grid --- */
@@ -49,6 +52,11 @@
             position: relative;
             max-width: 280px;
         }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
         .search-input {
             width: 100%;
             padding: 7px 15px 7px 40px;
@@ -68,6 +76,28 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--nav-brown);
+        }
+        .header-categories-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--nav-brown);
+            border: 1.5px solid var(--nav-brown);
+            text-decoration: none;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            transition: 0.2s ease;
+        }
+        .header-categories-btn:hover {
+            background: var(--nav-brown);
+            color: #fff;
         }
 
         /* --- 3. Logo (Center Column) --- */
@@ -99,17 +129,37 @@
         .header-right a {
             color: var(--text-brown);
             text-decoration: none;
-            margin-left: 20px;
-            text-align: center;
+            margin-left: 18px;
             transition: 0.2s;
         }
         .header-right a:hover { opacity: 0.7; }
+        .header-icon-link {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 54px;
+            line-height: 1;
+            text-align: center;
+            gap: 4px;
+        }
+        .header-icon-link i {
+            line-height: 1;
+        }
+        .header-icon-link.active-icon {
+            color: var(--nav-brown);
+        }
+        .header-icon-link.active-icon i,
+        .header-icon-link.active-icon .icon-label {
+            color: var(--nav-brown);
+        }
         .icon-label {
             display: block;
             font-size: 0.65rem;
             font-weight: bold;
             text-transform: uppercase;
-            margin-top: 2px;
+            margin-top: 0;
+            line-height: 1.1;
         }
 
         /* --- 5. Brown Sub-Navbar --- */
@@ -145,8 +195,8 @@
 
         /* --- Content Layout --- */
         .main-container {
-            min-height: 80vh;
-            padding-bottom: 50px;
+            flex: 1 0 auto;
+            padding-bottom: 32px;
         }
 
         .nav-link-custom {
@@ -217,12 +267,174 @@
 .cart-bounce {
     animation: cart-bounce 0.5s ease-in-out;
 }
+
+.site-footer {
+    flex-shrink: 0;
+    background: #ffffff;
+    color: #555;
+    margin-top: auto;
+    border-top: 1px solid #eaeaea;
+}
+.footer-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 34px 24px 20px;
+}
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    gap: 24px;
+}
+.footer-heading {
+    color: #222;
+    font-size: 0.92rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+.footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.footer-link {
+    color: #555;
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    transition: color 0.2s ease;
+}
+.footer-link:hover {
+    color: var(--nav-brown);
+}
+.footer-note {
+    color: #666;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+.footer-socials {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #555;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.footer-social-link:hover {
+    color: var(--nav-brown);
+}
+.footer-badges {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.footer-badge {
+    border: 1px solid #e7e7e7;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b6b6b;
+    background: #fff;
+    text-align: center;
+}
+.footer-download {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.footer-qr {
+    width: 88px;
+    height: 88px;
+    border: 1px solid #e6e6e6;
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    color: #222;
+    font-size: 2rem;
+}
+.footer-apps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.footer-app-chip {
+    border: 1px solid #e6e6e6;
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    color: #555;
+    background: #fff;
+}
+.footer-bottom {
+    border-top: 1px solid #ececec;
+    margin-top: 28px;
+    padding-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.88rem;
+    color: #777;
+}
+.footer-region-list {
+    text-align: right;
+}
+
+@media (max-width: 991.98px) {
+    .footer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .header-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .search-wrapper {
+        max-width: 100%;
+    }
+    .header-center,
+    .header-right,
+    .header-left {
+        justify-content: center !important;
+        text-align: center;
+    }
+    .sub-nav .container {
+        flex-wrap: wrap;
+        gap: 8px 0;
+    }
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .footer-bottom {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    .footer-region-list {
+        text-align: left;
+    }
+}
+@media (max-width: 575.98px) {
+    .footer-shell {
+        padding: 28px 18px 18px;
+    }
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+}
     </style>
 
 </head>
 <body>
 
-    <!-- ADMIN PANEL BUTTON (Visible only to Staff) -->
     
 
     <!-- TOP HEADER -->
@@ -251,37 +463,38 @@
                 <!-- RIGHT: ICONS -->
                 <div class="header-right d-flex justify-content-end align-items-center">
                     {% if user.is_authenticated %}
-                        <a href="{% url 'profile' %}" title="Profile">
-                            <i class="far fa-user fa-lg"></i>
-                            <span class="icon-label">{{ user.username }}</span>
+                        <a href="{% url 'profile' %}" title="Profile" class="header-icon-link {% if request.resolver_match.url_name == 'profile' %}active-icon{% endif %}">
+                            <i class="{% if request.resolver_match.url_name == 'profile' %}fas{% else %}far{% endif %} fa-user fa-lg"></i>
+                            <span class="icon-label">{{ user.first_name|default:user.username }}</span>
                         </a>
                     {% else %}
-                        <a href="{% url 'login' %}" title="Login">
+                        <a href="{% url 'login' %}" title="Login" class="header-icon-link">
                             <i class="far fa-user fa-lg"></i>
                             <span class="icon-label">Sign In</span>
                         </a>
                     {% endif %}
                     
                     {% if user.is_authenticated %}
-                    <a href="{% url 'liked_items' %}" title="Favorites">
-                        <i class="far fa-heart fa-lg"></i>
+                    <a href="{% url 'liked_items' %}" title="Favorites" class="header-icon-link {% if request.resolver_match.url_name == 'liked_items' %}active-icon{% endif %}">
+                        <i class="{% if request.resolver_match.url_name == 'liked_items' %}fas{% else %}far{% endif %} fa-heart fa-lg"></i>
                         <span class="icon-label">Likes</span>
                     </a>
                     {% else %}
-                    <a href="{% url 'login' %}" title="Favorites">
+                    <a href="{% url 'login' %}" title="Favorites" class="header-icon-link">
                         <i class="far fa-heart fa-lg"></i>
                         <span class="icon-label">Likes</span>
                     </a>
                     {% endif %}
                     
-                    <a href="{% url 'view_cart' %}" title="Shopping Bag" class="position-relative d-inline-block" style="text-decoration: none;">
-                    <i class="fas fa-bag-shopping fa-lg" style="color: var(--text-brown);"></i>
-                    
-                    <!-- THE FIX: No Django tags inside the style attribute = No Red Errors -->
-                    <span id="cart-count-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
-                        style="font-size: 0.6rem; padding: 0.35em 0.65em;">
-                        {{ global_cart_count }}
+                    <a href="{% url 'view_cart' %}" title="Shopping Bag" class="header-icon-link {% if request.resolver_match.url_name == 'view_cart' %}active-icon{% endif %}" style="text-decoration: none;">
+                    <span class="position-relative d-inline-flex align-items-center justify-content-center">
+                        <i class="fas fa-bag-shopping fa-lg"></i>
+                        <span id="cart-count-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                            style="font-size: 0.6rem; padding: 0.35em 0.65em;">
+                            {{ global_cart_count }}
+                        </span>
                     </span>
+                    <span class="icon-label">Cart</span>
                 </a>
                 </div>
 
@@ -326,6 +539,72 @@
         <!-- Child pages (catalog, artists, profile) will inject their code here -->
         {% endblock %}
     </main>
+
+    <footer class="site-footer">
+        <div class="footer-shell">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-heading">Customer Service</div>
+                    <div class="footer-links">
+                        <a href="{% url 'profile' %}" class="footer-link">My Account</a>
+                        <a href="{% url 'view_cart' %}" class="footer-link">Shopping Cart</a>
+                        <a href="{% url 'liked_items' %}" class="footer-link">Wishlist</a>
+                        <span class="footer-note">Phone: +63 917 800 2452</span>
+                        <span class="footer-note">Email: hello@bicolikha.com</span>
+                        <span class="footer-note">Legazpi City, Albay</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="footer-heading">About Bicolikha</div>
+                    <div class="footer-links">
+                        <a href="{% url 'about' %}" class="footer-link">About Us</a>
+                        <a href="{% url 'catalog' %}" class="footer-link">Shop All</a>
+                        <a href="{% url 'popular' %}" class="footer-link">Popular Products</a>
+                        <a href="{% url 'artists' %}" class="footer-link">Artists</a>
+                        <span class="footer-note">Website: www.bicolikha.com</span>
+                        <span class="footer-note">Celebrating Bicolano art online</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="footer-heading">Payment</div>
+                    <div class="footer-badges">
+                        <div class="footer-badge">Mamaya</div>
+                        <div class="footer-badge">COD</div>
+                    </div>
+                    <div class="footer-heading">Logistics</div>
+                    <div class="footer-badges">
+                        <div class="footer-badge">SPX</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="footer-heading">Follow Us</div>
+                    <div class="footer-socials">
+                        <a href="#" class="footer-social-link"><i class="fab fa-facebook"></i><span>facebook.com/bicolikha</span></a>
+                        <a href="#" class="footer-social-link"><i class="fab fa-instagram"></i><span>instagram.com/bicolikha</span></a>
+                        <a href="#" class="footer-social-link"><i class="fab fa-x-twitter"></i><span>x.com/bicolikha</span></a>
+                        <a href="#" class="footer-social-link"><i class="fas fa-globe"></i><span>www.bicolikha.com</span></a>
+                    </div>
+                </div>
+                <div>
+                    <div class="footer-heading">Visit Us</div>
+                    <div class="footer-download">
+                        <div class="footer-qr">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                        <div class="footer-apps">
+                            <div class="footer-app-chip">bicolikha.com</div>
+                            <div class="footer-app-chip">0917 800 2452</div>
+                            <div class="footer-app-chip">hello@bicolikha.com</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 Bicolikha. All Rights Reserved.</span>
+                <span class="footer-region-list">Made in Bicol, Philippines</span>
+            </div>
+        </div>
+    </footer>
 
     <!-- Bootstrap 5 JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -18,6 +18,53 @@
     .popular-stock { color: #8f7a72; font-size: 0.82rem; font-weight: 700; margin-top: 4px; }
     .popular-stock.out { color: #b3634d; }
     .popular-artist { color: #9a8b83; font-size: 0.82rem; margin-top: 6px; }
+    .popular-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .popular-filter-form {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .popular-select {
+        min-width: 210px;
+        border: 1.5px solid #d8c1b6;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #5d3a2d;
+        background: #fff;
+        outline: none;
+    }
+    .popular-filter-btn,
+    .popular-clear-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        border-radius: 999px;
+        padding: 0 18px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .popular-filter-btn {
+        border: none;
+        background: #8d5e4a;
+        color: #fff;
+    }
+    .popular-clear-link {
+        border: 1.5px solid #d8c1b6;
+        color: #8d5e4a;
+        background: #fff;
+    }
     .popular-pagination {
         display: flex;
         justify-content: center;
@@ -66,6 +113,32 @@
     </div>
     <hr class="dashed-line">
 
+    <div class="popular-toolbar">
+        <div class="text-muted small">
+            {% if selected_category %}
+                Showing popular items in the selected category.
+            {% else %}
+                Showing popular items from all categories.
+            {% endif %}
+        </div>
+        <div class="popular-filter-form">
+            <form method="GET" class="popular-filter-form">
+                <select name="category" class="popular-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.category_id }}" {% if selected_category == category.category_id|stringformat:'s' %}selected{% endif %}>
+                        {{ category.category_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="popular-filter-btn">Apply</button>
+            </form>
+            {% if selected_category %}
+                <a href="{% url 'popular' %}" class="popular-clear-link">Clear</a>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="row g-4">
         {% for artwork in artworks %}
         <div class="col-6 col-md-4 col-lg-3">
@@ -103,7 +176,7 @@
     {% if page_obj and page_obj.paginator.num_pages > 1 %}
     <div class="popular-pagination">
         {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="popular-page-link" aria-label="Previous page">
+            <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="popular-page-link" aria-label="Previous page">
                 <i class="fas fa-chevron-left"></i>
             </a>
         {% endif %}
@@ -112,16 +185,16 @@
             {% if page_num == page_obj.number %}
                 <span class="popular-page-current">{{ page_num }}</span>
             {% elif page_num >= page_obj.number|add:'-2' and page_num <= page_obj.number|add:'2' %}
-                <a href="?page={{ page_num }}" class="popular-page-link">{{ page_num }}</a>
+                <a href="?page={{ page_num }}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="popular-page-link">{{ page_num }}</a>
             {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
-                <a href="?page={{ page_num }}" class="popular-page-link">{{ page_num }}</a>
+                <a href="?page={{ page_num }}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="popular-page-link">{{ page_num }}</a>
             {% elif page_num == page_obj.number|add:'-3' or page_num == page_obj.number|add:'3' %}
                 <span class="popular-page-dots">...</span>
             {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="popular-page-link" aria-label="Next page">
+            <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="popular-page-link" aria-label="Next page">
                 <i class="fas fa-chevron-right"></i>
             </a>
         {% endif %}
@@ -129,5 +202,4 @@
     {% endif %}
 </div>
 
-<div style="background-color: #5f9e40; height: 120px; width: 100%;"></div>
 {% endblock %}

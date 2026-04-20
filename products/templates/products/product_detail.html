@@ -145,8 +145,10 @@
     <!-- BREADCRUMBS -->
     <div class="breadcrumb-nav text-start">
         <a href="{% url 'catalog' %}" style="color: inherit; text-decoration: none;">SHOP</a>
-        <span> > </span> CATEGORIES
         <span> > </span> 
+    <a href="{% url 'categories_overview' %}" style="color: inherit; text-decoration: none;">CATEGORIES</a>
+    
+    <span> > </span> 
         <a href="{% url 'category_detail' product.category.category_id %}" style="color: inherit; text-decoration: none;">
             {{ product.category.category_name|upper }}
         </a>

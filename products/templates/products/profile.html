@@ -35,6 +35,24 @@
     /* Address Cards */
     .address-display-box { transition: 0.2s; border: 1.5px solid #eee !important; margin-bottom: 15px; position: relative; }
     .address-display-box:hover { border-color: #8d5e4a !important; }
+    .address-empty-state {
+        border: 1.5px dashed #d8c1b6;
+        border-radius: 24px;
+        background: #fffaf7;
+        padding: 28px;
+        text-align: left;
+    }
+    .address-empty-state-title {
+        color: #5d3a2d;
+        font-size: 1rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+    .address-empty-state-copy {
+        color: #8f7c72;
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+    }
     .address-action-btn {
         display: inline-flex;
         align-items: center;
@@ -537,7 +555,7 @@
                 </a>
                 {% if is_artist %}
                 <a href="?tab=messages" class="sidebar-link {% if active_tab == 'messages' %}active{% endif %}">
-                    <i class="fas fa-envelope"></i> Artist Messages
+                    <i class="fas fa-envelope"></i> Artist Notifications
                     {% if unread_artist_count > 0 %}<span class="badge bg-danger ms-auto rounded-pill" style="font-size: 0.6rem;">NEW</span>{% endif %}
                 </a>
                 {% endif %}
@@ -569,7 +587,7 @@
                             <div class="mb-3"><label class="small text-muted fw-bold">Last Name</label><input type="text" name="lname" id="id_lname" value="{{ user.last_name }}" class="bicol-input"></div>
                             <div class="mb-3"><label class="small text-muted fw-bold">Email Address</label><input type="email" value="{{ user.email }}" class="bicol-input" readonly></div>
                             <!-- RESTORED PHONE NUMBER -->
-                            <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" value="{{ address.phone_num|default:'' }}" class="bicol-input" readonly></div>
+                            <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" value="{{ address.phone_num|default:'No address saved yet' }}" class="bicol-input" readonly></div>
                         </div>
 
                         <div class="col-md-7 ps-lg-4 text-start">
@@ -578,6 +596,7 @@
                                 <button type="button" class="btn btn-sm text-white rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addAddressModal" style="background:#8d5e4a; font-weight:700; font-size:0.7rem;">+ ADD NEW ADDRESS</button>
                             </div>
 
+                            {% if all_addresses %}
                             {% for addr in all_addresses %}
                             <div class="address-display-box shadow-sm p-4 rounded-4">
                                 <div class="small">
@@ -605,6 +624,13 @@
                                 </div>
                             </div>
                             {% endfor %}
+                            {% else %}
+                            <div class="address-empty-state shadow-sm">
+                                <div class="address-empty-state-title">No delivery address yet</div>
+                                <div class="address-empty-state-copy">Add your first address so you can use checkout and have your orders delivered correctly.</div>
+                                <button type="button" class="btn btn-sm text-white rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addAddressModal" style="background:#8d5e4a; font-weight:700; font-size:0.75rem;">+ ADD NEW ADDRESS</button>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </form>
@@ -697,7 +723,7 @@
                                     <button class="order-btn order-btn-secondary" data-bs-toggle="modal" data-bs-target="#confirmModal{{ order.order_id }}">Order Received</button>
                                 {% elif order.status == 'Processing' or order.status == 'To Pay' %}
                                     {% if order.is_cancellable %}
-                                    <a href="{% url 'cancel_order' order.order_id %}" class="order-btn order-btn-danger" onclick="return confirm('Cancel this order?')">Cancel Entire Order</a>
+                                    <button type="button" class="order-btn order-btn-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal{{ order.order_id }}">Cancel Entire Order</button>
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -950,6 +976,29 @@
         </div>
     </div>
 </div>
+{% endfor %}
+
+<!-- CANCEL ORDER MODAL -->
+{% for order in orders %}
+{% if order.is_cancellable %}
+{% if order.status == 'Processing' or order.status == 'To Pay' %}
+<div class="modal fade" id="cancelOrderModal{{ order.order_id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="modal-body">
+                <i class="fas fa-triangle-exclamation fa-4x mb-4" style="color:#b5533f;"></i>
+                <h4 class="fw-bold">Cancel this order?</h4>
+                <p class="text-muted small">Order #BK-{{ order.order_id }} will be cancelled for all artist groups and this action cannot be undone.</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-light w-100 rounded-pill border" data-bs-dismiss="modal">Keep Order</button>
+                    <a href="{% url 'cancel_order' order.order_id %}" class="btn w-100 rounded-pill fw-bold text-white" style="background:#b5533f;">Yes, Cancel Order</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
 {% endfor %}
 
 <script>
