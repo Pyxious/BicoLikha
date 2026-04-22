@@ -586,8 +586,7 @@
                             <div class="mb-3"><label class="small fw-bold text-muted">First Name</label><input type="text" name="fname" id="id_fname" value="{{ user.first_name }}" class="bicol-input"></div>
                             <div class="mb-3"><label class="small text-muted fw-bold">Last Name</label><input type="text" name="lname" id="id_lname" value="{{ user.last_name }}" class="bicol-input"></div>
                             <div class="mb-3"><label class="small text-muted fw-bold">Email Address</label><input type="email" value="{{ user.email }}" class="bicol-input" readonly></div>
-                            <!-- RESTORED PHONE NUMBER -->
-                            <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" value="{{ address.phone_num|default:'No address saved yet' }}" class="bicol-input" readonly></div>
+                            <div class="mb-3"><label class="small text-muted fw-bold">Phone Number</label><input type="text" name="phone_number" id="id_phone_number" value="{{ user.phone_number|default:'' }}" class="bicol-input"></div>
                         </div>
 
                         <div class="col-md-7 ps-lg-4 text-start">
@@ -1032,11 +1031,11 @@
         } else { mapDiv._mapObj.invalidateSize(); }
     });
 
-    const fInput = document.getElementById('id_fname'); const lInput = document.getElementById('id_lname'); const sBtn = document.getElementById('saveChangesBtn');
-    if(fInput && lInput) {
-        const iF = fInput.value; const iL = lInput.value;
-        function c() { sBtn.disabled = (fInput.value.trim() === iF && lInput.value.trim() === iL); }
-        fInput.addEventListener('input', c); lInput.addEventListener('input', c);
+    const fInput = document.getElementById('id_fname'); const lInput = document.getElementById('id_lname'); const pInput = document.getElementById('id_phone_number'); const sBtn = document.getElementById('saveChangesBtn');
+    if(fInput && lInput && pInput) {
+        const iF = fInput.value; const iL = lInput.value; const iP = pInput.value;
+        function c() { sBtn.disabled = (fInput.value.trim() === iF && lInput.value.trim() === iL && pInput.value.trim() === iP); }
+        fInput.addEventListener('input', c); lInput.addEventListener('input', c); pInput.addEventListener('input', c);
     }
 </script>
 {% endblock %}  

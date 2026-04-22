@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
+import re
+
+from django.contrib.auth import get_user_model
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.models import User
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction
 from django.db.models import Q, Sum, Count, F, Case, When, Value, IntegerField
@@ -22,6 +24,8 @@ from .forms import (
     ProductForm, CategoryForm, BicolikhaSignupForm,
     CustomerAuthenticationForm, AdminAuthenticationForm
 )
+
+User = get_user_model()
 
 
 def _address_is_complete(address):
@@ -102,6 +106,7 @@ def signup(request):
                 with transaction.atomic():
                     user = form.save(commit=False)
                     user.username = form.cleaned_data['email']
+                    user.phone_number = form.cleaned_data['phone_number']
                     user.set_password(form.cleaned_data['password'])
                     user.save() # Names are saved here automatically by the form into auth_user
                     Cart.objects.get_or_create(user=user)
@@ -694,8 +699,16 @@ def profile_view(request):
         
         # --- UPDATE PERSONAL INFO & PHOTO ---
         elif 'update_personal_info' in request.POST:
+            phone_number = re.sub(r'\D', '', request.POST.get('phone_number') or '')
+            if len(phone_number) != 11:
+                messages.error(request, "Phone number must be exactly 11 digits.")
+                return redirect('/profile/?tab=account')
+            if User.objects.exclude(pk=request.user.pk).filter(phone_number=phone_number).exists():
+                messages.error(request, "That phone number is already being used by another account.")
+                return redirect('/profile/?tab=account')
             request.user.first_name = request.POST.get('fname')
             request.user.last_name = request.POST.get('lname')
+            request.user.phone_number = phone_number
             request.user.save()
             if address:
                 if request.FILES.get('profile_pix'):

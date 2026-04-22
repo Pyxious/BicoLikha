@@ -1,5 +1,8 @@
+import os
+
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.utils.text import slugify
 
 # --- 1. CATEGORY & ARTIST ---
 
@@ -15,7 +18,7 @@ class Category(models.Model):
 
 class Artist(models.Model):
     artist_id = models.AutoField(primary_key=True, db_column='ARTIST_ID')
-    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_profile')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='artist_profile')
     artist_name = models.CharField(max_length=255, db_column='ARTIST_NAME', null=True)
     artist_phone_num = models.CharField(max_length=20, db_column='ARTIST_PHONE_NUM', null=True)
     artist_description = models.TextField(db_column='ARTIST_DESCRIPTION', null=True)
@@ -34,7 +37,7 @@ class Artist(models.Model):
 
 class Address(models.Model):
     address_id = models.AutoField(primary_key=True, db_column='ADDRESS_ID')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID', null=True)
     address_type = models.CharField(max_length=50, db_column='ADDRESS_TYPE', null=True)
     phone_num = models.CharField(max_length=20, db_column='ADDRESS_PHONE_NUM', null=True)
     house_num = models.CharField(max_length=20, db_column='ADDRESS_HOUSE_NUM', null=True)
@@ -52,6 +55,15 @@ class Address(models.Model):
 
 # --- 3. PRODUCTS & CART ---
 
+
+def artwork_image_upload_to(instance, filename):
+    _, ext = os.path.splitext(filename)
+    category_name = (instance.category.category_name if instance.category else '') or 'uncategorized'
+    category_slug = slugify(category_name) or 'uncategorized'
+    title_slug = slugify(instance.title or os.path.splitext(filename)[0]) or 'artwork'
+
+    return f'artwork_pics/{category_slug}/{title_slug}{ext.lower()}'
+
 class Artwork(models.Model):
     prod_id = models.AutoField(primary_key=True, db_column='PROD_ID')
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, db_column='ARTIST_ID', null=True)
@@ -60,7 +72,7 @@ class Artwork(models.Model):
     description = models.TextField(db_column='PROD_DESCRIPTION', null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, db_column='PROD_PRICE', null=True)
     stock_qty = models.IntegerField(db_column='PROD_STOCK_QTY', null=True)
-    image = models.ImageField(upload_to='artwork_pics/', db_column='PROD_IMAGE', null=True, blank=True)
+    image = models.ImageField(upload_to=artwork_image_upload_to, db_column='PROD_IMAGE', null=True, blank=True)
     
 
     class Meta:
@@ -69,7 +81,7 @@ class Artwork(models.Model):
 
 class Cart(models.Model):
     cart_id = models.AutoField(primary_key=True, db_column='CART_ID')
-    user = models.OneToOneField(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID', null=True)
     total_items = models.IntegerField(db_column='TOTAL_ITEMS', default=0)
     date_created = models.DateTimeField(auto_now_add=True, db_column='DATE_CREATED')
 
@@ -114,7 +126,7 @@ class Shipment(models.Model):
 
 class Order(models.Model):
     order_id = models.AutoField(primary_key=True, db_column='ORDER_ID')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID', null=True)
     payment = models.OneToOneField(Payment, on_delete=models.SET_NULL, null=True, db_column='PAYMENT_ID')
     # UPDATED: Link to the Shipment model instead of just an Integer
     shipment = models.OneToOneField(Shipment, on_delete=models.SET_NULL, null=True, db_column='SHIPMENT_ID')
@@ -163,7 +175,7 @@ class Notification(models.Model):
 
 class Review(models.Model):
     review_id = models.AutoField(primary_key=True, db_column='REVIEW_ID')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID')
     product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID')
     rating = models.IntegerField(db_column='REVIEW_RATING')
     description = models.TextField(db_column='REVIEW_DESCRIPTION', null=True, blank=True)
@@ -175,7 +187,7 @@ class Review(models.Model):
 
 class Like(models.Model):
     like_id = models.AutoField(primary_key=True, db_column='LIKE_ID')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='USER_ID', null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID', null=True)
     product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PRODUCT_ID', null=True)
     date_liked = models.DateTimeField(auto_now_add=True, db_column='DATE_LIKED')
 
@@ -184,7 +196,7 @@ class Like(models.Model):
 
 
 class AuditLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     action = models.TextField()
     ip_address = models.GenericIPAddressField(null=True)
     timestamp = models.DateTimeField(auto_now_add=True)

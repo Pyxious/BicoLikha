@@ -1,7 +1,9 @@
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from .models import Address
+
+User = get_user_model()
 
 class EmailOrPhoneBackend(ModelBackend):
     """
@@ -15,7 +17,9 @@ class EmailOrPhoneBackend(ModelBackend):
         try:
             # 1. Try to find the user by email (stored in username field)
             # Or by the email field directly
-            user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+            user = User.objects.filter(
+                Q(username=username) | Q(email=username) | Q(phone_number=username)
+            ).first()
 
             # 2. If not found by email, try searching by phone number in the Address table
             if not user:

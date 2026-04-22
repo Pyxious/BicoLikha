@@ -107,12 +107,6 @@
 </style>
 
 <div class="container mt-5 mb-5">
-    <div class="d-flex align-items-center mb-2">
-        <h1 class="popular-title me-3">popular</h1>
-        <span class="text-muted border-start ps-3" style="font-size: 0.9rem;">Most loved artworks from Bicol</span>
-    </div>
-    <hr class="dashed-line">
-
     <div class="popular-toolbar">
         <div class="text-muted small">
             {% if selected_category %}
@@ -138,6 +132,9 @@
             {% endif %}
         </div>
     </div>
+    <hr class="dashed-line">
+
+    
 
     <div class="row g-4">
         {% for artwork in artworks %}

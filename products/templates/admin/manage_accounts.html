@@ -32,8 +32,7 @@
         <div class="fw-bold">{{ u.first_name }} {{ u.last_name }}</div>
     </td>
     <td>{{ u.email }}</td>
-    <!-- FIXED: Changed u.user_contact_num to u.address_info.phone_num -->
-    <td class="text-muted small">{{ u.address_info.phone_num|default:"N/A" }}</td>
+    <td class="text-muted small">{{ u.phone_number|default:"N/A" }}</td>
     <td class="text-center">
         <!-- PROMOTE BUTTON -->
         <button class="btn btn-sm btn-promote rounded-pill px-3 me-2" 
@@ -73,7 +72,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Verified Contact Number</label>
-                        <input type="text" name="contact" value="{{ u.address_info.phone_num|default:'' }}" class="form-control" required>
+                        <input type="text" name="contact" value="{{ u.phone_number|default:'' }}" class="form-control" required>
                     </div>
                     <div class="row g-3">
                         <div class="col-6">

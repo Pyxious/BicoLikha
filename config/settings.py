@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
     'products',
 ]
 
@@ -79,7 +80,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bl_db',      # Make sure you created this in MySQL Workbench/XAMPP
+        'NAME': 'bicolikha_db',      # Make sure you created this in MySQL Workbench/XAMPP
         'USER': 'root', 
         'PASSWORD': '', 
         'HOST': '127.0.0.1',
@@ -137,6 +138,7 @@ LOGOUT_REDIRECT_URL = 'catalog'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTH_USER_MODEL = 'accounts.User'
 
 
 AUTHENTICATION_BACKENDS = [
