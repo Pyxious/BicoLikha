@@ -79,6 +79,39 @@ class Artwork(models.Model):
         db_table = 'product'
     def __str__(self): return self.title or "Untitled"
 
+class SupplyInventory(models.Model):
+    supply_id = models.AutoField(primary_key=True, db_column='SUPPLY_ID')
+    product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PROD_ID')
+    supplied_date = models.DateTimeField(auto_now_add=True, db_column='SUPPLIED_DATE')
+    supplied_qty = models.IntegerField(db_column='SUPPLIED_QTY')
+
+    class Meta:
+        db_table = 'supply_inventory'
+
+class ArtistApplication(models.Model):
+    application_id = models.AutoField(primary_key=True, db_column='APPLICATION_ID')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID')
+    artist_name = models.CharField(max_length=255, db_column='ARTIST_NAME')
+    application_status = models.CharField(max_length=50, db_column='APPLICATION_STATUS', default='Pending')
+    date_submitted = models.DateTimeField(auto_now_add=True, db_column='DATE_SUBMITTED')
+    date_reviewed = models.DateTimeField(null=True, blank=True, db_column='DATE_REVIEWED')
+
+    class Meta:
+        db_table = 'artist_application'
+
+class ArtistApplicationProduct(models.Model):
+    application_product_id = models.AutoField(primary_key=True, db_column='APPLICATION_PRODUCT_ID')
+    application = models.ForeignKey(ArtistApplication, on_delete=models.CASCADE, db_column='APPLICATION_ID', related_name='products')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, db_column='CATEGORY_ID')
+    product_name = models.CharField(max_length=255, db_column='PROD_NAME')
+    product_description = models.TextField(db_column='PROD_DESCRIPTION', null=True, blank=True)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2, db_column='PROD_PRICE')
+    product_stock_qty = models.IntegerField(db_column='PROD_STOCK_QTY', default=0)
+    product_image = models.CharField(max_length=255, db_column='PROD_IMAGE', null=True, blank=True)
+
+    class Meta:
+        db_table = 'artist_application_products'
+
 class Cart(models.Model):
     cart_id = models.AutoField(primary_key=True, db_column='CART_ID')
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID', null=True)

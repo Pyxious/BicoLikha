@@ -26,6 +26,206 @@
     }
     .management-card i { font-size: 3rem; margin-bottom: 15px; }
     .management-card h4 { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .received-shell {
+        margin-top: 38px;
+        border: 1px solid #eadfd8;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(93, 58, 45, 0.05);
+        overflow: hidden;
+    }
+    .received-head {
+        padding: 18px 22px;
+        border-bottom: 1px solid #f0e7e2;
+        background: #fcfaf8;
+    }
+    .received-title {
+        color: var(--sidebar-brown);
+        font-weight: 800;
+        font-size: 1rem;
+        margin-bottom: 4px;
+    }
+    .received-copy {
+        color: #8f7c72;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+    .received-list {
+        padding: 10px 22px 18px;
+    }
+    .received-item {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid #f5efeb;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .received-item:hover {
+        background: #fffcfa;
+    }
+    .received-item:last-child {
+        border-bottom: none;
+    }
+    .received-label {
+        color: #b19789;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .received-value {
+        color: #5d3a2d;
+        font-weight: 700;
+    }
+    .received-sub {
+        color: #8f7c72;
+        font-size: 0.82rem;
+    }
+    .received-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #eef5ff;
+        color: #1f78d1;
+    }
+    .received-pill.approved {
+        background: #e9fcd9;
+        color: #4f8e34;
+    }
+    .received-pill.rejected {
+        background: #fff2ed;
+        color: #b5533f;
+    }
+    .received-link {
+        color: var(--sidebar-brown);
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .received-link:hover {
+        text-decoration: underline;
+    }
+    .received-empty {
+        padding: 28px 22px;
+        color: #8f7c72;
+        font-size: 0.9rem;
+    }
+    .application-modal-shell {
+        border-radius: 24px;
+        overflow: hidden;
+    }
+    .application-modal-head {
+        padding: 22px 26px;
+        border-bottom: 1px solid #f0e7e2;
+        background: linear-gradient(135deg, #fffaf7, #f4efe9);
+    }
+    .application-modal-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 18px;
+        padding: 24px 26px 0;
+    }
+    .application-panel {
+        border: 1px solid #eadfd8;
+        border-radius: 20px;
+        background: #fffaf7;
+        padding: 18px;
+    }
+    .application-panel-title {
+        color: #5d3a2d;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+    }
+    .application-artist-name {
+        color: #5d3a2d;
+        font-size: 1.35rem;
+        font-weight: 900;
+        margin: 0;
+    }
+    .application-meta {
+        color: #8f7c72;
+        font-size: 0.84rem;
+        margin-top: 6px;
+    }
+    .application-product-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .application-product-table th,
+    .application-product-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f0e7e2;
+        text-align: left;
+        vertical-align: top;
+    }
+    .application-product-table th {
+        color: #b19789;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .application-product-table td {
+        color: #5d3a2d;
+        font-size: 0.9rem;
+    }
+    .application-product-table tr:last-child td {
+        border-bottom: none;
+    }
+    .application-product-photo {
+        width: 62px;
+        height: 62px;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 2px solid #d8c1b6;
+        background: #f6efe9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .application-product-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .application-request-box {
+        margin-top: 18px;
+        border: 1px dashed #d8c1b6;
+        border-radius: 18px;
+        background: #fff;
+        padding: 16px;
+    }
+    .application-request-title {
+        color: #8d5e4a;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+    @media (max-width: 991.98px) {
+        .received-item {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .application-modal-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="row g-4">
@@ -43,7 +243,7 @@
         <a href="{% url 'manage_accounts' %}" class="management-card shadow-sm">
             <i class="fas fa-user-gear"></i>
             <h4>Users</h4>
-            <p class="small text-muted mb-0">Promote to Artist or delete accounts</p>
+            <p class="small text-muted mb-0">Manage customer accounts</p>
         </a>
     </div>
 
@@ -56,4 +256,182 @@
         </a>
     </div>
 </div>
+
+<div class="received-shell">
+    <div class="received-head text-start">
+        <div class="received-title">Received Artist Applications</div>
+        <p class="received-copy">Latest artist requests submitted by customers, including how many products they want reviewed.</p>
+    </div>
+    {% if recent_artist_applications %}
+    <div class="received-list">
+        {% for application in recent_artist_applications %}
+        <div class="received-item" data-bs-toggle="modal" data-bs-target="#applicationModal{{ application.application_id }}">
+            <div class="text-start">
+                <div class="received-label">Applicant</div>
+                <div class="received-value">{{ application.user.get_full_name|default:application.user.username }}</div>
+                <div class="received-sub">{{ application.user.email }}</div>
+            </div>
+            <div class="text-start">
+                <div class="received-label">Artist Request</div>
+                <div class="received-value">{{ application.artist_name }}</div>
+                <div class="received-sub">{{ application.products.count }} product{{ application.products.count|pluralize }} submitted</div>
+            </div>
+            <div class="text-start">
+                <div class="received-label">Submitted</div>
+                <div class="received-value">{{ application.date_submitted|date:"F d, Y" }}</div>
+                <div class="received-sub">{{ application.date_submitted|date:"h:i A" }}</div>
+            </div>
+            <div class="d-flex flex-column align-items-start align-items-lg-end gap-2">
+                <span class="received-pill {{ application.application_status|lower }}">{{ application.application_status }}</span>
+                <span class="received-link">Review application</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="received-empty text-start">
+        No artist applications have been submitted yet.
+    </div>
+    {% endif %}
+</div>
+
+{% for application in recent_artist_applications %}
+<div class="modal fade" id="applicationModal{{ application.application_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg application-modal-shell">
+            <div class="application-modal-head">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap text-start">
+                    <div>
+                        <div class="received-label mb-1">Artist Application #{{ application.application_id }}</div>
+                        <h3 class="application-artist-name">{{ application.artist_name }}</h3>
+                        <div class="application-meta">Submitted by {{ application.user.get_full_name|default:application.user.username }} • {{ application.user.email }}</div>
+                    </div>
+                    <span class="received-pill {{ application.application_status|lower }}">{{ application.application_status }}</span>
+                </div>
+            </div>
+
+            <div class="application-modal-grid">
+                <div class="application-panel text-start">
+                    <div class="application-panel-title">Products</div>
+                    <table class="application-product-table">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Products</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in application.existing_category_products %}
+                            <tr>
+                                <td>
+                                    <div class="application-product-photo">
+                                        {% if product.preview_image_url %}
+                                            <img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">
+                                        {% else %}
+                                            <i class="fas fa-image text-muted"></i>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>{{ product.product_name }}</td>
+                                <td>{{ product.category.category_name }}</td>
+                                <td>₱{{ product.product_price|floatformat:2 }}</td>
+                                <td>{{ product.product_stock_qty }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-muted">No products using existing categories.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if application.requested_category_products %}
+                    <div class="application-request-box">
+                        <div class="application-request-title">Requested New Categories</div>
+                        <table class="application-product-table">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Products</th>
+                                    <th>Requested Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in application.requested_category_products %}
+                                <tr>
+                                    <td>
+                                        <div class="application-product-photo">
+                                            {% if product.preview_image_url %}
+                                                <img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">
+                                            {% else %}
+                                                <i class="fas fa-image text-muted"></i>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.requested_category }}</td>
+                                    <td>₱{{ product.product_price|floatformat:2 }}</td>
+                                    <td>{{ product.product_stock_qty }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="application-panel text-start">
+                    <div class="application-panel-title">Application Details</div>
+                    <div class="mb-3">
+                        <div class="received-label">Applicant Account</div>
+                        <div class="received-value">{{ application.user.get_full_name|default:application.user.username }}</div>
+                        <div class="received-sub">{{ application.user.email }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="received-label">Submitted</div>
+                        <div class="received-value">{{ application.date_submitted|date:"F d, Y" }}</div>
+                        <div class="received-sub">{{ application.date_submitted|date:"h:i A" }}</div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="received-label">Review Status</div>
+                        <div class="received-value">{{ application.application_status }}</div>
+                        <div class="received-sub">
+                            {% if application.date_reviewed %}
+                                Reviewed on {{ application.date_reviewed|date:"F d, Y h:i A" }}
+                            {% else %}
+                                Waiting for admin action
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 px-4 pb-4 pt-3 justify-content-between">
+                <button type="button" class="btn btn-light border rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2">
+                    {% if application.application_status == 'Pending' or application.application_status == 'Rejected' %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="application_id" value="{{ application.application_id }}">
+                        <button type="submit" name="reject_artist_application" class="btn btn-outline-danger rounded-pill px-4 fw-bold" onclick="return confirm('Reject this artist application? This will keep the products from being published.')">Reject</button>
+                    </form>
+                    {% endif %}
+                    {% if application.application_status != 'Approved' %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="application_id" value="{{ application.application_id }}">
+                        <button type="submit" name="approve_artist_application" class="btn rounded-pill px-4 fw-bold text-white" style="background:#5f9e40;" onclick="return confirm('Approve this artist application and publish all submitted products?')">Approve</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

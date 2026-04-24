@@ -4,3 +4,9 @@ python manage.py runserver
 
 
 admin url = http://127.0.0.1:8000/bk-staff-entry-7721/login/
+
+
+git status
+git add .
+git commit -m "new features/adjustments"
+git push origin main

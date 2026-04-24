@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+import base64
 import re
 
 from django.contrib.auth import get_user_model
@@ -8,7 +9,11 @@ from django.db import transaction
 from django.db.models import Q, Sum, Count, F, Case, When, Value, IntegerField
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
@@ -16,7 +21,8 @@ from django.contrib import messages
 # Models
 from .models import (
     Artwork, Artist, Category, Address, 
-    Order, Cart, CartItem, OrderDetail, Payment, Like, Review, Notification, Shipment
+    Order, Cart, CartItem, OrderDetail, Payment, Like, Review, Notification, Shipment, SupplyInventory,
+    ArtistApplication, ArtistApplicationProduct
 )
 
 # Forms
@@ -70,6 +76,83 @@ def _create_or_update_address_from_post(request, user, instance=None):
 
     address.save()
     return address
+
+
+def _get_artist_application_status(user):
+    return ArtistApplication.objects.filter(user=user).order_by('-date_submitted').first()
+
+
+def _get_application_category(selected_category_id, requested_category_name):
+    requested_category_name = (requested_category_name or '').strip()
+
+    if requested_category_name:
+        category, _ = Category.objects.get_or_create(
+            category_name='Other',
+            defaults={'category_desc': 'Requested by artists for review.'}
+        )
+        return category, requested_category_name
+
+    if not selected_category_id:
+        raise ValueError("Please choose a category or enter a new category request.")
+
+    return get_object_or_404(Category, category_id=selected_category_id), ''
+
+
+def _save_artist_application_image(user, uploaded_file, product_name):
+    if not uploaded_file:
+        return ''
+
+    safe_name = slugify(product_name or uploaded_file.name.rsplit('.', 1)[0]) or 'artwork'
+    path = default_storage.save(
+        f'artist_application_submissions/{user.pk}/{timezone.now().strftime("%Y%m%d%H%M%S%f")}_{safe_name}_{uploaded_file.name}',
+        uploaded_file
+    )
+    return path
+
+
+def _save_artist_application_image_data(user, image_data, filename, product_name):
+    image_data = (image_data or '').strip()
+    if not image_data:
+        return ''
+
+    try:
+        header, encoded = image_data.split(',', 1)
+    except ValueError:
+        return ''
+
+    extension = 'png'
+    if ';base64' in header and '/' in header:
+        mime_type = header.split(';', 1)[0]
+        extension = mime_type.rsplit('/', 1)[-1] or extension
+
+    original_name = filename or f'{slugify(product_name) or "artwork"}.{extension}'
+    safe_name = slugify(product_name or original_name.rsplit('.', 1)[0]) or 'artwork'
+    stored_name = f'{timezone.now().strftime("%Y%m%d%H%M%S%f")}_{safe_name}_{original_name}'
+
+    try:
+        decoded = base64.b64decode(encoded)
+    except (ValueError, TypeError):
+        return ''
+
+    path = default_storage.save(
+        f'artist_application_submissions/{user.pk}/{stored_name}',
+        ContentFile(decoded, name=stored_name)
+    )
+    return path
+
+
+def _parse_application_product_details(application_product):
+    description = application_product.product_description or ''
+    requested_category = ''
+    marker = 'Requested category:'
+    if marker in description:
+        before, after = description.rsplit(marker, 1)
+        description = before.strip()
+        requested_category = after.strip()
+
+    application_product.clean_description = description
+    application_product.requested_category = requested_category
+    return application_product
 
 # --- 1. AUTHENTICATION & PORTAL SECURITY ---
 
@@ -125,10 +208,103 @@ def signup(request):
 @user_passes_test(lambda u: u.is_staff, login_url='admin_login')
 def admin_users(request):
     """General Users overview page for the dashboard."""
+    if request.method == 'POST':
+        application = get_object_or_404(
+            ArtistApplication.objects.select_related('user'),
+            application_id=request.POST.get('application_id')
+        )
+
+        if 'approve_artist_application' in request.POST:
+            if application.application_status != 'Approved':
+                with transaction.atomic():
+                    applicant_address = Address.objects.filter(user=application.user, is_default=True).first() or Address.objects.filter(user=application.user).first()
+                    artist, created = Artist.objects.get_or_create(
+                        user=application.user,
+                        defaults={
+                            'artist_name': application.artist_name,
+                            'artist_phone_num': (applicant_address.phone_num if applicant_address else '') or '',
+                            'artist_municipality': (applicant_address.municipality if applicant_address else '') or '',
+                            'artist_brgy': (applicant_address.brgy if applicant_address else '') or '',
+                            'artist_zipcode': (applicant_address.zipcode if applicant_address else '') or '',
+                            'artist_description': 'Verified Artist',
+                        }
+                    )
+
+                    if not created:
+                        artist.artist_name = application.artist_name
+                        if applicant_address:
+                            artist.artist_phone_num = applicant_address.phone_num
+                            artist.artist_municipality = applicant_address.municipality
+                            artist.artist_brgy = applicant_address.brgy
+                            artist.artist_zipcode = applicant_address.zipcode
+                        artist.artist_description = artist.artist_description or 'Verified Artist'
+                        artist.save()
+
+                    for application_product in application.products.select_related('category').all():
+                        _parse_application_product_details(application_product)
+                        category = application_product.category
+
+                        if application_product.requested_category:
+                            category, _ = Category.objects.get_or_create(
+                                category_name=application_product.requested_category,
+                                defaults={'category_desc': 'Submitted by artist application and approved by admin.'}
+                            )
+
+                        product = Artwork.objects.create(
+                            artist=artist,
+                            category=category,
+                            title=application_product.product_name,
+                            description=application_product.clean_description,
+                            price=application_product.product_price,
+                            stock_qty=application_product.product_stock_qty,
+                            image=application_product.product_image or None
+                        )
+
+                        if product.stock_qty and product.stock_qty > 0:
+                            SupplyInventory.objects.create(
+                                product=product,
+                                supplied_qty=product.stock_qty
+                            )
+
+                    application.application_status = 'Approved'
+                    application.date_reviewed = timezone.now()
+                    application.save(update_fields=['application_status', 'date_reviewed'])
+
+                messages.success(request, f"Approved artist application for {application.artist_name}.")
+            return redirect('admin_users')
+
+        if 'reject_artist_application' in request.POST:
+            if application.application_status == 'Approved':
+                messages.error(request, f"{application.artist_name} is already approved and can no longer be rejected.")
+                return redirect('admin_users')
+
+            if application.application_status != 'Rejected':
+                application.application_status = 'Rejected'
+                application.date_reviewed = timezone.now()
+                application.save(update_fields=['application_status', 'date_reviewed'])
+                messages.success(request, f"Rejected artist application for {application.artist_name}.")
+            return redirect('admin_users')
+
+    recent_artist_applications = ArtistApplication.objects.select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')[:8]
+    for application in recent_artist_applications:
+        existing_category_products = []
+        requested_category_products = []
+        for product in application.products.all():
+            product = _parse_application_product_details(product)
+            product.preview_image_url = f"{settings.MEDIA_URL}{product.product_image}" if product.product_image else ''
+            if product.requested_category:
+                requested_category_products.append(product)
+            else:
+                existing_category_products.append(product)
+
+        application.existing_category_products = existing_category_products
+        application.requested_category_products = requested_category_products
+
     context = {
         'total_users': User.objects.filter(is_staff=False).count(),
         'new_users_today': User.objects.filter(date_joined__date=timezone.now().date()).count(),
         'active_users': User.objects.filter(is_active=True, is_staff=False).count(),
+        'recent_artist_applications': recent_artist_applications,
     }
     return render(request, 'admin/admin_users.html', context)
 
@@ -221,21 +397,39 @@ def admin_products(request):
         elif 'add_product' in request.POST:
             form = ProductForm(request.POST, request.FILES)
             if form.is_valid():
-                form.save()
+                product = form.save()
+                if product.stock_qty and product.stock_qty > 0:
+                    SupplyInventory.objects.create(
+                        product=product,
+                        supplied_qty=product.stock_qty
+                    )
         
         # --- ACTION: UPDATE PRODUCT ---
         elif 'update_product' in request.POST:
             prod_id = request.POST.get('prod_id')
             prod = get_object_or_404(Artwork, prod_id=prod_id)
+            previous_stock = prod.stock_qty or 0
+            try:
+                new_stock = int(request.POST.get('stock_qty') or 0)
+            except (TypeError, ValueError):
+                new_stock = previous_stock
+
             prod.title = request.POST.get('title')
             prod.price = request.POST.get('price')
-            prod.stock_qty = request.POST.get('stock_qty')
+            prod.stock_qty = new_stock
             prod.description = request.POST.get('description')
             prod.category_id = request.POST.get('category')
             prod.artist_id = request.POST.get('artist')
             if request.FILES.get('image'):
                 prod.image = request.FILES.get('image')
             prod.save()
+
+            supplied_delta = new_stock - previous_stock
+            if supplied_delta > 0:
+                SupplyInventory.objects.create(
+                    product=prod,
+                    supplied_qty=supplied_delta
+                )
 
         # --- ACTION: DELETE PRODUCT ---
         elif 'delete_product' in request.POST:
@@ -673,6 +867,8 @@ def profile_view(request):
     # Check if user is a promoted Artist
     artist_obj = Artist.objects.filter(user=request.user).first()
     is_artist = artist_obj is not None
+    latest_artist_application = _get_artist_application_status(request.user)
+    application_categories = Category.objects.order_by('category_name')
 
     # Identify products already reviewed by this user
     reviewed_products = list(Review.objects.filter(user=request.user).values_list('product_id', flat=True))
@@ -733,6 +929,102 @@ def profile_view(request):
             except ValueError as exc:
                 messages.error(request, str(exc))
             return redirect('/profile/?tab=account')
+
+        # --- APPLY AS ARTIST ---
+        elif 'submit_artist_application' in request.POST:
+            if is_artist:
+                messages.error(request, "Your account is already approved as an artist.")
+                return redirect('/profile/?tab=account')
+
+            if latest_artist_application and latest_artist_application.application_status == 'Pending':
+                messages.error(request, "You already have a pending artist application under review.")
+                return redirect('/profile/?tab=artist_application')
+
+            artist_name = (request.POST.get('artist_name') or '').strip()
+            product_keys = [key for key in request.POST.getlist('product_key') if key.strip()]
+
+            if not artist_name:
+                messages.error(request, "Please enter the artist name you want reviewed.")
+                return redirect('/profile/?tab=artist_application')
+
+            if not product_keys:
+                messages.error(request, "Please add at least one product to your application.")
+                return redirect('/profile/?tab=artist_application')
+
+            try:
+                with transaction.atomic():
+                    application = ArtistApplication.objects.create(
+                        user=request.user,
+                        artist_name=artist_name,
+                        application_status='Pending'
+                    )
+
+                    created_products = 0
+                    for key in product_keys:
+                        product_name = (request.POST.get(f'prod_name_{key}') or '').strip()
+                        product_description = (request.POST.get(f'prod_description_{key}') or '').strip()
+                        product_price = (request.POST.get(f'prod_price_{key}') or '').strip()
+                        product_stock_qty = (request.POST.get(f'prod_stock_qty_{key}') or '').strip()
+                        selected_category_id = (request.POST.get(f'category_id_{key}') or '').strip()
+                        requested_category_name = (request.POST.get(f'new_category_{key}') or '').strip()
+                        product_image_data = request.POST.get(f'prod_image_data_{key}') or ''
+                        product_image_filename = (request.POST.get(f'prod_image_filename_{key}') or '').strip()
+
+                        if not any([product_name, product_description, product_price, product_stock_qty, selected_category_id, requested_category_name]):
+                            continue
+
+                        if not product_name:
+                            raise ValueError("Each product entry needs a product name.")
+                        if not product_price:
+                            raise ValueError(f"Please add a price for {product_name}.")
+                        if not product_stock_qty:
+                            raise ValueError(f"Please add the starting stock for {product_name}.")
+
+                        try:
+                            stock_value = int(product_stock_qty)
+                        except (TypeError, ValueError):
+                            raise ValueError(f"Stock quantity for {product_name} must be a whole number.")
+
+                        if stock_value < 0:
+                            raise ValueError(f"Stock quantity for {product_name} cannot be negative.")
+
+                        category, category_request_note = _get_application_category(selected_category_id, requested_category_name)
+                        full_description = product_description
+                        if category_request_note:
+                            full_description = (
+                                f"{product_description}\n\nRequested category: {category_request_note}".strip()
+                            )
+
+                        ArtistApplicationProduct.objects.create(
+                            application=application,
+                            category=category,
+                            product_name=product_name,
+                            product_description=full_description,
+                            product_price=product_price,
+                            product_stock_qty=stock_value,
+                            product_image=(
+                                _save_artist_application_image(
+                                    request.user,
+                                    request.FILES.get(f'prod_image_{key}'),
+                                    product_name
+                                ) or _save_artist_application_image_data(
+                                    request.user,
+                                    product_image_data,
+                                    product_image_filename,
+                                    product_name
+                                )
+                            )
+                        )
+                        created_products += 1
+
+                    if created_products == 0:
+                        raise ValueError("Please complete at least one product before submitting your application.")
+
+                messages.success(request, "Your artist application has been submitted and is now waiting for admin approval.")
+                return redirect('/profile/?tab=artist_application')
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect('/profile/?tab=artist_application')
 
         # --- ARTIST MESSAGE REPLY (With Duplicate Protection) ---
         elif 'artist_update_status' in request.POST:
@@ -840,7 +1132,9 @@ def profile_view(request):
         'active_tab': active_tab, 'status_tab': status_tab, 'is_artist': is_artist,
         'artist_messages': artist_messages, 'reviewed_products': reviewed_products,
         'customer_notifications': customer_notifications, 'unread_count': unread_count,
-        'unread_artist_count': unread_artist_count
+        'unread_artist_count': unread_artist_count,
+        'latest_artist_application': latest_artist_application,
+        'application_categories': application_categories
     })
 
 @login_required
