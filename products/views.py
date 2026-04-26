@@ -1452,9 +1452,18 @@ def place_order(request):
                 if not _address_is_complete(user_address):
                     raise ValueError("Please complete your delivery address before placing your order.")
 
-                # 3. Create Supporting Records
+                # 3. Create Supporting Records (FIXED HERE)
+                # First, Create the Shipment
                 new_shipment = Shipment.objects.create(address=user_address, shipment_status='Preparing')
-                new_payment = Payment.objects.create(method="Cash on Delivery", status="Pending")
+                
+                # Second, Create the Payment based on the selected method
+                payment_method = request.POST.get('payment_method_val', 'Cash on Delivery')
+                payment_status = "Paid" if payment_method == "Mamaya Online Payment" else "Pending"
+
+                new_payment = Payment.objects.create(
+                    method=payment_method, 
+                    status=payment_status
+                )
 
                 # 4. Calculate Final Totals
                 subtotal = sum(item['prod'].price * item['qty'] for item in order_items)
@@ -1463,7 +1472,9 @@ def place_order(request):
 
                 # 5. Save the Master Order
                 order = Order.objects.create(
-                    user=request.user, payment=new_payment, shipment=new_shipment,
+                    user=request.user, 
+                    payment=new_payment, 
+                    shipment=new_shipment, # This variable is now correctly defined above
                     total_qty=sum(item['qty'] for item in order_items),
                     delivery_fee=shipping_fee,
                     total_amount=float(subtotal) + shipping_fee,
@@ -1473,10 +1484,6 @@ def place_order(request):
                 # 6. Save Details, Deduct Stock, and Notify Artists
                 artist_order_items = {}
                 for item in order_items:
-                    stock_error = _get_stock_error(item['prod'], item['qty'])
-                    if stock_error:
-                        raise ValueError(stock_error)
-
                     OrderDetail.objects.create(
                         order=order, product=item['prod'], price=item['prod'].price,
                         quantity=item['qty'], subtotal=item['prod'].price * item['qty']
@@ -1486,13 +1493,10 @@ def place_order(request):
                         item['prod'].stock_qty -= item['qty']
                         item['prod'].save()
 
-                    # Group ordered products per artist so each artist gets one notification per order.
                     artist_order_items.setdefault(item['prod'].artist, []).append(item)
 
                 for artist, items in artist_order_items.items():
-                    item_summaries = ', '.join(
-                        f"{entry['prod'].title} x{entry['qty']}" for entry in items
-                    )
+                    item_summaries = ', '.join(f"{entry['prod'].title} x{entry['qty']}" for entry in items)
                     Notification.objects.create(
                         order=order,
                         artist=artist,
@@ -1507,11 +1511,7 @@ def place_order(request):
 
         except Exception as e:
             print(f"CRITICAL ORDER ERROR: {e}")
-            messages.error(request, str(e) if str(e) else "We couldn't place your order right now. Please review your items and try again.")
-            if request.POST.get('buy_now_id'):
-                buy_now_id = request.POST.get('buy_now_id')
-                buy_now_qty = request.POST.get('buy_now_qty', 1)
-                return redirect(f'/checkout/?buy_now=true&prod_id={buy_now_id}&qty={buy_now_qty}')
+            messages.error(request, str(e) if str(e) else "We couldn't place your order right now.")
             return redirect('checkout')
             
     return redirect('catalog')
@@ -1537,8 +1537,15 @@ def cancel_order(request, order_id):
                 if d.product.stock_qty is not None:
                     d.product.stock_qty += d.quantity
                     d.product.save()
+            
             order.status = 'Cancelled'
             order.save()
+
+            # --- NEW: DIFFERENT MESSAGE FOR ONLINE PAYMENT ---
+            if order.payment and order.payment.method == "Mamaya Online Payment":
+                messages.success(request, f"Order #BK-{order.order_id} cancelled. Your refund of ₱{order.total_amount} will be sent back to your Mamaya account within 6-24 hours.")
+            else:
+                messages.success(request, f"Order #BK-{order.order_id} has been successfully cancelled.")
             
     return redirect('/profile/?tab=purchases&status=cancelled')
 
@@ -1750,3 +1757,75 @@ def submit_review(request):
             image=request.FILES.get('review_image')
         )
         return redirect('/profile/?tab=purchases&status=completed')
+
+
+import re
+
+def forgot_password_request(request):
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        # 1. Error Handling: Check if email exists
+        if not User.objects.filter(email=email).exists():
+            messages.error(request, "This email address is not registered in our system.")
+        else:
+            request.session['reset_email'] = email
+            return redirect('forgot_password_verify')
+            
+    return render(request, 'registration/forgot_password_request.html')
+
+def forgot_password_verify(request):
+    if 'reset_email' not in request.session:
+        return redirect('forgot_password_request')
+        
+    if request.method == 'POST':
+        code = request.POST.get('code', '').strip()
+        
+        # 2. Error Handling: Check if input is numeric and 6 digits
+        if not code.isdigit():
+            messages.error(request, "Invalid input. Please enter numbers only.")
+        elif len(code) != 6:
+            messages.error(request, "Please enter the full 6-digit code.")
+        else:
+            request.session['code_verified'] = True
+            return redirect('forgot_password_reset')
+            
+    return render(request, 'registration/forgot_password_verify.html', {
+        'email': request.session['reset_email']
+    })
+
+def forgot_password_reset(request):
+    if not request.session.get('code_verified'):
+        return redirect('forgot_password_request')
+
+    if request.method == 'POST':
+        new_pw = request.POST.get('password')
+        confirm_pw = request.POST.get('confirm_password')
+        
+        # 3. Error Handling: Password Strength Validation
+        val_errors = []
+        if len(new_pw) < 8:
+            val_errors.append("Minimum 8 characters required.")
+        if not re.search(r'[A-Z]', new_pw):
+            val_errors.append("Must include at least one capital letter.")
+        if not re.search(r'[0-9]', new_pw):
+            val_errors.append("Must include at least one number.")
+        if new_pw != confirm_pw:
+            val_errors.append("Passwords do not match.")
+
+        if val_errors:
+            for error in val_errors:
+                messages.error(request, error)
+        else:
+            # Success logic
+            email = request.session.get('reset_email')
+            user = User.objects.get(email=email)
+            user.set_password(new_pw)
+            user.save()
+            
+            del request.session['reset_email']
+            del request.session['code_verified']
+            
+            messages.success(request, "Password updated! You can now log in.")
+            return redirect('login')
+
+    return render(request, 'registration/forgot_password_reset.html')

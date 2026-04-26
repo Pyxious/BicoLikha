@@ -158,6 +158,10 @@
     .del-input-group { border: 1.5px solid #f0ece8; background: #f8f6f4; border-radius: 12px; padding: 8px 15px; margin-bottom: 12px; }
     .del-input-group label { display: block; font-size: 0.65rem; color: #a7968f; font-weight: bold; text-transform: uppercase; margin-bottom: -2px; }
     .del-input-group input { border: none; width: 100%; outline: none; font-size: 0.95rem; color: #333; background: transparent; }
+
+    /* Mamaya Mockup Colors */
+    .mamaya-text { color: #4CAF50; }
+    .btn-mamaya { background: #4CAF50; color: white; }
 </style>
 
 <div class="checkout-wrapper text-start">
@@ -184,7 +188,6 @@
             {% endif %}
 
             <div class="info-box shadow-sm">
-                <!-- CONTACT: Static (tied to selected address) -->
                 <div class="info-row">
                     <div class="info-label">Contact</div>
                     <div class="info-value" id="contact-display">
@@ -197,7 +200,6 @@
                     <div style="width: 90px;"></div>
                 </div>
 
-                <!-- SHIP TO: Modal Trigger -->
                 <div class="info-row">
                     <div class="info-label">Ship to</div>
                     <div class="info-value" id="address-display">
@@ -230,12 +232,25 @@
                 </div>
             </div>
 
+            <!-- PAYMENT METHOD SECTION -->
             <h6 class="fw-bold mb-3">PAYMENT METHOD</h6>
             <div class="info-box shadow-sm">
+                <!-- COD Option -->
+                <div class="info-row border-bottom">
+                    <div class="form-check w-100 py-1">
+                        <input class="form-check-input" type="radio" name="payment_method_select" id="cod" value="Cash on Delivery" checked onchange="updateSelectedPayment('Cash on Delivery')">
+                        <label class="form-check-label fw-bold ms-2" for="cod">
+                            <i class="fas fa-hand-holding-dollar me-2 text-muted"></i> Cash on Delivery
+                        </label>
+                    </div>
+                </div>
+                <!-- Mamaya Option -->
                 <div class="info-row">
-                    <div class="form-check w-100">
-                        <input class="form-check-input" type="radio" name="pay" id="cod" checked>
-                        <label class="form-check-label fw-bold ms-2" for="cod">Cash on Delivery</label>
+                    <div class="form-check w-100 py-1">
+                        <input class="form-check-input" type="radio" name="payment_method_select" id="mamaya" value="Mamaya Online Payment" onchange="updateSelectedPayment('Mamaya Online Payment')">
+                        <label class="form-check-label fw-bold ms-2" for="mamaya">
+                            <span class="mamaya-text">mamaya</span> <small class="text-muted ms-2 fw-normal">Online Wallet</small>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -273,18 +288,18 @@
                 <div class="d-flex justify-content-between mt-4 fs-5"><span class="fw-bold">Total</span><span class="fw-bold" style="color: #8d5e4a;">&#8369;{{ grand_total|floatformat:2 }}</span></div>
 
                 <!-- MAIN FORM -->
-                <form action="{% url 'place_order' %}" method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="selected_address_id" id="hidden_addr_id" value="{% if selected_address %}{{ selected_address.address_id }}{% endif %}">
-                
-                <!-- ADD THESE TWO LINES -->
-                {% if is_buy_now %}
-                    <input type="hidden" name="buy_now_id" value="{{ buy_now_id }}">
-                    <input type="hidden" name="buy_now_qty" value="{{ buy_now_qty }}">
-                {% endif %}
+                <form action="{% url 'place_order' %}" method="POST" id="mainCheckoutForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_address_id" id="hidden_addr_id" value="{% if selected_address %}{{ selected_address.address_id }}{% endif %}">
+                    <input type="hidden" name="payment_method_val" id="payment_method_val" value="Cash on Delivery">
+                    
+                    {% if is_buy_now %}
+                        <input type="hidden" name="buy_now_id" value="{{ buy_now_id }}">
+                        <input type="hidden" name="buy_now_qty" value="{{ buy_now_qty }}">
+                    {% endif %}
 
-                <button type="button" class="btn-place-order shadow-sm" {% if not selected_address %}disabled{% endif %} data-bs-toggle="modal" data-bs-target="#checkoutConfirmModal">PLACE ORDER NOW</button>
-            </form>
+                    <button type="button" class="btn-place-order shadow-sm" {% if not selected_address %}disabled{% endif %} data-bs-toggle="modal" data-bs-target="#checkoutConfirmModal">PLACE ORDER NOW</button>
+                </form>
             </div>
         </div>
     </div>
@@ -413,39 +428,115 @@
             </div>
             <div class="p-4 pt-0 d-flex gap-2">
                 <button type="button" class="btn btn-light border w-50 rounded-pill fw-bold" data-bs-dismiss="modal">Review Again</button>
-                <button type="button" class="btn btn-dark w-50 rounded-pill fw-bold" onclick="submitCheckoutOrder()">Confirm & Place Order</button>
+                <button type="button" class="btn btn-dark w-50 rounded-pill fw-bold" onclick="handlePlaceOrderLogic()">Confirm & Place Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAMAYA MOCKUP MODALS -->
+<div class="modal fade" id="mamayaLoginModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body p-5 text-center">
+                <h1 style="color: #4CAF50; font-weight: 800; font-size: 3rem; margin-bottom: 40px;">mamaya</h1>
+                <div class="del-input-group mb-3 text-start"><label>Mobile number</label><input type="text" value="0917XXXX123" readonly></div>
+                <div class="del-input-group mb-4 text-start"><label>Password</label><input type="password" value="********" readonly></div>
+                <button type="button" class="btn w-100 py-3 fw-bold text-white rounded-pill" style="background: #4CAF50;" onclick="goToMamayaPay()">Log in</button>
+                <p class="mt-3 small text-muted">Forgot your password?</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="mamayaPayModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body p-4 text-start">
+                <div class="text-center mb-4">
+                    <div class="mb-2"><i class="fas fa-store text-success fs-1"></i></div>
+                    <div class="fw-bold">BICOLIKHA</div>
+                </div>
+                <div class="p-4 bg-light rounded-4 mb-4">
+                    <div class="small text-muted mb-2 fw-bold">Order Summary</div>
+                    <div class="d-flex justify-content-between mb-1"><span>Subtotal</span><span>PHP {{ items_subtotal|floatformat:2 }}</span></div>
+                    <div class="d-flex justify-content-between mb-1"><span>Shipping Fee</span><span>PHP {{ total_shipping|floatformat:2 }}</span></div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-5"><span>Total Amount</span><span class="text-success">PHP {{ grand_total|floatformat:2 }}</span></div>
+                </div>
+                <button type="button" class="btn w-100 py-3 fw-bold text-white rounded-pill" style="background: #5d3a2d;" onclick="goToMamayaSuccess()">Confirm and pay</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="mamayaSuccessModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg text-center" style="border-radius: 20px;">
+            <div class="modal-body p-5">
+                <div class="mb-4 text-success" style="font-size: 4rem;"><i class="fas fa-circle-check"></i></div>
+                <h5 class="fw-bold">Payment Successful</h5>
+                <h1 class="fw-bold my-4 text-success">PHP {{ grand_total|floatformat:2 }}</h1>
+                <div class="bg-light rounded-3 p-3 mb-4 text-start small">
+                   <div class="d-flex justify-content-between mb-1"><span class="text-muted">Transaction ID</span><span class="fw-bold text-dark">M-{{ user.id }}73asm0ug</span></div>
+                   <div class="d-flex justify-content-between mb-1"><span class="text-muted">Payment Date</span><span class="fw-bold text-dark">{% now "d M Y, h:i A" %}</span></div>
+                   <div class="d-flex justify-content-between"><span class="text-muted">Payment Method</span><span class="fw-bold text-dark"><span class="text-success">m</span> 6789</span></div>
+                </div>
+                <button type="button" class="btn w-100 py-3 fw-bold text-white rounded-pill" style="background: #4CAF50;" onclick="submitCheckoutOrder()">Back to Merchant</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    let selectedPayment = "Cash on Delivery";
+
+    function updateSelectedPayment(method) {
+        selectedPayment = method;
+        document.getElementById('payment_method_val').value = method;
+    }
+
     function updateAddress(id, fullText, phone) {
-        // 1. Update Hidden Input
         document.getElementById('hidden_addr_id').value = id;
-        
-        // 2. Update UI Displays
         document.getElementById('address-display').innerText = fullText;
         document.getElementById('contact-display').innerText = "{{ user.get_full_name }} |  " + phone;
         document.getElementById('confirm-address').innerText = fullText;
         document.getElementById('confirm-contact').innerText = phone;
         
-        // 3. Update Modal Selection Visuals
         document.querySelectorAll('.address-option').forEach(el => el.classList.remove('selected'));
         const selectedCard = document.getElementById('addr-card-' + id);
-        if (selectedCard) {
-            selectedCard.classList.add('selected');
-        }
+        if (selectedCard) selectedCard.classList.add('selected');
         
-        // 4. Check the radio button
         const radio = document.querySelector('input[name="addr_radio"][value="'+id+'"]');
-        if (radio) {
-            radio.checked = true;
+        if (radio) radio.checked = true;
+    }
+
+    function handlePlaceOrderLogic() {
+        // Hide the confirmation modal
+        const confirmModal = bootstrap.Modal.getInstance(document.getElementById('checkoutConfirmModal'));
+        confirmModal.hide();
+
+        if (selectedPayment === "Mamaya Online Payment") {
+            // Show Mamaya flow instead of submitting
+            new bootstrap.Modal(document.getElementById('mamayaLoginModal')).show();
+        } else {
+            // COD: Submit form normally
+            submitCheckoutOrder();
         }
     }
 
+    function goToMamayaPay() {
+        bootstrap.Modal.getInstance(document.getElementById('mamayaLoginModal')).hide();
+        new bootstrap.Modal(document.getElementById('mamayaPayModal')).show();
+    }
+
+    function goToMamayaSuccess() {
+        bootstrap.Modal.getInstance(document.getElementById('mamayaPayModal')).hide();
+        new bootstrap.Modal(document.getElementById('mamayaSuccessModal')).show();
+    }
+
     function submitCheckoutOrder() {
-        document.querySelector('form[action="{% url "place_order" %}"]').submit();
+        document.getElementById('mainCheckoutForm').submit();
     }
 </script>
 

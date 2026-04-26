@@ -44,6 +44,12 @@ urlpatterns = [
     path('accounts/login/', views.UserLoginView.as_view(), name='login'),
     path('signup/', views.signup, name='signup'),
 
+    
+    # Forgot Password Mockup Flow
+    path('forgot-password/', views.forgot_password_request, name='forgot_password_request'),
+    path('forgot-password/verify/', views.forgot_password_verify, name='forgot_password_verify'),
+    path('forgot-password/reset/', views.forgot_password_reset, name='forgot_password_reset'),
+
     # --- Administrative / Management Hub ---
     path('management/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('management/analytics/', views.admin_analytics, name='admin_analytics'),

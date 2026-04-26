@@ -602,15 +602,24 @@
         </div>
     </div>
 </div>
+<!-- CANCEL ORDER MODAL in order_detail.html -->
 {% if order.is_cancellable %}
-{% if order.status == 'Processing' or order.status == 'To Pay' %}
 <div class="modal fade" id="cancelOrderModal{{ order.order_id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4">
             <div class="modal-body">
                 <i class="fas fa-triangle-exclamation fa-4x mb-4" style="color:#b5533f;"></i>
                 <h4 class="fw-bold">Cancel this order?</h4>
-                <p class="text-muted small">Order #BK-{{ order.order_id }} will be cancelled and this action cannot be undone.</p>
+
+                {% if order.payment.method == "Mamaya Online Payment" %}
+                    <div class="bg-light p-3 rounded-4 mb-3 border">
+                        <p class="text-dark small mb-1"><b>Refund Notice:</b></p>
+                        <p class="text-muted small mb-0">Your payment of <b>₱{{ order.total_amount }}</b> will be returned to your <b>Mamaya account</b> within 6-24 hours of cancellation.</p>
+                    </div>
+                {% else %}
+                    <p class="text-muted small">Order #BK-{{ order.order_id }} will be cancelled and this action cannot be undone.</p>
+                {% endif %}
+
                 <div class="d-flex gap-2 mt-4">
                     <button class="btn btn-light w-100 rounded-pill border" data-bs-dismiss="modal">Keep Order</button>
                     <a href="{% url 'cancel_order' order.order_id %}" class="btn w-100 rounded-pill fw-bold text-white" style="background:#b5533f;">Yes, Cancel Order</a>
@@ -620,5 +629,5 @@
     </div>
 </div>
 {% endif %}
-{% endif %}
+
 {% endblock %}
