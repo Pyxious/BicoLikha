@@ -479,6 +479,7 @@ line-height: 1.55;
 margin-bottom: 10px;
 display: -webkit-box;
 -webkit-line-clamp: 2;
+line-clamp: 2;
 -webkit-box-orient: vertical;
 overflow: hidden;
 }
@@ -899,6 +900,71 @@ border-color: #e1d6cf;
 cursor: default;
 box-shadow: none;
 }
+.artist-stock-shell {
+border: 1.5px solid #eadfd8;
+border-radius: 24px;
+background: #fffaf7;
+box-shadow: 0 10px 24px rgba(93, 58, 45, 0.05);
+padding: 28px;
+}
+.artist-stock-card {
+border: 1.5px solid #eadfd8;
+border-radius: 20px;
+background: #fff;
+padding: 20px;
+}
+.artist-stock-grid {
+display: grid;
+grid-template-columns: minmax(0, 1.5fr) 150px auto auto;
+gap: 12px;
+align-items: end;
+}
+.artist-product-table {
+width: 100%;
+border-collapse: separate;
+border-spacing: 0 10px;
+}
+.artist-product-table th {
+font-size: 0.72rem;
+text-transform: uppercase;
+letter-spacing: 0.06em;
+color: #9b857c;
+padding: 0 12px;
+}
+.artist-product-table td {
+background: #fff;
+border-top: 1.5px solid #eadfd8;
+border-bottom: 1.5px solid #eadfd8;
+padding: 14px 12px;
+color: #5d3a2d;
+font-size: 0.88rem;
+font-weight: 700;
+}
+.artist-product-table td:first-child {
+border-left: 1.5px solid #eadfd8;
+border-radius: 16px 0 0 16px;
+}
+.artist-product-table td:last-child {
+border-right: 1.5px solid #eadfd8;
+border-radius: 0 16px 16px 0;
+}
+.artist-stock-btn {
+border-radius: 999px;
+border: 1.5px solid #8d5e4a;
+font-weight: 800;
+padding: 10px 16px;
+background: #fff;
+color: #8d5e4a;
+}
+.artist-stock-btn.primary {
+background: #8d5e4a;
+color: #fff;
+}
+.artist-stock-btn:hover {
+background: #754b39;
+border-color: #754b39;
+color: #fff;
+}
 
 @media (max-width: 991.98px) {
 .order-card-grid {
@@ -917,6 +983,9 @@ align-items: stretch;
 }
 .artist-order-actions {
 align-items: stretch;
+}
+.artist-stock-grid {
+grid-template-columns: 1fr;
 }
 .order-btn-primary {
 min-width: 0;
@@ -952,6 +1021,9 @@ min-width: 0;
             </a>
             {% endif %}
             {% if is_artist %}
+            <a href="?tab=artist_products" class="sidebar-link {% if active_tab == 'artist_products' %}active{% endif %}">
+                <i class="fas fa-boxes"></i> My Products
+            </a>
             <a href="?tab=messages" class="sidebar-link {% if active_tab == 'messages' %}active{% endif %}">
                 <i class="fas fa-envelope"></i> Artist Notifications
                 {% if unread_artist_count > 0 %}<span class="badge bg-danger ms-auto rounded-pill" style="font-size: 0.6rem;">NEW</span>{% endif %}
@@ -1107,6 +1179,100 @@ min-width: 0;
                     <div class="mt-4 d-flex justify-content-end">
                         <button type="submit" class="artist-application-submit">
                             <i class="fas fa-paper-plane me-2"></i>Submit Application
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+
+        {% elif active_tab == 'artist_products' and is_artist %}
+            <div class="artist-stock-shell text-start">
+                <div class="artist-application-head">
+                    <div>
+                        <h2 class="fw-bold m-0" style="color:#5d3a2d;">My Products</h2>
+                        <p class="artist-help-text mb-0">Request stock changes for approved products, or submit a new product for management approval.</p>
+                    </div>
+                    <button type="button" class="artist-add-product-btn" onclick="openArtistModalForNew()" {% if latest_artist_application and latest_artist_application.application_status == 'Pending' %}disabled{% endif %}>
+                        <i class="fas fa-plus me-2"></i>Add New Product
+                    </button>
+                </div>
+
+                {% if latest_artist_application and latest_artist_application.application_status == 'Pending' %}
+                <div class="artist-cta-card text-start mt-0 mb-4">
+                    <div class="artist-cta-title">Product submission pending</div>
+                    <div class="artist-cta-copy mb-0">Your latest product submission from {{ latest_artist_application.date_submitted|date:"F d, Y h:i A" }} is waiting for admin review.</div>
+                </div>
+                {% endif %}
+
+                <form method="POST" class="artist-stock-card mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_artist_stock" value="1">
+                    <div class="artist-stock-grid">
+                        <div>
+                            <label class="small fw-bold text-muted">Product Name</label>
+                            <select name="product_id" class="bicol-input mb-0" required>
+                                <option value="">Select product</option>
+                                {% for product in artist_products %}
+                                <option value="{{ product.prod_id }}">{{ product.title }} - current stock: {{ product.stock_qty|default:0 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="small fw-bold text-muted">Quantity</label>
+                            <input type="number" name="stock_qty" min="1" class="bicol-input mb-0" required>
+                        </div>
+                        <button type="submit" name="add_stock" class="artist-stock-btn primary">
+                            <i class="fas fa-plus me-2"></i> Add
+                        </button>
+                        <button type="submit" name="subtract_stock" class="artist-stock-btn">
+                            <i class="fas fa-minus me-2"></i> Minus
+                        </button>
+                    </div>
+                </form>
+
+                <span class="form-section-title">APPROVED PRODUCTS</span>
+                {% if artist_products %}
+                <table class="artist-product-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in artist_products %}
+                        <tr>
+                            <td>{{ product.title }}</td>
+                            <td>{{ product.category.category_name|default:"Uncategorized" }}</td>
+                            <td>&#8369;{{ product.price|floatformat:2 }}</td>
+                            <td>{{ product.stock_qty|default:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="artist-empty-products">
+                    <i class="fas fa-box-open"></i>
+                    <div class="artist-empty-products-title">No approved products yet</div>
+                    <div>Add a product submission and wait for admin approval before it appears in your product list.</div>
+                </div>
+                {% endif %}
+
+                {% if not latest_artist_application or latest_artist_application.application_status != 'Pending' %}
+                <form method="POST" enctype="multipart/form-data" id="artistApplicationForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="submit_artist_product_application" value="1">
+                    <div class="artist-products-stack mt-3" id="artistProductsStack"></div>
+                    <div class="artist-empty-products hidden" id="artistProductsEmpty">
+                        <i class="fas fa-box-open"></i>
+                        <div class="artist-empty-products-title">No products added yet</div>
+                        <div>Use Add New Product to prepare an item for admin approval.</div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-end">
+                        <button type="submit" class="artist-application-submit">
+                            <i class="fas fa-paper-plane me-2"></i>Submit New Product For Approval
                         </button>
                     </div>
                 </form>
@@ -1323,14 +1489,14 @@ min-width: 0;
 </div>
 </div>
 <!-- ================= MODALS ================= -->
-{% if active_tab == 'artist_application' and not is_artist %}
+{% if active_tab == 'artist_application' and not is_artist or active_tab == 'artist_products' and is_artist %}
 {% if not latest_artist_application or latest_artist_application.application_status != 'Pending' %}
 <div class="modal fade artist-application-modal" id="artistProductModal" tabindex="-1" aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered modal-lg">
 <div class="modal-content">
 <div class="modal-header">
 <div>
-<h5 class="modal-title fw-bold" style="color:#5d3a2d;">Add Product Submission</h5>
+<h5 class="modal-title fw-bold" style="color:#5d3a2d;">{% if is_artist %}Add New Product For Approval{% else %}Add Product Submission{% endif %}</h5>
 <div class="artist-help-text mb-0">Fill in one product, save it to the list, then add another if needed.</div>
 </div>
 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1539,7 +1705,7 @@ min-width: 0;
                 {% if order.payment.method == "Mamaya Online Payment" %}
                     <div class="bg-light p-3 rounded-4 mb-3 border">
                         <p class="text-dark small mb-1"><b>Refund Notice:</b></p>
-                        <p class="text-muted small mb-0">Since you paid via <b>Mamaya Online</b>, your total of <b>₱{{ order.total_amount }}</b> will be automatically credited back to your account in <b>6-24 hours</b>.</p>
+                        <p class="text-muted small mb-0">Since you paid via <b>Mamaya Online</b>, your total of <b>₱{{ order.total_amount }}</b> will be automatically credited back to your account in <b>24 hours</b>.</p>
                     </div>
                 {% else %}
                     <p class="text-muted small">Order #BK-{{ order.order_id }} will be cancelled and this action cannot be undone.</p>

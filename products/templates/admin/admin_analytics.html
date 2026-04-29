@@ -5,55 +5,71 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    :root { --nav-brown: #8d5e4a; --bicol-green: #5f9e40; --bg-grey: #f8f9fa; }
+    :root { 
+        --bicol-dark: #5d3a2d;      /* Deep Brown */
+        --bicol-primary: #8d5e4a;   /* Sienna */
+        --bicol-accent: #b98a76;    /* Tan */
+        --bicol-green: #5f9e40;     /* Forest Green */
+        --bicol-light-green: #c8e3ae; /* Soft Lime */
+        --bicol-cream: #fffaf7;     /* Background Tint */
+    }
     
-    .analytics-title { color: #5d3a2d; font-weight: 800; }
+    .analytics-title { color: var(--bicol-dark); font-weight: 900; letter-spacing: -0.5px; }
     
     /* Stat Card Styling */
     .stat-card {
         background: white;
-        border-radius: 15px;
+        border-radius: 20px;
         padding: 25px;
-        border: 1px solid #eee;
-        transition: 0.3s;
+        border: 1.5px solid #f0e7e2;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
     }
-    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-    .stat-label { font-size: 0.75rem; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    .stat-value { font-size: 1.8rem; font-weight: 800; color: #333; margin-top: 5px; }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(93, 58, 45, 0.08); border-color: var(--bicol-primary); }
     
+    .stat-label { font-size: 0.7rem; font-weight: 800; color: #a68a7a; text-transform: uppercase; letter-spacing: 1.2px; }
+    .stat-value { font-size: 2rem; font-weight: 900; color: var(--bicol-dark); margin-top: 5px; }
+    
+    /* Decorative Bar on Stat Cards */
+    .stat-bar { position: absolute; top: 0; left: 0; height: 100%; width: 6px; }
+
     /* Chart Container Styling */
     .chart-container {
         background: white;
-        border-radius: 20px;
+        border-radius: 24px;
         padding: 30px;
-        border: 1px solid #eee;
+        border: 1.5px solid #f0e7e2;
+        display: flex;
+        flex-direction: column;
         height: 100%;
+        box-shadow: 0 10px 25px rgba(93, 58, 45, 0.03);
     }
-    .chart-title { font-weight: 700; color: #5d3a2d; margin-bottom: 25px; font-size: 1rem; }
+    .chart-title { font-weight: 900; color: var(--bicol-dark); margin-bottom: 25px; font-size: 1.1rem; }
+    .chart-wrapper { position: relative; flex-grow: 1; min-height: 300px; }
 
     .filter-pill {
         background: white;
-        border: 1.5px solid #ddd;
-        border-radius: 20px;
-        padding: 5px 20px;
+        border: 1.5px solid #eadfd8;
+        border-radius: 12px;
+        padding: 6px 22px;
         font-size: 0.8rem;
-        font-weight: 600;
-        color: #666;
-        transition: 0.3s;
+        font-weight: 800;
+        color: var(--bicol-primary);
+        transition: 0.2s;
     }
     .filter-pill.active {
-        background: var(--header-green);
-        border-color: var(--nav-brown);
-        color: var(--nav-brown);
+        background: var(--bicol-primary);
+        border-color: var(--bicol-primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(141, 94, 74, 0.2);
     }
+    .filter-pill:hover:not(.active) { background: #fff1eb; }
 </style>
 
-<div class="mb-4 d-flex justify-content-between align-items-center">
-    <div>
-        <h2 class="analytics-title mb-0">System Analytics</h2>
-        <p class="text-muted small">Monitoring business performance and information integrity.</p>
-    </div>
-    <!-- Time Filters (Placeholder UI for demo) -->
+<div class="mb-5 d-flex justify-content-between align-items-center">
+    <h2 class="analytics-title mb-0">Analytics Overview</h2>
     <div class="d-flex gap-2">
         <button class="filter-pill active">Today</button>
         <button class="filter-pill">This Week</button>
@@ -62,21 +78,24 @@
 </div>
 
 <!-- TOP STAT CARDS -->
-<div class="row g-3 mb-5">
+<div class="row g-4 mb-5">
     <div class="col-md-4">
-        <div class="stat-card shadow-sm" style="border-left: 5px solid var(--nav-brown);">
+        <div class="stat-card shadow-sm">
+            <div class="stat-bar" style="background: var(--bicol-primary);"></div>
             <div class="stat-label">Total Revenue</div>
             <div class="stat-value">₱{{ total_revenue|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="stat-card shadow-sm" style="border-left: 5px solid var(--bicol-green);">
+        <div class="stat-card shadow-sm">
+            <div class="stat-bar" style="background: var(--bicol-green);"></div>
             <div class="stat-label">Total Orders</div>
             <div class="stat-value">{{ total_orders }}</div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="stat-card shadow-sm" style="border-left: 5px solid #ffc107;">
+        <div class="stat-card shadow-sm">
+            <div class="stat-bar" style="background: #e6b23c;"></div>
             <div class="stat-label">System Users</div>
             <div class="stat-value">{{ total_users }}</div>
         </div>
@@ -84,88 +103,113 @@
 </div>
 
 <!-- CHARTS GRID -->
-<div class="row g-4 mb-5">
-    <!-- Category Distribution (Pie Chart) -->
+<div class="row g-4 mb-5 d-flex align-items-stretch text-start">
+    <!-- Sales by Category -->
     <div class="col-md-5">
         <div class="chart-container shadow-sm">
-            <h6 class="chart-title"><i class="fas fa-chart-pie me-2"></i>Product Distribution</h6>
-            <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
+            <h6 class="chart-title"><i class="fas fa-leaf me-2 text-success"></i>Sales by Category</h6>
+            <div class="chart-wrapper">
                 <canvas id="categoryChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Order Status Integrity (Bar Chart) -->
+    <!-- Fulfillment Status -->
     <div class="col-md-7">
         <div class="chart-container shadow-sm">
-            <h6 class="chart-title"><i class="fas fa-shield-alt me-2"></i>System Integrity (Order Status)</h6>
-            <div style="height: 300px;">
+            <h6 class="chart-title"><i class="fas fa-boxes-packing me-2" style="color: var(--bicol-primary);"></i>Order Fulfillment</h6>
+            <div class="chart-wrapper">
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 2. SECURE DATA INJECTION (The VS Code Fix) -->
-<!-- These tags securely pass Python data to JS without causing syntax errors -->
+<!-- SECURE DATA INJECTION -->
 {{ category_sales|json_script:"category-json" }}
 {{ status_counts|json_script:"status-json" }}
 
-<!-- 3. Chart Generation Logic -->
 <script>
-    // Safely retrieve the JSON data from the script tags above
     const categoryRaw = JSON.parse(document.getElementById('category-json').textContent);
     const statusRaw = JSON.parse(document.getElementById('status-json').textContent);
 
-    // Map the raw data into labels and values
-    const catLabels = categoryRaw.map(item => item.category_name);
-    const catData = categoryRaw.map(item => item.total_sold);
+    const catLabels = categoryRaw.map(item => item.category_name || 'Uncategorized');
+    const catData = categoryRaw.map(item => item.total_sold || 0);
 
-    const statusLabels = statusRaw.map(item => item.order_status);
+    const statusLabels = statusRaw.map(item => item.status);
     const statusData = statusRaw.map(item => item.count);
 
-    // Render Product Category Doughnut Chart
+    // BRAND COLOR PALETTE
+    const bicolColors = {
+        delivered: '#5f9e40',  // Forest Green
+        processing: '#8d5e4a', // Sienna
+        shipped: '#7da7d8',    // Muted Blue
+        cancelled: '#b5533f',  // Terracotta Red
+        other: '#eadfd8'       // Beige
+    };
+
+    const statusColors = statusLabels.map(label => {
+        if (label === 'Delivered') return bicolColors.delivered;
+        if (label === 'Cancelled') return bicolColors.cancelled;
+        if (label === 'Shipped') return bicolColors.shipped;
+        if (label === 'Processing') return bicolColors.processing;
+        return bicolColors.other;
+    });
+
+    // 1. Doughnut Chart (Sales by Category)
     new Chart(document.getElementById('categoryChart'), {
         type: 'doughnut',
         data: {
             labels: catLabels,
             datasets: [{
                 data: catData,
-                backgroundColor: ['#8d5e4a', '#5f9e40', '#e9fcd9', '#5d3a2d', '#adb5bd'],
-                borderWidth: 2,
+                backgroundColor: ['#5d3a2d', '#8d5e4a', '#b98a76', '#5f9e40', '#c8e3ae'],
+                hoverOffset: 15,
+                borderWidth: 4,
                 borderColor: '#ffffff'
             }]
         },
         options: {
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { size: 12, weight: '700' }, color: '#5d3a2d' } }
             }
         }
     });
 
-    // Render Order Status Bar Chart
+    // 2. Bar Chart (Fulfillment Status)
     new Chart(document.getElementById('statusChart'), {
         type: 'bar',
         data: {
             labels: statusLabels,
             datasets: [{
-                label: 'Orders',
                 data: statusData,
-                backgroundColor: 'rgba(95, 158, 64, 0.7)',
-                borderColor: '#5f9e40',
-                borderWidth: 1.5,
-                borderRadius: 5
+                backgroundColor: statusColors,
+                borderRadius: 12,
+                barThickness: 45
             }]
         },
         options: {
             maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { display: false }, ticks: { stepSize: 1 } },
-                x: { grid: { display: false } }
-            },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: { 
+                    backgroundColor: '#5d3a2d',
+                    padding: 12,
+                    titleFont: { size: 14, weight: '900' },
+                    cornerRadius: 10
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: '#f5f0ed', drawBorder: false },
+                    ticks: { color: '#a68a7a', font: { weight: '800' }, stepSize: 1 }
+                },
+                x: { 
+                    grid: { display: false },
+                    ticks: { color: '#5d3a2d', font: { weight: '800' } }
+                }
             }
         }
     });

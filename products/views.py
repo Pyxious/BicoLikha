@@ -7,6 +7,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction
 from django.db.models import Q, Sum, Count, F, Case, When, Value, IntegerField
+from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.core.files.base import ContentFile
@@ -17,12 +18,17 @@ from django.utils.text import slugify
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
+from datetime import timedelta
+import calendar
+from datetime import datetime
+from django.utils import timezone
+from django.db.models import Count
 
 # Models
 from .models import (
     Artwork, Artist, Category, Address, 
     Order, Cart, CartItem, OrderDetail, Payment, Like, Review, Notification, Shipment, SupplyInventory,
-    ArtistApplication, ArtistApplicationProduct
+    ArtistApplication, ArtistApplicationProduct, ArtistStockAdjustmentRequest
 )
 
 # Forms
@@ -154,6 +160,215 @@ def _parse_application_product_details(application_product):
     application_product.requested_category = requested_category
     return application_product
 
+
+def _create_artist_application_from_post(request, artist_name):
+    product_keys = [key for key in request.POST.getlist('product_key') if key.strip()]
+
+    if not artist_name:
+        raise ValueError("Please enter the artist name you want reviewed.")
+
+    if not product_keys:
+        raise ValueError("Please add at least one product to your application.")
+
+    application = ArtistApplication.objects.create(
+        user=request.user,
+        artist_name=artist_name,
+        application_status='Pending'
+    )
+
+    created_products = 0
+    for key in product_keys:
+        product_name = (request.POST.get(f'prod_name_{key}') or '').strip()
+        product_description = (request.POST.get(f'prod_description_{key}') or '').strip()
+        product_price = (request.POST.get(f'prod_price_{key}') or '').strip()
+        product_stock_qty = (request.POST.get(f'prod_stock_qty_{key}') or '').strip()
+        selected_category_id = (request.POST.get(f'category_id_{key}') or '').strip()
+        requested_category_name = (request.POST.get(f'new_category_{key}') or '').strip()
+        product_image_data = request.POST.get(f'prod_image_data_{key}') or ''
+        product_image_filename = (request.POST.get(f'prod_image_filename_{key}') or '').strip()
+
+        if not any([product_name, product_description, product_price, product_stock_qty, selected_category_id, requested_category_name]):
+            continue
+
+        if not product_name:
+            raise ValueError("Each product entry needs a product name.")
+        if not product_price:
+            raise ValueError(f"Please add a price for {product_name}.")
+        if not product_stock_qty:
+            raise ValueError(f"Please add the starting stock for {product_name}.")
+
+        try:
+            stock_value = int(product_stock_qty)
+        except (TypeError, ValueError):
+            raise ValueError(f"Stock quantity for {product_name} must be a whole number.")
+
+        if stock_value < 0:
+            raise ValueError(f"Stock quantity for {product_name} cannot be negative.")
+
+        category, category_request_note = _get_application_category(selected_category_id, requested_category_name)
+        full_description = product_description
+        if category_request_note:
+            full_description = (
+                f"{product_description}\n\nRequested category: {category_request_note}".strip()
+            )
+
+        ArtistApplicationProduct.objects.create(
+            application=application,
+            category=category,
+            product_name=product_name,
+            product_description=full_description,
+            product_price=product_price,
+            product_stock_qty=stock_value,
+            product_image=(
+                _save_artist_application_image(
+                    request.user,
+                    request.FILES.get(f'prod_image_{key}'),
+                    product_name
+                ) or _save_artist_application_image_data(
+                    request.user,
+                    product_image_data,
+                    product_image_filename,
+                    product_name
+                )
+            )
+        )
+        created_products += 1
+
+    if created_products == 0:
+        raise ValueError("Please complete at least one product before submitting your application.")
+
+    return application
+
+
+def _approve_artist_application(application):
+    if application.application_status == 'Approved':
+        return
+
+    with transaction.atomic():
+        applicant_address = Address.objects.filter(user=application.user, is_default=True).first() or Address.objects.filter(user=application.user).first()
+        artist, created = Artist.objects.get_or_create(
+            user=application.user,
+            defaults={
+                'artist_name': application.artist_name,
+                'artist_phone_num': (applicant_address.phone_num if applicant_address else '') or '',
+                'artist_municipality': (applicant_address.municipality if applicant_address else '') or '',
+                'artist_brgy': (applicant_address.brgy if applicant_address else '') or '',
+                'artist_zipcode': (applicant_address.zipcode if applicant_address else '') or '',
+                'artist_description': 'Verified Artist',
+            }
+        )
+
+        if not created:
+            artist.artist_name = application.artist_name
+            if applicant_address:
+                artist.artist_phone_num = applicant_address.phone_num
+                artist.artist_municipality = applicant_address.municipality
+                artist.artist_brgy = applicant_address.brgy
+                artist.artist_zipcode = applicant_address.zipcode
+            artist.artist_description = artist.artist_description or 'Verified Artist'
+            artist.save()
+
+        for application_product in application.products.select_related('category').all():
+            _parse_application_product_details(application_product)
+            category = application_product.category
+
+            if application_product.requested_category:
+                category, _ = Category.objects.get_or_create(
+                    category_name=application_product.requested_category,
+                    defaults={'category_desc': 'Submitted by artist application and approved by admin.'}
+                )
+
+            product = Artwork.objects.create(
+                artist=artist,
+                category=category,
+                title=application_product.product_name,
+                description=application_product.clean_description,
+                price=application_product.product_price,
+                stock_qty=application_product.product_stock_qty,
+                image=application_product.product_image or None
+            )
+
+            if product.stock_qty and product.stock_qty > 0:
+                SupplyInventory.objects.create(
+                    product=product,
+                    supplied_qty=product.stock_qty
+                )
+
+        application.application_status = 'Approved'
+        application.date_reviewed = timezone.now()
+        application.save(update_fields=['application_status', 'date_reviewed'])
+
+
+def _decorate_artist_applications(applications):
+    for application in applications:
+        existing_category_products = []
+        requested_category_products = []
+        for product in application.products.all():
+            product = _parse_application_product_details(product)
+            product.preview_image_url = f"{settings.MEDIA_URL}{product.product_image}" if product.product_image else ''
+            if product.requested_category:
+                requested_category_products.append(product)
+            else:
+                existing_category_products.append(product)
+
+        application.existing_category_products = existing_category_products
+        application.requested_category_products = requested_category_products
+    return applications
+
+
+def _deduct_latest_supply_inventory(product, quantity):
+    remaining = quantity
+    supplies = SupplyInventory.objects.filter(product=product).order_by('-supplied_date', '-supply_id')
+
+    for supply in supplies:
+        if remaining <= 0:
+            break
+
+        available = supply.supplied_qty or 0
+        if available <= 0:
+            continue
+
+        deduction = min(available, remaining)
+        supply.supplied_qty = available - deduction
+        supply.save(update_fields=['supplied_qty'])
+        remaining -= deduction
+
+    return remaining == 0
+
+
+def _approve_stock_adjustment_request(stock_request):
+    if stock_request.status == 'Approved':
+        return
+
+    product = stock_request.product
+    current_stock = product.stock_qty or 0
+
+    with transaction.atomic():
+        if stock_request.adjustment_type == 'Add':
+            product.stock_qty = current_stock + stock_request.quantity
+            product.save(update_fields=['stock_qty'])
+            SupplyInventory.objects.create(product=product, supplied_qty=stock_request.quantity)
+        else:
+            if stock_request.quantity > current_stock:
+                raise ValueError(f"Cannot subtract more than the current stock for {product.title}.")
+            product.stock_qty = current_stock - stock_request.quantity
+            product.save(update_fields=['stock_qty'])
+            _deduct_latest_supply_inventory(product, stock_request.quantity)
+
+        stock_request.status = 'Approved'
+        stock_request.date_reviewed = timezone.now()
+        stock_request.save(update_fields=['status', 'date_reviewed'])
+
+
+def _reject_stock_adjustment_request(stock_request):
+    if stock_request.status == 'Approved':
+        raise ValueError("Approved stock requests can no longer be rejected.")
+
+    if stock_request.status != 'Rejected':
+        stock_request.status = 'Rejected'
+        stock_request.date_reviewed = timezone.now()
+        stock_request.save(update_fields=['status', 'date_reviewed'])
+
 # --- 1. AUTHENTICATION & PORTAL SECURITY ---
 
 class UserLoginView(LoginView):
@@ -205,9 +420,16 @@ def signup(request):
 
 # --- 2. ADMINISTRATIVE / MANAGEMENT HUB ---
 
+from django.utils import timezone
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import user_passes_test
+
 @user_passes_test(lambda u: u.is_staff, login_url='admin_login')
 def admin_users(request):
     """General Users overview page for the dashboard."""
+    
+    # 1. --- HANDLE POST ACTIONS (Approve/Reject) ---
     if request.method == 'POST':
         application = get_object_or_404(
             ArtistApplication.objects.select_related('user'),
@@ -215,96 +437,96 @@ def admin_users(request):
         )
 
         if 'approve_artist_application' in request.POST:
-            if application.application_status != 'Approved':
-                with transaction.atomic():
-                    applicant_address = Address.objects.filter(user=application.user, is_default=True).first() or Address.objects.filter(user=application.user).first()
-                    artist, created = Artist.objects.get_or_create(
-                        user=application.user,
-                        defaults={
-                            'artist_name': application.artist_name,
-                            'artist_phone_num': (applicant_address.phone_num if applicant_address else '') or '',
-                            'artist_municipality': (applicant_address.municipality if applicant_address else '') or '',
-                            'artist_brgy': (applicant_address.brgy if applicant_address else '') or '',
-                            'artist_zipcode': (applicant_address.zipcode if applicant_address else '') or '',
-                            'artist_description': 'Verified Artist',
-                        }
-                    )
+            # Security Check: Only allow if status is still Pending
+            if application.application_status != 'Pending':
+                messages.error(request, f"{application.artist_name} has already been {application.application_status.lower()} and can no longer be changed.")
+                return redirect('admin_users')
 
-                    if not created:
-                        artist.artist_name = application.artist_name
-                        if applicant_address:
-                            artist.artist_phone_num = applicant_address.phone_num
-                            artist.artist_municipality = applicant_address.municipality
-                            artist.artist_brgy = applicant_address.brgy
-                            artist.artist_zipcode = applicant_address.zipcode
-                        artist.artist_description = artist.artist_description or 'Verified Artist'
-                        artist.save()
-
-                    for application_product in application.products.select_related('category').all():
-                        _parse_application_product_details(application_product)
-                        category = application_product.category
-
-                        if application_product.requested_category:
-                            category, _ = Category.objects.get_or_create(
-                                category_name=application_product.requested_category,
-                                defaults={'category_desc': 'Submitted by artist application and approved by admin.'}
-                            )
-
-                        product = Artwork.objects.create(
-                            artist=artist,
-                            category=category,
-                            title=application_product.product_name,
-                            description=application_product.clean_description,
-                            price=application_product.product_price,
-                            stock_qty=application_product.product_stock_qty,
-                            image=application_product.product_image or None
-                        )
-
-                        if product.stock_qty and product.stock_qty > 0:
-                            SupplyInventory.objects.create(
-                                product=product,
-                                supplied_qty=product.stock_qty
-                            )
-
-                    application.application_status = 'Approved'
-                    application.date_reviewed = timezone.now()
-                    application.save(update_fields=['application_status', 'date_reviewed'])
-
-                messages.success(request, f"Approved artist application for {application.artist_name}.")
+            # Use your helper function to process approval
+            _approve_artist_application(application)
+            messages.success(request, f"Approved artist application for {application.artist_name}.")
             return redirect('admin_users')
 
         if 'reject_artist_application' in request.POST:
-            if application.application_status == 'Approved':
-                messages.error(request, f"{application.artist_name} is already approved and can no longer be rejected.")
+            # Security Check: Only allow if status is still Pending
+            if application.application_status != 'Pending':
+                messages.error(request, f"{application.artist_name} has already been {application.application_status.lower()} and can no longer be changed.")
                 return redirect('admin_users')
 
-            if application.application_status != 'Rejected':
-                application.application_status = 'Rejected'
-                application.date_reviewed = timezone.now()
-                application.save(update_fields=['application_status', 'date_reviewed'])
-                messages.success(request, f"Rejected artist application for {application.artist_name}.")
+            application.application_status = 'Rejected'
+            application.date_reviewed = timezone.now()
+            application.save(update_fields=['application_status', 'date_reviewed'])
+            messages.success(request, f"Rejected artist application for {application.artist_name}.")
             return redirect('admin_users')
 
-    recent_artist_applications = ArtistApplication.objects.select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')[:8]
-    for application in recent_artist_applications:
-        existing_category_products = []
-        requested_category_products = []
-        for product in application.products.all():
-            product = _parse_application_product_details(product)
-            product.preview_image_url = f"{settings.MEDIA_URL}{product.product_image}" if product.product_image else ''
-            if product.requested_category:
-                requested_category_products.append(product)
-            else:
-                existing_category_products.append(product)
+    # --- GET FILTER PARAMETERS ---
+    now = timezone.now()
+    selected_month = int(request.GET.get('month', now.month))
+    selected_year = int(request.GET.get('year', now.year))
 
-        application.existing_category_products = existing_category_products
-        application.requested_category_products = requested_category_products
+    # --- 1. CALCULATE WEEKLY TRENDS FOR THE SELECTED MONTH ---
+    # Find how many days are in the selected month
+    _, num_days = calendar.monthrange(selected_year, selected_month)
+    
+    registration_trends = []
+    trend_labels = []
+    
+    # Break the month into 4 or 5 weeks (7-day intervals)
+    for i in range(0, num_days, 7):
+        start_day = i + 1
+        end_day = min(i + 7, num_days)
+        
+        start_date = timezone.make_aware(datetime(selected_year, selected_month, start_day))
+        end_date = timezone.make_aware(datetime(selected_year, selected_month, end_day, 23, 59, 59))
+        
+        count = User.objects.filter(
+            date_joined__range=(start_date, end_date), 
+            is_staff=False
+        ).count()
+        
+        registration_trends.append(count)
+        trend_labels.append(f"Week {len(registration_trends)}")
+
+    # --- 2. CALCULATE GENERAL STATS ---
+    total_users_count = User.objects.filter(is_staff=False).count()
+    active_users_count = User.objects.filter(is_active=True, is_staff=False).count()
+    new_this_month_count = User.objects.filter(
+        date_joined__year=selected_year,
+        date_joined__month=selected_month,
+        is_staff=False
+    ).count()
+    
+    active_rate = round((active_users_count / total_users_count * 100), 1) if total_users_count > 0 else 0
+
+    # --- 3. CHART DATA (Distribution) ---
+    total_artists = Artist.objects.count()
+    regular_customers = max(0, total_users_count - total_artists)
+
+    # --- 4. PREPARE MONTH LIST FOR DROPDOWN ---
+    months_list = []
+    for m in range(1, 13):
+        months_list.append({'num': m, 'name': calendar.month_name[m]})
+
+    # --- 5. APPLICATIONS ---
+    recent_artist_applications = ArtistApplication.objects.filter(
+        user__artist_profile__isnull=True
+    ).select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')[:8]
+    _decorate_artist_applications(recent_artist_applications)
 
     context = {
-        'total_users': User.objects.filter(is_staff=False).count(),
-        'new_users_today': User.objects.filter(date_joined__date=timezone.now().date()).count(),
-        'active_users': User.objects.filter(is_active=True, is_staff=False).count(),
+        'total_users': total_users_count,
+        'active_users': active_users_count,
+        'new_this_month': new_this_month_count,
+        'active_rate': active_rate,
+        'total_artists': total_artists,
+        'regular_customers': regular_customers,
+        'registration_trends': registration_trends,
+        'trend_labels': trend_labels,
         'recent_artist_applications': recent_artist_applications,
+        'months_list': months_list,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
+        'current_month_name': calendar.month_name[selected_month],
     }
     return render(request, 'admin/admin_users.html', context)
 
@@ -382,12 +604,56 @@ def admin_products(request):
     sort_by = request.GET.get('sort', '-prod_id')
     search_query = request.GET.get('q', '')
     selected_cats = request.GET.getlist('cat')
+    product_submission_status = request.GET.get('submission_status', 'Pending')
+    if product_submission_status not in ['Pending', 'Approved', 'Rejected']:
+        product_submission_status = 'Pending'
 
     # 2. HANDLE ACTIONS (POST)
     if request.method == 'POST':
+        if 'approve_stock_adjustment' in request.POST or 'reject_stock_adjustment' in request.POST:
+            stock_request = get_object_or_404(
+                ArtistStockAdjustmentRequest.objects.select_related('artist', 'product'),
+                request_id=request.POST.get('stock_request_id')
+            )
+
+            try:
+                if 'approve_stock_adjustment' in request.POST:
+                    _approve_stock_adjustment_request(stock_request)
+                    messages.success(request, f"Approved {stock_request.adjustment_type.lower()} stock request for {stock_request.product.title}.")
+                else:
+                    _reject_stock_adjustment_request(stock_request)
+                    messages.success(request, f"Rejected stock request for {stock_request.product.title}.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            return redirect('admin_products')
+
+        if 'approve_artist_application' in request.POST or 'reject_artist_application' in request.POST:
+            application = get_object_or_404(
+                ArtistApplication.objects.select_related('user'),
+                application_id=request.POST.get('application_id')
+            )
+
+            if 'approve_artist_application' in request.POST:
+                if application.application_status != 'Pending':
+                    messages.error(request, f"This product submission has already been {application.application_status.lower()} and can no longer be changed.")
+                    return redirect('admin_products')
+
+                _approve_artist_application(application)
+                messages.success(request, f"Approved product submission for {application.artist_name}.")
+                return redirect('admin_products')
+
+            if application.application_status != 'Pending':
+                messages.error(request, f"This product submission has already been {application.application_status.lower()} and can no longer be changed.")
+                return redirect('admin_products')
+
+            application.application_status = 'Rejected'
+            application.date_reviewed = timezone.now()
+            application.save(update_fields=['application_status', 'date_reviewed'])
+            messages.success(request, f"Rejected product submission for {application.artist_name}.")
+            return redirect('admin_products')
         
         # --- ACTION: ADD CATEGORY ---
-        if 'add_category' in request.POST:
+        elif 'add_category' in request.POST:
             name = request.POST.get('category_name')
             desc = request.POST.get('category_desc')
             if name:
@@ -430,6 +696,8 @@ def admin_products(request):
                     product=prod,
                     supplied_qty=supplied_delta
                 )
+            elif supplied_delta < 0:
+                _deduct_latest_supply_inventory(prod, abs(supplied_delta))
 
         # --- ACTION: DELETE PRODUCT ---
         elif 'delete_product' in request.POST:
@@ -452,7 +720,17 @@ def admin_products(request):
         'price': 'price', '-price': '-price',
         'stock': 'stock_qty', '-stock': '-stock_qty'
     }
-    products = products_query.order_by(sort_mapping.get(sort_by, '-prod_id'))
+    products_query = products_query.order_by(sort_mapping.get(sort_by, '-prod_id'))
+    products_paginator = Paginator(products_query, 10)
+    products_page = products_paginator.get_page(request.GET.get('page'))
+    products = products_page.object_list
+    pagination_query = request.GET.copy()
+    pagination_query.pop('page', None)
+    pagination_querystring = pagination_query.urlencode()
+    submission_query = request.GET.copy()
+    submission_query.pop('page', None)
+    submission_query.pop('submission_status', None)
+    submission_querystring = submission_query.urlencode()
 
     # 4. CALCULATE DASHBOARD ANALYTICS (For the Stat Cards)
     total_count = Artwork.objects.count()
@@ -470,6 +748,34 @@ def admin_products(request):
         count=Count('artwork')
     ).values('category_name', 'count'))
 
+    product_submissions = ArtistApplication.objects.filter(
+        user__artist_profile__isnull=False,
+        application_status=product_submission_status
+    ).select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')
+    _decorate_artist_applications(product_submissions)
+    product_submission_counts = {
+        status: ArtistApplication.objects.filter(
+            user__artist_profile__isnull=False,
+            application_status=status
+        ).count()
+        for status in ['Pending', 'Approved', 'Rejected']
+    }
+    pending_stock_adjustments = ArtistStockAdjustmentRequest.objects.filter(
+        status='Pending'
+    ).select_related('artist', 'product', 'product__category').order_by('-date_submitted')
+
+    today = timezone.localdate()
+    sales_days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    sales_rows = Order.objects.exclude(status='Cancelled').filter(
+        created_at__date__gte=sales_days[0],
+        created_at__date__lte=today
+    ).annotate(day=TruncDate('created_at')).values('day').annotate(total=Sum('total_amount')).order_by('day')
+    sales_by_day = {row['day']: float(row['total'] or 0) for row in sales_rows}
+    sales_chart_data = {
+        'labels': [day.strftime('%a') for day in sales_days],
+        'values': [sales_by_day.get(day, 0) for day in sales_days],
+    }
+
     # 6. RENDER
     return render(request, 'admin/admin_products.html', {
         'products': products,
@@ -479,12 +785,20 @@ def admin_products(request):
         'current_sort': sort_by,
         'search_query': search_query,
         'selected_cats': selected_cats,
+        'products_page': products_page,
+        'pagination_querystring': pagination_querystring,
+        'submission_querystring': submission_querystring,
         # Analytics Context
         'total_count': total_count,
         'in_stock': in_stock,
         'low_stock': low_stock,
         'total_value': total_value,
-        'cat_distribution': cat_distribution
+        'cat_distribution': cat_distribution,
+        'product_submissions': product_submissions,
+        'product_submission_status': product_submission_status,
+        'product_submission_counts': product_submission_counts,
+        'pending_stock_adjustments': pending_stock_adjustments,
+        'sales_chart_data': sales_chart_data
     })
 
 @user_passes_test(lambda u: u.is_staff, login_url='admin_login')
@@ -869,6 +1183,7 @@ def profile_view(request):
     is_artist = artist_obj is not None
     latest_artist_application = _get_artist_application_status(request.user)
     application_categories = Category.objects.order_by('category_name')
+    artist_products = Artwork.objects.filter(artist=artist_obj).order_by('title') if is_artist else Artwork.objects.none()
 
     # Identify products already reviewed by this user
     reviewed_products = list(Review.objects.filter(user=request.user).values_list('product_id', flat=True))
@@ -940,91 +1255,69 @@ def profile_view(request):
                 messages.error(request, "You already have a pending artist application under review.")
                 return redirect('/profile/?tab=artist_application')
 
-            artist_name = (request.POST.get('artist_name') or '').strip()
-            product_keys = [key for key in request.POST.getlist('product_key') if key.strip()]
-
-            if not artist_name:
-                messages.error(request, "Please enter the artist name you want reviewed.")
-                return redirect('/profile/?tab=artist_application')
-
-            if not product_keys:
-                messages.error(request, "Please add at least one product to your application.")
-                return redirect('/profile/?tab=artist_application')
-
             try:
                 with transaction.atomic():
-                    application = ArtistApplication.objects.create(
-                        user=request.user,
-                        artist_name=artist_name,
-                        application_status='Pending'
-                    )
-
-                    created_products = 0
-                    for key in product_keys:
-                        product_name = (request.POST.get(f'prod_name_{key}') or '').strip()
-                        product_description = (request.POST.get(f'prod_description_{key}') or '').strip()
-                        product_price = (request.POST.get(f'prod_price_{key}') or '').strip()
-                        product_stock_qty = (request.POST.get(f'prod_stock_qty_{key}') or '').strip()
-                        selected_category_id = (request.POST.get(f'category_id_{key}') or '').strip()
-                        requested_category_name = (request.POST.get(f'new_category_{key}') or '').strip()
-                        product_image_data = request.POST.get(f'prod_image_data_{key}') or ''
-                        product_image_filename = (request.POST.get(f'prod_image_filename_{key}') or '').strip()
-
-                        if not any([product_name, product_description, product_price, product_stock_qty, selected_category_id, requested_category_name]):
-                            continue
-
-                        if not product_name:
-                            raise ValueError("Each product entry needs a product name.")
-                        if not product_price:
-                            raise ValueError(f"Please add a price for {product_name}.")
-                        if not product_stock_qty:
-                            raise ValueError(f"Please add the starting stock for {product_name}.")
-
-                        try:
-                            stock_value = int(product_stock_qty)
-                        except (TypeError, ValueError):
-                            raise ValueError(f"Stock quantity for {product_name} must be a whole number.")
-
-                        if stock_value < 0:
-                            raise ValueError(f"Stock quantity for {product_name} cannot be negative.")
-
-                        category, category_request_note = _get_application_category(selected_category_id, requested_category_name)
-                        full_description = product_description
-                        if category_request_note:
-                            full_description = (
-                                f"{product_description}\n\nRequested category: {category_request_note}".strip()
-                            )
-
-                        ArtistApplicationProduct.objects.create(
-                            application=application,
-                            category=category,
-                            product_name=product_name,
-                            product_description=full_description,
-                            product_price=product_price,
-                            product_stock_qty=stock_value,
-                            product_image=(
-                                _save_artist_application_image(
-                                    request.user,
-                                    request.FILES.get(f'prod_image_{key}'),
-                                    product_name
-                                ) or _save_artist_application_image_data(
-                                    request.user,
-                                    product_image_data,
-                                    product_image_filename,
-                                    product_name
-                                )
-                            )
-                        )
-                        created_products += 1
-
-                    if created_products == 0:
-                        raise ValueError("Please complete at least one product before submitting your application.")
+                    artist_name = (request.POST.get('artist_name') or '').strip()
+                    _create_artist_application_from_post(request, artist_name)
 
                 messages.success(request, "Your artist application has been submitted and is now waiting for admin approval.")
                 return redirect('/profile/?tab=artist_application')
             except ValueError as exc:
                 messages.error(request, str(exc))
                 return redirect('/profile/?tab=artist_application')
+
+        # --- ARTIST PRODUCT STOCK UPDATE ---
+        elif 'update_artist_stock' in request.POST:
+            if not is_artist:
+                messages.error(request, "Only approved artists can manage product stock.")
+                return redirect('/profile/?tab=account')
+
+            product = get_object_or_404(Artwork, prod_id=request.POST.get('product_id'), artist=artist_obj)
+            try:
+                quantity = int(request.POST.get('stock_qty') or 0)
+            except (TypeError, ValueError):
+                messages.error(request, "Stock quantity must be a whole number.")
+                return redirect('/profile/?tab=artist_products')
+
+            if quantity <= 0:
+                messages.error(request, "Enter a stock quantity greater than zero.")
+                return redirect('/profile/?tab=artist_products')
+
+            adjustment_type = 'Subtract' if 'subtract_stock' in request.POST else 'Add'
+            if adjustment_type == 'Subtract':
+                current_stock = product.stock_qty or 0
+                if quantity > current_stock:
+                    messages.error(request, f"Cannot subtract more than the current stock for {product.title}.")
+                    return redirect('/profile/?tab=artist_products')
+
+            ArtistStockAdjustmentRequest.objects.create(
+                artist=artist_obj,
+                product=product,
+                adjustment_type=adjustment_type,
+                quantity=quantity,
+                status='Pending'
+            )
+            messages.success(request, f"Your {adjustment_type.lower()} stock request for {product.title} is waiting for admin approval.")
+
+            return redirect('/profile/?tab=artist_products')
+
+        # --- APPROVED ARTIST NEW PRODUCT APPLICATION ---
+        elif 'submit_artist_product_application' in request.POST:
+            if not is_artist:
+                messages.error(request, "Only approved artists can submit new products here.")
+                return redirect('/profile/?tab=account')
+
+            if latest_artist_application and latest_artist_application.application_status == 'Pending':
+                messages.error(request, "You already have a pending product application under review.")
+                return redirect('/profile/?tab=artist_products')
+
+            try:
+                with transaction.atomic():
+                    _create_artist_application_from_post(request, artist_obj.artist_name or request.user.get_full_name() or request.user.username)
+                messages.success(request, "Your new product submission is waiting for admin approval.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            return redirect('/profile/?tab=artist_products')
 
         # --- ARTIST MESSAGE REPLY (With Duplicate Protection) ---
         elif 'artist_update_status' in request.POST:
@@ -1134,7 +1427,8 @@ def profile_view(request):
         'customer_notifications': customer_notifications, 'unread_count': unread_count,
         'unread_artist_count': unread_artist_count,
         'latest_artist_application': latest_artist_application,
-        'application_categories': application_categories
+        'application_categories': application_categories,
+        'artist_products': artist_products
     })
 
 @login_required

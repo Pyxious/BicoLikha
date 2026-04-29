@@ -1,12 +1,17 @@
 {% extends 'admin/management_base.html' %}
 
 {% block management_content %}
-<div class="mb-5">
-    <h2 class="fw-bold mb-0">User Management Hub</h2>
-    <p class="text-muted">Select a category to manage roles, artists, and system access.</p>
-</div>
+
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+    :root {
+        --bicol-brown: #5d3a2d;
+        --bicol-light-brown: #8d5e4a;
+        --bicol-green: #e9fcd9;
+    }
     .management-card {
         background-color: var(--bg-grey);
         border: 1px solid transparent;
@@ -26,6 +31,38 @@
     }
     .management-card i { font-size: 3rem; margin-bottom: 15px; }
     .management-card h4 { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* --- Analytics Styles --- */
+    .stat-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: left;
+    }
+    .stat-label { color: #8d5e4a; font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+    .stat-value { font-size: 2rem; font-weight: 800; color: #5d3a2d; margin: 0; line-height: 1; }
+    .stat-growth { font-size: 0.75rem; font-weight: 700; color: #5f9e40; margin-top: 8px; }
+    
+    .chart-container {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 15px;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+    }
+    .chart-title { font-weight: 800; color: #5d3a2d; font-size: 1.2rem; margin-bottom: 5px; }
+    .chart-sub { color: #8d5e4a; font-size: 0.85rem; margin-bottom: 20px; }
+
+    /* Fix for Chart stretching: Canvas wrappers need fixed height */
+    .chart-wrapper {
+        position: relative;
+        height: 300px; 
+        width: 100%;
+    }
+
+    /* --- Application List Styles --- */
     .received-shell {
         margin-top: 38px;
         border: 1px solid #eadfd8;
@@ -98,138 +135,29 @@
         background: #eef5ff;
         color: #1f78d1;
     }
-    .received-pill.approved {
-        background: #e9fcd9;
-        color: #4f8e34;
-    }
-    .received-pill.rejected {
-        background: #fff2ed;
-        color: #b5533f;
-    }
-    .received-link {
-        color: var(--sidebar-brown);
-        font-size: 0.8rem;
-        font-weight: 800;
-        text-decoration: none;
-    }
-    .received-link:hover {
-        text-decoration: underline;
-    }
-    .received-empty {
-        padding: 28px 22px;
-        color: #8f7c72;
-        font-size: 0.9rem;
-    }
-    .application-modal-shell {
-        border-radius: 24px;
-        overflow: hidden;
-    }
-    .application-modal-head {
-        padding: 22px 26px;
-        border-bottom: 1px solid #f0e7e2;
-        background: linear-gradient(135deg, #fffaf7, #f4efe9);
-    }
-    .application-modal-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-        gap: 18px;
-        padding: 24px 26px 0;
-    }
-    .application-panel {
-        border: 1px solid #eadfd8;
-        border-radius: 20px;
-        background: #fffaf7;
-        padding: 18px;
-    }
-    .application-panel-title {
-        color: #5d3a2d;
-        font-size: 0.82rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 14px;
-    }
-    .application-artist-name {
-        color: #5d3a2d;
-        font-size: 1.35rem;
-        font-weight: 900;
-        margin: 0;
-    }
-    .application-meta {
-        color: #8f7c72;
-        font-size: 0.84rem;
-        margin-top: 6px;
-    }
-    .application-product-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    .application-product-table th,
-    .application-product-table td {
-        padding: 10px 12px;
-        border-bottom: 1px solid #f0e7e2;
-        text-align: left;
-        vertical-align: top;
-    }
-    .application-product-table th {
-        color: #b19789;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-    .application-product-table td {
-        color: #5d3a2d;
-        font-size: 0.9rem;
-    }
-    .application-product-table tr:last-child td {
-        border-bottom: none;
-    }
-    .application-product-photo {
-        width: 62px;
-        height: 62px;
-        border-radius: 14px;
-        overflow: hidden;
-        border: 2px solid #d8c1b6;
-        background: #f6efe9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .application-product-photo img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .application-request-box {
-        margin-top: 18px;
-        border: 1px dashed #d8c1b6;
-        border-radius: 18px;
-        background: #fff;
-        padding: 16px;
-    }
-    .application-request-title {
-        color: #8d5e4a;
-        font-size: 0.8rem;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-    }
-    @media (max-width: 991.98px) {
-        .received-item {
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-        .application-modal-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+    .received-pill.approved { background: #e9fcd9; color: #4f8e34; }
+    .received-pill.rejected { background: #fff2ed; color: #b5533f; }
+    .received-link { color: var(--sidebar-brown); font-size: 0.8rem; font-weight: 800; text-decoration: none; }
+    .received-link:hover { text-decoration: underline; }
+    .received-empty { padding: 28px 22px; color: #8f7c72; font-size: 0.9rem; }
+    
+    .application-modal-shell { border-radius: 24px; overflow: hidden; }
+    .application-modal-head { padding: 22px 26px; border-bottom: 1px solid #f0e7e2; background: linear-gradient(135deg, #fffaf7, #f4efe9); }
+    .application-modal-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; padding: 24px 26px 0; }
+    .application-panel { border: 1px solid #eadfd8; border-radius: 20px; background: #fffaf7; padding: 18px; }
+    .application-panel-title { color: #5d3a2d; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; margin-bottom: 14px; }
+    .application-artist-name { color: #5d3a2d; font-size: 1.35rem; font-weight: 900; margin: 0; }
+    .application-meta { color: #8f7c72; font-size: 0.84rem; margin-top: 6px; }
+    .application-product-table { width: 100%; border-collapse: collapse; }
+    .application-product-table th, .application-product-table td { padding: 10px 12px; border-bottom: 1px solid #f0e7e2; text-align: left; }
+    .application-product-photo { width: 62px; height: 62px; border-radius: 14px; overflow: hidden; border: 2px solid #d8c1b6; background: #f6efe9; }
+    .application-product-photo img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .toggle-btn { background: white; border: 1.5px solid #8d5e4a; color: #8d5e4a; border-radius: 10px; padding: 8px 25px; font-weight: 700; font-size: 0.9rem; transition: 0.2s; }
+    .toggle-btn.active { background: var(--header-green); border-color: #8d5e4a; color: #5d3a2d; }
 </style>
 
-<div class="row g-4">
-    <!-- 1. ARTISTS BUTTON -->
+<div class="row g-4 mb-5">
     <div class="col-md-4">
         <a href="{% url 'manage_artists' %}" class="management-card shadow-sm">
             <i class="fas fa-palette"></i>
@@ -237,8 +165,6 @@
             <p class="small text-muted mb-0">Edit artist profiles</p>
         </a>
     </div>
-
-    <!-- 2. USERS BUTTON -->
     <div class="col-md-4">
         <a href="{% url 'manage_accounts' %}" class="management-card shadow-sm">
             <i class="fas fa-user-gear"></i>
@@ -246,14 +172,93 @@
             <p class="small text-muted mb-0">Manage customer accounts</p>
         </a>
     </div>
-
-    <!-- 3. ADMINS BUTTON -->
     <div class="col-md-4">
         <a href="{% url 'manage_admins' %}" class="management-card shadow-sm">
             <i class="fas fa-user-shield"></i>
             <h4>Admins</h4>
             <p class="small text-muted mb-0">View system administrators</p>
         </a>
+    </div>
+</div>
+
+<!-- DATA CARDS SECTION -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="stat-card shadow-sm">
+            <div class="stat-label">Total Users</div>
+            <h3 class="stat-value">{{ total_users }}</h3>
+            <div class="stat-growth">↑ +10.1%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card shadow-sm">
+            <div class="stat-label">Active Users</div>
+            <h3 class="stat-value">{{ active_users }}</h3>
+            <div class="stat-growth">↑ +8% from last month</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card shadow-sm">
+            <div class="stat-label">New This Month</div>
+            <h3 class="stat-value">{{ new_this_month }}</h3>
+            <div class="stat-growth">↑ +15% growth</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card shadow-sm">
+            <div class="stat-label">Active Rate</div>
+            <h3 class="stat-value">{{ active_rate }}%</h3>
+            <div class="stat-growth text-muted">Last 24hrs</div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS SECTION -->
+<div class="row g-4 mb-5 text-start d-flex align-items-stretch">
+    <!-- LEFT: Registration Trends -->
+    <div class="col-md-7">
+        <div class="chart-container shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="chart-title">User Registration Trends</div>
+                    <div class="chart-sub">New Users for {{ current_month_name }} {{ selected_year }}</div>
+                </div>
+                
+                <form method="GET" id="monthFilterForm">
+                    <select name="month" class="form-select form-select-sm" onchange="this.form.submit()" 
+                            style="border-radius: 8px; color: #5d3a2d; font-weight: 700; border: 1.5px solid #8d5e4a;">
+                        {% for m in months_list %}
+                            <option value="{{ m.num }}" {% if m.num == selected_month %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+
+            <div class="chart-wrapper" style="height: 250px;">
+                <canvas id="trendsChart"></canvas>
+            </div>
+            
+            <div class="mt-auto pt-4">
+                <button class="toggle-btn active">{{ current_month_name }} View</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: User Distribution -->
+    <div class="col-md-5">
+        <div class="chart-container shadow-sm h-100">
+            <div class="chart-title">User Distribution</div>
+            <div class="chart-sub">By Role</div>
+            
+            <div class="chart-wrapper" style="height: 250px;">
+                <canvas id="distributionChart"></canvas>
+            </div>
+            
+            <!-- Adding a spacer to match the height of the left card's button area -->
+            <div class="mt-auto pt-4" style="visibility: hidden;">
+                <button class="toggle-btn">Spacer</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -295,6 +300,64 @@
     {% endif %}
 </div>
 
+<!-- SCRIPTS (LINTER FRIENDLY) -->
+<script>
+    const trendsData = JSON.parse('{{ registration_trends|safe }}');
+    const artistCount = parseInt('{{ total_artists|default:0 }}');
+    const customerCount = parseInt('{{ regular_customers|default:0 }}');
+
+    // 1. REGISTRATION TRENDS (Bar Chart)
+    const ctxTrends = document.getElementById('trendsChart').getContext('2d');
+    new Chart(ctxTrends, {
+        type: 'bar',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+            datasets: [{
+                label: 'New Users',
+                data: trendsData,
+                backgroundColor: '#c8e3ae',
+                borderRadius: 5,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, // Essential when using a parent wrapper with height
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. USER DISTRIBUTION (Doughnut Chart)
+    const ctxDist = document.getElementById('distributionChart').getContext('2d');
+    new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+            labels: ['Artists', 'Customers'],
+            datasets: [{
+                data: [artistCount, customerCount],
+                backgroundColor: ['#8d5e4a', '#c8e3ae'],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { size: 11 } }
+                }
+            }
+        }
+    });
+</script>
+
+<!-- MODALS -->
 {% for application in recent_artist_applications %}
 <div class="modal fade" id="applicationModal{{ application.application_id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -315,74 +378,20 @@
                     <div class="application-panel-title">Products</div>
                     <table class="application-product-table">
                         <thead>
-                            <tr>
-                                <th>Photo</th>
-                                <th>Products</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                            </tr>
+                            <tr><th>Photo</th><th>Products</th><th>Category</th><th>Price</th><th>Stock</th></tr>
                         </thead>
                         <tbody>
                             {% for product in application.existing_category_products %}
                             <tr>
-                                <td>
-                                    <div class="application-product-photo">
-                                        {% if product.preview_image_url %}
-                                            <img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">
-                                        {% else %}
-                                            <i class="fas fa-image text-muted"></i>
-                                        {% endif %}
-                                    </div>
-                                </td>
+                                <td><div class="application-product-photo">{% if product.preview_image_url %}<img src="{{ product.preview_image_url }}">{% else %}<i class="fas fa-image"></i>{% endif %}</div></td>
                                 <td>{{ product.product_name }}</td>
                                 <td>{{ product.category.category_name }}</td>
                                 <td>₱{{ product.product_price|floatformat:2 }}</td>
                                 <td>{{ product.product_stock_qty }}</td>
                             </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-muted">No products using existing categories.</td>
-                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-
-                    {% if application.requested_category_products %}
-                    <div class="application-request-box">
-                        <div class="application-request-title">Requested New Categories</div>
-                        <table class="application-product-table">
-                            <thead>
-                                <tr>
-                                    <th>Photo</th>
-                                    <th>Products</th>
-                                    <th>Requested Category</th>
-                                    <th>Price</th>
-                                    <th>Stock</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for product in application.requested_category_products %}
-                                <tr>
-                                    <td>
-                                        <div class="application-product-photo">
-                                            {% if product.preview_image_url %}
-                                                <img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">
-                                            {% else %}
-                                                <i class="fas fa-image text-muted"></i>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td>{{ product.product_name }}</td>
-                                    <td>{{ product.requested_category }}</td>
-                                    <td>₱{{ product.product_price|floatformat:2 }}</td>
-                                    <td>{{ product.product_stock_qty }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% endif %}
                 </div>
 
                 <div class="application-panel text-start">
@@ -397,35 +406,22 @@
                         <div class="received-value">{{ application.date_submitted|date:"F d, Y" }}</div>
                         <div class="received-sub">{{ application.date_submitted|date:"h:i A" }}</div>
                     </div>
-                    <div class="mb-0">
-                        <div class="received-label">Review Status</div>
-                        <div class="received-value">{{ application.application_status }}</div>
-                        <div class="received-sub">
-                            {% if application.date_reviewed %}
-                                Reviewed on {{ application.date_reviewed|date:"F d, Y h:i A" }}
-                            {% else %}
-                                Waiting for admin action
-                            {% endif %}
-                        </div>
-                    </div>
                 </div>
             </div>
 
             <div class="modal-footer border-0 px-4 pb-4 pt-3 justify-content-between">
                 <button type="button" class="btn btn-light border rounded-pill px-4" data-bs-dismiss="modal">Close</button>
                 <div class="d-flex gap-2">
-                    {% if application.application_status == 'Pending' or application.application_status == 'Rejected' %}
+                    {% if application.application_status == 'Pending' %}
                     <form method="POST">
                         {% csrf_token %}
                         <input type="hidden" name="application_id" value="{{ application.application_id }}">
-                        <button type="submit" name="reject_artist_application" class="btn btn-outline-danger rounded-pill px-4 fw-bold" onclick="return confirm('Reject this artist application? This will keep the products from being published.')">Reject</button>
+                        <button type="submit" name="reject_artist_application" class="btn btn-outline-danger rounded-pill px-4 fw-bold">Reject</button>
                     </form>
-                    {% endif %}
-                    {% if application.application_status != 'Approved' %}
                     <form method="POST">
                         {% csrf_token %}
                         <input type="hidden" name="application_id" value="{{ application.application_id }}">
-                        <button type="submit" name="approve_artist_application" class="btn rounded-pill px-4 fw-bold text-white" style="background:#5f9e40;" onclick="return confirm('Approve this artist application and publish all submitted products?')">Approve</button>
+                        <button type="submit" name="approve_artist_application" class="btn rounded-pill px-4 fw-bold text-white" style="background:#5f9e40;">Approve</button>
                     </form>
                     {% endif %}
                 </div>

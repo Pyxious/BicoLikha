@@ -28,18 +28,37 @@
     .image-edit-container img { width: 100%; height: 100%; object-fit: cover; }
     .image-edit-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(141, 94, 74, 0.7); display: flex; align-items: center; justify-content: center; color: white; opacity: 0; transition: 0.3s; }
     .image-edit-container:hover .image-edit-overlay { opacity: 1; }
+    .submission-card { background: white; border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; cursor: pointer; transition: 0.2s ease; }
+    .submission-card:hover { border-color: var(--nav-brown); transform: translateY(-1px); }
+    .submission-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; background: #fff3de; color: #9b6a1d; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+    .submission-products { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .submission-product-chip { border-radius: 999px; background: #f8f5f2; color: var(--text-brown); padding: 7px 12px; font-size: 0.78rem; font-weight: 700; }
+    .submission-product-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .submission-product-table th { color: #888; font-size: 0.72rem; text-transform: uppercase; padding: 0 10px; }
+    .submission-product-table td { background: #fff; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 12px 10px; vertical-align: middle; }
+    .submission-product-table td:first-child { border-left: 1px solid #eee; border-radius: 12px 0 0 12px; }
+    .submission-product-table td:last-child { border-right: 1px solid #eee; border-radius: 0 12px 12px 0; }
+    .submission-thumb { width: 54px; height: 54px; border-radius: 12px; background: #f8f5f2; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #8d5e4a; }
+    .submission-thumb img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 text-start">
     <div>
-        <h2 class="fw-bold mb-0" style="color: var(--text-brown);">Product Management</h2>
-        <p class="text-muted small">Product Catalog and Inventory Dashboard</p>
+        
     </div>
     <div class="d-flex gap-2">
         <button class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#categoryModal">+ Category</button>
         <button class="btn-add-prod shadow-sm" data-bs-toggle="modal" data-bs-target="#productModal">+ Add Product</button>
     </div>
 </div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-warning{% endif %} rounded-4 border-0 shadow-sm text-start">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
 
 <!-- 1. STATS ROW -->
 <div class="d-flex gap-4 mb-4">
@@ -60,7 +79,7 @@
     </div>
     <div class="stat-card shadow-sm text-start">
         <div class="stat-label">Total Value</div>
-        <div class="stat-value">₱{{ total_value|floatformat:2 }}</div>
+        <div class="stat-value">&#8369;{{ total_value|floatformat:2 }}</div>
         <div class="stat-sub text-primary">Inventory Value</div>
     </div>
 </div>
@@ -72,9 +91,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h6 class="fw-bold m-0">Sales Performance</h6>
                 <div class="d-flex gap-2">
-                    <button class="filter-pill">Today</button>
-                    <button class="filter-pill active">This Week</button>
-                    <button class="filter-pill">This Month</button>
+                    <span class="filter-pill active">Last 7 Days</span>
                 </div>
             </div>
             <canvas id="salesChart" height="200"></canvas>
@@ -88,8 +105,111 @@
     </div>
 </div>
 
+<!-- STOCK ADJUSTMENT REQUESTS -->
+{% if pending_stock_adjustments %}
+<div class="bg-white border rounded-4 shadow-sm mb-5 text-start" id="product-submissions">
+    <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="fw-bold m-0">Pending Stock Adjustment Requests</h6>
+            <div class="text-muted small">Approve add/minus stock requests from artists before inventory changes.</div>
+        </div>
+        <span class="submission-pill">{{ pending_stock_adjustments|length }} Pending</span>
+    </div>
+    <div class="p-3 table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="small text-uppercase fw-bold text-muted">
+                <tr>
+                    <th>Product</th>
+                    <th>Artist</th>
+                    <th>Request</th>
+                    <th>Current Stock</th>
+                    <th>Submitted</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock_request in pending_stock_adjustments %}
+                <tr>
+                    <td>
+                        <div class="fw-bold" style="color: var(--text-brown);">{{ stock_request.product.title }}</div>
+                        <div class="text-muted small">{{ stock_request.product.category.category_name|default:"Uncategorized" }}</div>
+                    </td>
+                    <td>{{ stock_request.artist.artist_name }}</td>
+                    <td>
+                        <span class="badge rounded-pill {% if stock_request.adjustment_type == 'Add' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
+                            {{ stock_request.adjustment_type }} {{ stock_request.quantity }}
+                        </span>
+                    </td>
+                    <td class="fw-bold">{{ stock_request.product.stock_qty|default:0 }}</td>
+                    <td class="text-muted small">{{ stock_request.date_submitted|date:"M d, Y h:i A" }}</td>
+                    <td>
+                        <div class="d-flex justify-content-end gap-2">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="stock_request_id" value="{{ stock_request.request_id }}">
+                                <button type="submit" name="reject_stock_adjustment" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Reject this stock request?')">Reject</button>
+                            </form>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="stock_request_id" value="{{ stock_request.request_id }}">
+                                <button type="submit" name="approve_stock_adjustment" class="btn btn-sm rounded-pill px-3 text-white" style="background:#5f9e40;" onclick="return confirm('Approve this stock request?')">Approve</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ARTIST PRODUCT SUBMISSIONS -->
+<div class="bg-white border rounded-4 shadow-sm mb-5 text-start">
+    <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h6 class="fw-bold m-0">Artist Product Submissions</h6>
+            <div class="text-muted small">Review new product submissions from verified artists.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="?{% if submission_querystring %}{{ submission_querystring }}&{% endif %}submission_status=Pending#product-submissions" class="filter-pill text-decoration-none {% if product_submission_status == 'Pending' %}active{% endif %}">Pending {{ product_submission_counts.Pending }}</a>
+            <a href="?{% if submission_querystring %}{{ submission_querystring }}&{% endif %}submission_status=Approved#product-submissions" class="filter-pill text-decoration-none {% if product_submission_status == 'Approved' %}active{% endif %}">Approved {{ product_submission_counts.Approved }}</a>
+            <a href="?{% if submission_querystring %}{{ submission_querystring }}&{% endif %}submission_status=Rejected#product-submissions" class="filter-pill text-decoration-none {% if product_submission_status == 'Rejected' %}active{% endif %}">Rejected {{ product_submission_counts.Rejected }}</a>
+        </div>
+    </div>
+    <div class="p-3">
+        {% if product_submissions %}
+        <div class="row g-3">
+            {% for application in product_submissions %}
+            <div class="col-md-6">
+                <div class="submission-card h-100" data-bs-toggle="modal" data-bs-target="#productApplicationModal{{ application.application_id }}">
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <div class="fw-bold" style="color: var(--text-brown);">{{ application.artist_name }}</div>
+                            <div class="text-muted small">{{ application.user.email }} · {{ application.date_submitted|date:"M d, Y h:i A" }}</div>
+                        </div>
+                        <span class="submission-pill">{{ application.application_status }}</span>
+                    </div>
+                    <div class="submission-products">
+                        {% for product in application.existing_category_products %}
+                        <span class="submission-product-chip">{{ product.product_name }}</span>
+                        {% endfor %}
+                        {% for product in application.requested_category_products %}
+                        <span class="submission-product-chip">{{ product.product_name }} · new category</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small p-3">No {{ product_submission_status|lower }} product submissions.</div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- 3. INVENTORY TABLE SECTION -->
-<div class="bg-white border rounded-4 overflow-hidden shadow-sm">
+<div class="bg-white border rounded-4 overflow-hidden shadow-sm" id="inventory-list">
     <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
         <h6 class="fw-bold m-0">Inventory List</h6>
         <div class="d-flex gap-3">
@@ -122,7 +242,7 @@
                 </td>
                 <td><span class="badge rounded-pill bg-light text-dark border">{{ artwork.category.category_name }}</span></td>
                 <td>{{ artwork.artist.artist_name }}</td>
-                <td class="fw-bold">₱{{ artwork.price }}</td>
+                <td class="fw-bold">&#8369;{{ artwork.price }}</td>
                 <td class="fw-bold {% if artwork.stock_qty <= 5 %}text-danger{% else %}text-success{% endif %}">{{ artwork.stock_qty }}</td>
             </tr>
 
@@ -175,11 +295,112 @@
             {% endfor %}
         </tbody>
     </table>
+    {% if products_page.paginator.num_pages > 1 %}
+    <div class="p-3 border-top bg-light d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="text-muted small">Page {{ products_page.number }} of {{ products_page.paginator.num_pages }}</div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if products_page.has_previous %}
+            <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ products_page.previous_page_number }}#inventory-list">Previous</a>
+            {% endif %}
+            {% for page_num in products_page.paginator.page_range %}
+                {% if page_num == products_page.number %}
+                <span class="btn btn-sm rounded-pill px-3 text-white" style="background:#8d5e4a;">{{ page_num }}</span>
+                {% elif page_num >= products_page.number|add:'-2' and page_num <= products_page.number|add:'2' %}
+                <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ page_num }}#inventory-list">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if products_page.has_next %}
+            <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if pagination_querystring %}{{ pagination_querystring }}&{% endif %}page={{ products_page.next_page_number }}#inventory-list">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+{% for application in product_submissions %}
+<div class="modal fade" id="productApplicationModal{{ application.application_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0">
+                <div>
+                    <h5 class="fw-bold mb-1" style="color: var(--text-brown);">Product Submission: {{ application.artist_name }}</h5>
+                    <div class="text-muted small">Submitted by {{ application.user.email }} on {{ application.date_submitted|date:"F d, Y h:i A" }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <table class="submission-product-table">
+                    <thead>
+                        <tr>
+                            <th>Photo</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in application.existing_category_products %}
+                        <tr>
+                            <td>
+                                <div class="submission-thumb">
+                                    {% if product.preview_image_url %}<img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">{% else %}<i class="fas fa-image"></i>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ product.product_name }}</div>
+                                <div class="text-muted small">{{ product.clean_description|default:"No description" }}</div>
+                            </td>
+                            <td>{{ product.category.category_name }}</td>
+                            <td class="fw-bold">&#8369;{{ product.product_price|floatformat:2 }}</td>
+                            <td>{{ product.product_stock_qty }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for product in application.requested_category_products %}
+                        <tr>
+                            <td>
+                                <div class="submission-thumb">
+                                    {% if product.preview_image_url %}<img src="{{ product.preview_image_url }}" alt="{{ product.product_name }}">{% else %}<i class="fas fa-image"></i>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ product.product_name }}</div>
+                                <div class="text-muted small">{{ product.clean_description|default:"No description" }}</div>
+                            </td>
+                            <td>{{ product.requested_category }} <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis">New</span></td>
+                            <td class="fw-bold">&#8369;{{ product.product_price|floatformat:2 }}</td>
+                            <td>{{ product.product_stock_qty }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                {% if application.application_status == 'Pending' %}
+                <form method="POST" class="me-auto">
+                    {% csrf_token %}
+                    <input type="hidden" name="application_id" value="{{ application.application_id }}">
+                    <button type="submit" name="reject_artist_application" class="btn btn-outline-danger rounded-pill px-4 fw-bold" onclick="return confirm('Reject this product submission?')">Reject</button>
+                </form>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="application_id" value="{{ application.application_id }}">
+                    <button type="submit" name="approve_artist_application" class="btn rounded-pill px-5 fw-bold text-white" style="background:#5f9e40;" onclick="return confirm('Approve and publish these products?')">Approve</button>
+                </form>
+                {% else %}
+                <div class="me-auto small text-muted fw-bold">This submission is {{ application.application_status|lower }} and can no longer be changed.</div>
+                <button type="button" class="btn btn-light border rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 
 <!-- INCLUDE ADD MODALS (OUTSIDE LOOP) -->
 {% include 'admin/includes/product_modals.html' %}
 {{ cat_distribution|json_script:"cat-data" }}
+{{ sales_chart_data|json_script:"sales-data" }}
 
 
 <script>
@@ -192,15 +413,17 @@
         }
     }
 
+    const salesRaw = JSON.parse(document.getElementById('sales-data').textContent);
+
     // Sales Performance Chart
     const ctxSales = document.getElementById('salesChart').getContext('2d');
     new Chart(ctxSales, {
         type: 'line',
         data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            labels: salesRaw.labels,
             datasets: [{
-                label: 'Sales (₱)',
-                data: [200, 300, 250, 100, 210, 215, 190],
+                label: 'Sales (PHP)',
+                data: salesRaw.values,
                 borderColor: '#8d5e4a',
                 backgroundColor: 'rgba(141, 94, 74, 0.1)',
                 fill: true, tension: 0.4
