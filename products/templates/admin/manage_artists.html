@@ -27,6 +27,11 @@
     
     .btn-save { background: #8d5e4a; color: white; border-radius: 25px; font-weight: bold; padding: 10px 40px; border: none; }
     .btn-save:hover { opacity: 0.9; }
+    .artist-avatar-sm { width: 54px; height: 54px; border-radius: 16px; border: 2px solid #8d5e4a; background: #e9fcd9; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; color: #8d5e4a; }
+    .artist-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+    .artist-image-editor { display: flex; gap: 18px; align-items: center; padding: 16px; border: 1.5px dashed #d8c1b6; border-radius: 18px; background: #fffaf7; }
+    .artist-image-preview { width: 110px; height: 110px; border-radius: 24px; border: 2px solid #8d5e4a; background: #e9fcd9; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #8d5e4a; font-size: 2rem; flex-shrink: 0; }
+    .artist-image-preview img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 
 <div class="mb-4">
@@ -34,11 +39,19 @@
     <p class="text-muted small">Update artist credentials and manage regional data.</p>
 </div>
 
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-warning{% endif %} rounded-4 border-0 shadow-sm">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
 <div class="table-container shadow-sm">
     <table class="table table-hover align-middle mb-0">
         <thead class="bg-light">
             <tr class="small text-uppercase fw-bold text-muted">
-                <th class="ps-4 py-3">Artist Name</th>
+                <th class="ps-4 py-3">Artist</th>
                 <th>Contact</th>
                 <th>Municipality</th>
                 <th>Zip Code</th>
@@ -48,8 +61,22 @@
         <tbody>
                 {% for artist in artists %}
                 <tr>
-                    <td class="ps-4 fw-bold">{{ artist.artist_name }}</td>
-                    <td class="small">{{ artist.artist_contact_num }}</td>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="artist-avatar-sm">
+                                {% if artist.artist_image_url %}
+                                    <img src="{{ artist.artist_image_url }}" alt="{{ artist.artist_name }}">
+                                {% else %}
+                                    <i class="fas fa-user"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="fw-bold">{{ artist.artist_name }}</div>
+                                <div class="text-muted small">{{ artist.user.email|default:"No linked account" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="small">{{ artist.artist_phone_num|default:"-" }}</td>
                     <td><span class="badge bg-secondary-subtle text-secondary px-3 py-2">{{ artist.artist_municipality }}</span></td>
                     <td class="text-muted small">{{ artist.artist_zipcode }}</td>
                     <td class="text-center">
@@ -78,7 +105,7 @@
             <div class="modal fade" id="editArtist{{ artist.artist_id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content">
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="artist_id" value="{{ artist.artist_id }}">
                             
@@ -89,6 +116,23 @@
 
                             <div class="modal-body">
                                 <div class="row g-4">
+                                    <div class="col-12">
+                                        <label class="field-label">Artist Image</label>
+                                        <div class="artist-image-editor">
+                                            <div class="artist-image-preview" id="artistImagePreview{{ artist.artist_id }}">
+                                                {% if artist.artist_image_url %}
+                                                    <img src="{{ artist.artist_image_url }}" alt="{{ artist.artist_name }}">
+                                                {% else %}
+                                                    <i class="fas fa-user"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <input type="file" name="artist_image" class="form-control" accept="image/*" onchange="previewArtistImage(this, '{{ artist.artist_id }}')">
+                                                <div class="text-muted small mt-2">Upload a new public artist photo. Leave blank to keep the current image.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Row 1 -->
                                     <div class="col-md-6">
                                         <label class="field-label">Artist Name</label>
@@ -96,7 +140,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="field-label">Contact Number</label>
-                                        <input type="text" name="artist_contact_num" value="{{ artist.artist_contact_num }}" class="form-control">
+                                        <input type="text" name="artist_phone_num" value="{{ artist.artist_phone_num }}" class="form-control">
                                     </div>
 
                                     <!-- Row 2 -->
@@ -169,6 +213,18 @@
                 brgyDropdown.add(option);
             });
         }
+    }
+
+    function previewArtistImage(input, artistId) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('artistImagePreview' + artistId);
+            if (preview) {
+                preview.innerHTML = '<img src="' + e.target.result + '" alt="Artist image preview">';
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 </script>
 {% endblock %}

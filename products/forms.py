@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 
-from .models import Artwork, Category, Artist, Address
+from .models import Artwork, Category, Artist, Address, PopularAd
 
 User = get_user_model()
 
@@ -101,4 +101,15 @@ class ProductForm(forms.ModelForm):
             'artist': forms.Select(attrs={'class': 'form-select'}),
             'stock_qty': forms.NumberInput(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+class PopularAdForm(forms.ModelForm):
+    class Meta:
+        model = PopularAd
+        fields = ['title', 'image', 'display_order', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional ad title'}),
+            'image': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'display_order': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }

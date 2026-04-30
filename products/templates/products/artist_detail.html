@@ -280,6 +280,47 @@
         color: #8b766b;
         background: #fcfaf8;
     }
+    .artist-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 34px;
+        flex-wrap: wrap;
+    }
+    .artist-page-link,
+    .artist-page-current {
+        min-width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 0.88rem;
+    }
+    .artist-page-link {
+        border: 1.5px solid #d8c1b6;
+        color: #8d5e4a;
+        background: #fff;
+        transition: 0.2s ease;
+    }
+    .artist-page-link:hover {
+        background: #f8f1ec;
+        border-color: #8d5e4a;
+        color: #754b39;
+    }
+    .artist-page-current {
+        background: #8d5e4a;
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(141, 94, 74, 0.16);
+    }
+    .artist-page-dots {
+        color: #9a8b83;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+    }
     @media (max-width: 1199.98px) {
         .artist-hero-grid {
             grid-template-columns: 320px 1fr;
@@ -325,7 +366,9 @@
                 <div class="artist-hero-grid">
                     <div class="artist-hero-left">
                         <div class="artist-circle">
-                            {% if address and address.profile_pix %}
+                            {% if artist.artist_image_url %}
+                                <img src="{{ artist.artist_image_url }}" alt="{{ artist.artist_name }}">
+                            {% elif address and address.profile_pix %}
                                 <img src="{{ address.profile_pix.url }}" alt="{{ artist.artist_name }}">
                             {% else %}
                                 <div class="w-100 h-100 d-flex align-items-center justify-content-center" style="background:#fff;">
@@ -354,7 +397,7 @@
                         <div class="artist-stats">
                             <div class="artist-stat">
                                 <div class="artist-stat-label">Products</div>
-                                <div class="artist-stat-value">{{ artworks|length }}</div>
+                                <div class="artist-stat-value">{{ artworks_count }}</div>
                             </div>
                             <div class="artist-stat">
                                 <div class="artist-stat-label">Location</div>
@@ -381,7 +424,7 @@
         <section class="artist-section">
             <div class="artist-section-head">
                 <h2 class="artist-section-title">all products</h2>
-                <div class="artist-section-note">{{ artworks|length }} artwork{{ artworks|length|pluralize }}</div>
+                <div class="artist-section-note">{{ artworks_count }} artwork{{ artworks_count|pluralize }}</div>
             </div>
 
             <div class="artist-controls">
@@ -435,6 +478,33 @@
                 </div>
                 {% endfor %}
             </div>
+            {% if page_obj and page_obj.paginator.num_pages > 1 %}
+            <div class="artist-pagination">
+                {% if page_obj.has_previous %}
+                <a href="?{% if artist_products_querystring %}{{ artist_products_querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" class="artist-page-link" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+
+                {% for page_num in page_obj.paginator.page_range %}
+                    {% if page_num == page_obj.number %}
+                    <span class="artist-page-current">{{ page_num }}</span>
+                    {% elif page_num >= page_obj.number|add:'-2' and page_num <= page_obj.number|add:'2' %}
+                    <a href="?{% if artist_products_querystring %}{{ artist_products_querystring }}&{% endif %}page={{ page_num }}" class="artist-page-link">{{ page_num }}</a>
+                    {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
+                    <a href="?{% if artist_products_querystring %}{{ artist_products_querystring }}&{% endif %}page={{ page_num }}" class="artist-page-link">{{ page_num }}</a>
+                    {% elif page_num == page_obj.number|add:'-3' or page_num == page_obj.number|add:'3' %}
+                    <span class="artist-page-dots">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="?{% if artist_products_querystring %}{{ artist_products_querystring }}&{% endif %}page={{ page_obj.next_page_number }}" class="artist-page-link" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="artist-empty">
                 <h4 class="fw-bold mb-2">No products yet</h4>

@@ -28,13 +28,13 @@ from django.db.models import Count
 from .models import (
     Artwork, Artist, Category, Address, 
     Order, Cart, CartItem, OrderDetail, Payment, Like, Review, Notification, Shipment, SupplyInventory,
-    ArtistApplication, ArtistApplicationProduct, ArtistStockAdjustmentRequest
+    ArtistApplication, ArtistApplicationProduct, ArtistStockAdjustmentRequest, PopularAd, AuditLog
 )
 
 # Forms
 from .forms import (
     ProductForm, CategoryForm, BicolikhaSignupForm,
-    CustomerAuthenticationForm, AdminAuthenticationForm
+    CustomerAuthenticationForm, AdminAuthenticationForm, PopularAdForm
 )
 
 User = get_user_model()
@@ -86,6 +86,24 @@ def _create_or_update_address_from_post(request, user, instance=None):
 
 def _get_artist_application_status(user):
     return ArtistApplication.objects.filter(user=user).order_by('-date_submitted').first()
+
+
+def _get_client_ip(request):
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
+def _log_audit(request, action):
+    if not request.user.is_authenticated:
+        return
+
+    AuditLog.objects.create(
+        user=request.user,
+        action=action,
+        ip_address=_get_client_ip(request)
+    )
 
 
 def _get_application_category(selected_category_id, requested_category_name):
@@ -147,6 +165,18 @@ def _save_artist_application_image_data(user, image_data, filename, product_name
     return path
 
 
+def _save_artist_profile_image(user, uploaded_file, artist_name):
+    if not uploaded_file:
+        return ''
+
+    safe_name = slugify(artist_name or uploaded_file.name.rsplit('.', 1)[0]) or 'artist'
+    path = default_storage.save(
+        f'artist_profiles/{user.pk}/{timezone.now().strftime("%Y%m%d%H%M%S%f")}_{safe_name}_{uploaded_file.name}',
+        uploaded_file
+    )
+    return path
+
+
 def _parse_application_product_details(application_product):
     description = application_product.product_description or ''
     requested_category = ''
@@ -173,6 +203,11 @@ def _create_artist_application_from_post(request, artist_name):
     application = ArtistApplication.objects.create(
         user=request.user,
         artist_name=artist_name,
+        artist_image=_save_artist_profile_image(
+            request.user,
+            request.FILES.get('artist_image'),
+            artist_name
+        ),
         application_status='Pending'
     )
 
@@ -260,6 +295,8 @@ def _approve_artist_application(application):
 
         if not created:
             artist.artist_name = application.artist_name
+            if application.artist_image:
+                artist.artist_image = application.artist_image
             if applicant_address:
                 artist.artist_phone_num = applicant_address.phone_num
                 artist.artist_municipality = applicant_address.municipality
@@ -267,6 +304,9 @@ def _approve_artist_application(application):
                 artist.artist_zipcode = applicant_address.zipcode
             artist.artist_description = artist.artist_description or 'Verified Artist'
             artist.save()
+        elif application.artist_image:
+            artist.artist_image = application.artist_image
+            artist.save(update_fields=['artist_image'])
 
         for application_product in application.products.select_related('category').all():
             _parse_application_product_details(application_product)
@@ -382,10 +422,17 @@ class HiddenAdminLoginView(LoginView):
     """PORTAL 2: SECRET ADMIN LOGIN - Strictly rejects customers via AdminAuthenticationForm."""
     template_name = 'admin/admin_login.html'
     authentication_form = AdminAuthenticationForm
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        _log_audit(self.request, "Admin logged in")
+        return response
+
     def get_success_url(self):
         return reverse_lazy('admin_dashboard')
 
 def admin_logout(request):
+    _log_audit(request, "Admin logged out")
     logout(request)
     return redirect('admin_login')
 
@@ -444,6 +491,7 @@ def admin_users(request):
 
             # Use your helper function to process approval
             _approve_artist_application(application)
+            _log_audit(request, f"Approved artist application for {application.artist_name}")
             messages.success(request, f"Approved artist application for {application.artist_name}.")
             return redirect('admin_users')
 
@@ -456,6 +504,7 @@ def admin_users(request):
             application.application_status = 'Rejected'
             application.date_reviewed = timezone.now()
             application.save(update_fields=['application_status', 'date_reviewed'])
+            _log_audit(request, f"Rejected artist application for {application.artist_name}")
             messages.success(request, f"Rejected artist application for {application.artist_name}.")
             return redirect('admin_users')
 
@@ -463,6 +512,9 @@ def admin_users(request):
     now = timezone.now()
     selected_month = int(request.GET.get('month', now.month))
     selected_year = int(request.GET.get('year', now.year))
+    artist_application_status = request.GET.get('application_status', 'Pending')
+    if artist_application_status not in ['Pending', 'Approved', 'Rejected']:
+        artist_application_status = 'Pending'
 
     # --- 1. CALCULATE WEEKLY TRENDS FOR THE SELECTED MONTH ---
     # Find how many days are in the selected month
@@ -508,8 +560,15 @@ def admin_users(request):
         months_list.append({'num': m, 'name': calendar.month_name[m]})
 
     # --- 5. APPLICATIONS ---
+    application_query = request.GET.copy()
+    application_query.pop('application_status', None)
+    application_querystring = application_query.urlencode()
+    artist_application_counts = {
+        status: ArtistApplication.objects.filter(application_status=status).count()
+        for status in ['Pending', 'Approved', 'Rejected']
+    }
     recent_artist_applications = ArtistApplication.objects.filter(
-        user__artist_profile__isnull=True
+        application_status=artist_application_status
     ).select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')[:8]
     _decorate_artist_applications(recent_artist_applications)
 
@@ -523,6 +582,9 @@ def admin_users(request):
         'registration_trends': registration_trends,
         'trend_labels': trend_labels,
         'recent_artist_applications': recent_artist_applications,
+        'artist_application_status': artist_application_status,
+        'artist_application_counts': artist_application_counts,
+        'application_querystring': application_querystring,
         'months_list': months_list,
         'selected_month': selected_month,
         'selected_year': selected_year,
@@ -572,7 +634,9 @@ def admin_manage_accounts(request):
         if 'delete_user' in request.POST:
             user_to_delete = get_object_or_404(User, id=request.POST.get('user_id'))
             if not user_to_delete.is_superuser:
+                deleted_label = user_to_delete.email or user_to_delete.username
                 user_to_delete.delete()
+                _log_audit(request, f"Deleted customer account {deleted_label}")
             return redirect('manage_accounts')
             
         # --- PROMOTE TO ARTIST ---
@@ -590,6 +654,7 @@ def admin_manage_accounts(request):
                 artist_zipcode=request.POST.get('zipcode'),
                 artist_description="Verified Artist"
             )
+            _log_audit(request, f"Promoted {target_user.email or target_user.username} to artist")
             return redirect('manage_accounts')
 
     users = User.objects.filter(is_staff=False).order_by('-date_joined')
@@ -610,6 +675,24 @@ def admin_products(request):
 
     # 2. HANDLE ACTIONS (POST)
     if request.method == 'POST':
+        if 'add_popular_ad' in request.POST:
+            form = PopularAdForm(request.POST, request.FILES)
+            if form.is_valid():
+                popular_ad = form.save()
+                _log_audit(request, f"Added popular page ad {popular_ad.title or popular_ad.ad_id}")
+                messages.success(request, "Popular page ad photo added.")
+            else:
+                messages.error(request, "Please choose a valid ad image before uploading.")
+            return redirect('admin_products')
+
+        if 'delete_popular_ad' in request.POST:
+            popular_ad = get_object_or_404(PopularAd, ad_id=request.POST.get('ad_id'))
+            ad_label = popular_ad.title or f"ad {popular_ad.ad_id}"
+            popular_ad.delete()
+            _log_audit(request, f"Removed popular page ad {ad_label}")
+            messages.success(request, "Popular page ad photo removed.")
+            return redirect('admin_products')
+
         if 'approve_stock_adjustment' in request.POST or 'reject_stock_adjustment' in request.POST:
             stock_request = get_object_or_404(
                 ArtistStockAdjustmentRequest.objects.select_related('artist', 'product'),
@@ -619,9 +702,11 @@ def admin_products(request):
             try:
                 if 'approve_stock_adjustment' in request.POST:
                     _approve_stock_adjustment_request(stock_request)
+                    _log_audit(request, f"Approved {stock_request.adjustment_type.lower()} stock request for {stock_request.product.title}")
                     messages.success(request, f"Approved {stock_request.adjustment_type.lower()} stock request for {stock_request.product.title}.")
                 else:
                     _reject_stock_adjustment_request(stock_request)
+                    _log_audit(request, f"Rejected stock request for {stock_request.product.title}")
                     messages.success(request, f"Rejected stock request for {stock_request.product.title}.")
             except ValueError as exc:
                 messages.error(request, str(exc))
@@ -639,6 +724,7 @@ def admin_products(request):
                     return redirect('admin_products')
 
                 _approve_artist_application(application)
+                _log_audit(request, f"Approved product submission for {application.artist_name}")
                 messages.success(request, f"Approved product submission for {application.artist_name}.")
                 return redirect('admin_products')
 
@@ -649,6 +735,7 @@ def admin_products(request):
             application.application_status = 'Rejected'
             application.date_reviewed = timezone.now()
             application.save(update_fields=['application_status', 'date_reviewed'])
+            _log_audit(request, f"Rejected product submission for {application.artist_name}")
             messages.success(request, f"Rejected product submission for {application.artist_name}.")
             return redirect('admin_products')
         
@@ -658,6 +745,7 @@ def admin_products(request):
             desc = request.POST.get('category_desc')
             if name:
                 Category.objects.create(category_name=name, category_desc=desc)
+                _log_audit(request, f"Added category {name}")
         
         # --- ACTION: ADD PRODUCT ---
         elif 'add_product' in request.POST:
@@ -669,6 +757,7 @@ def admin_products(request):
                         product=product,
                         supplied_qty=product.stock_qty
                     )
+                _log_audit(request, f"Added product {product.title}")
         
         # --- ACTION: UPDATE PRODUCT ---
         elif 'update_product' in request.POST:
@@ -698,11 +787,15 @@ def admin_products(request):
                 )
             elif supplied_delta < 0:
                 _deduct_latest_supply_inventory(prod, abs(supplied_delta))
+            _log_audit(request, f"Updated product {prod.title}")
 
         # --- ACTION: DELETE PRODUCT ---
         elif 'delete_product' in request.POST:
             prod_id = request.POST.get('prod_id')
-            get_object_or_404(Artwork, prod_id=prod_id).delete()
+            product = get_object_or_404(Artwork, prod_id=prod_id)
+            product_title = product.title
+            product.delete()
+            _log_audit(request, f"Deleted product {product_title}")
 
         return redirect('admin_products')
 
@@ -729,8 +822,13 @@ def admin_products(request):
     pagination_querystring = pagination_query.urlencode()
     submission_query = request.GET.copy()
     submission_query.pop('page', None)
+    submission_query.pop('submission_page', None)
     submission_query.pop('submission_status', None)
     submission_querystring = submission_query.urlencode()
+    submission_pagination_query = request.GET.copy()
+    submission_pagination_query.pop('page', None)
+    submission_pagination_query.pop('submission_page', None)
+    submission_pagination_querystring = submission_pagination_query.urlencode()
 
     # 4. CALCULATE DASHBOARD ANALYTICS (For the Stat Cards)
     total_count = Artwork.objects.count()
@@ -748,10 +846,13 @@ def admin_products(request):
         count=Count('artwork')
     ).values('category_name', 'count'))
 
-    product_submissions = ArtistApplication.objects.filter(
+    product_submissions_query = ArtistApplication.objects.filter(
         user__artist_profile__isnull=False,
         application_status=product_submission_status
     ).select_related('user').prefetch_related('products', 'products__category').order_by('-date_submitted')
+    product_submissions_paginator = Paginator(product_submissions_query, 6)
+    product_submissions_page = product_submissions_paginator.get_page(request.GET.get('submission_page'))
+    product_submissions = product_submissions_page.object_list
     _decorate_artist_applications(product_submissions)
     product_submission_counts = {
         status: ArtistApplication.objects.filter(
@@ -782,12 +883,15 @@ def admin_products(request):
         'categories': Category.objects.all(),
         'artists': Artist.objects.all(),
         'p_form': ProductForm(),
+        'popular_ad_form': PopularAdForm(),
+        'popular_ads': PopularAd.objects.all(),
         'current_sort': sort_by,
         'search_query': search_query,
         'selected_cats': selected_cats,
         'products_page': products_page,
         'pagination_querystring': pagination_querystring,
         'submission_querystring': submission_querystring,
+        'submission_pagination_querystring': submission_pagination_querystring,
         # Analytics Context
         'total_count': total_count,
         'in_stock': in_stock,
@@ -795,6 +899,7 @@ def admin_products(request):
         'total_value': total_value,
         'cat_distribution': cat_distribution,
         'product_submissions': product_submissions,
+        'product_submissions_page': product_submissions_page,
         'product_submission_status': product_submission_status,
         'product_submission_counts': product_submission_counts,
         'pending_stock_adjustments': pending_stock_adjustments,
@@ -837,6 +942,7 @@ def admin_orders(request):
             order.shipment.save()
 
         order.save()
+        _log_audit(request, f"Updated order #BK-{order.order_id} status to {new_status}")
         return redirect('admin_orders')
     
     # Pre-fetch logic for display...
@@ -850,17 +956,45 @@ def admin_orders(request):
 def admin_reports(request):
     sales = Order.objects.exclude(status='Cancelled').aggregate(total_revenue=Sum('total_amount'), total_items=Sum('total_qty'))
     top_products = OrderDetail.objects.values('product__title').annotate(total_sold=Sum('quantity'), total_earned=Sum('subtotal')).order_by('-total_sold')[:5]
-    return render(request, 'admin/admin_reports.html', {'sales': sales, 'top_products': top_products, 'audit_logs': [], 'report_date': timezone.now()})
+    audit_logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:20]
+    return render(request, 'admin/admin_reports.html', {
+        'sales': sales,
+        'top_products': top_products,
+        'audit_logs': audit_logs,
+        'report_date': timezone.now(),
+        'active_artists': Artist.objects.count()
+    })
 
 @user_passes_test(lambda u: u.is_staff, login_url='admin_login')
 def admin_manage_artists(request):
     if request.method == 'POST':
         artist = get_object_or_404(Artist, artist_id=request.POST.get('artist_id'))
-        if 'unpromote_artist' in request.POST: artist.delete()
+        if 'unpromote_artist' in request.POST:
+            artist_label = artist.artist_name
+            artist.delete()
+            _log_audit(request, f"Revoked artist privileges for {artist_label}")
         elif 'edit_artist' in request.POST:
-            artist.artist_name = request.POST.get('artist_name'); artist.save()
+            artist.artist_name = (request.POST.get('artist_name') or '').strip()
+            artist.artist_phone_num = (request.POST.get('artist_phone_num') or '').strip()
+            artist.artist_description = (request.POST.get('artist_description') or '').strip()
+            artist.artist_municipality = (request.POST.get('artist_municipality') or '').strip()
+            artist.artist_brgy = (request.POST.get('artist_brgy') or '').strip()
+            artist.artist_zipcode = (request.POST.get('artist_zipcode') or '').strip()
+
+            if request.FILES.get('artist_image'):
+                artist.artist_image = _save_artist_profile_image(
+                    artist.user or request.user,
+                    request.FILES.get('artist_image'),
+                    artist.artist_name
+                )
+
+            artist.save()
+            _log_audit(request, f"Updated artist profile for {artist.artist_name}")
+            messages.success(request, f"Updated artist profile for {artist.artist_name}.")
         return redirect('manage_artists')
-    return render(request, 'admin/manage_artists.html', {'artists': Artist.objects.all()})
+    return render(request, 'admin/manage_artists.html', {
+        'artists': Artist.objects.select_related('user').order_by('artist_name')
+    })
 
 @user_passes_test(lambda u: u.is_staff, login_url='admin_login')
 def admin_manage_admins(request):
@@ -894,6 +1028,7 @@ def admin_messages(request):
                 sender_role='Admin',
                 order_id=1 # Dummy or link to a generic context
             )
+            _log_audit(request, f"Sent management message to {target_artist.artist_name}")
             return redirect(f'/management/messages/?artist_id={artist_id}')
 
     return render(request, 'admin/admin_messages.html', {
@@ -1014,7 +1149,8 @@ def popular(request):
         'artworks': page_obj.object_list,
         'page_obj': page_obj,
         'categories': categories,
-        'selected_category': selected_category
+        'selected_category': selected_category,
+        'popular_ads': PopularAd.objects.filter(is_active=True),
     })
 
 def _build_order_timeline(order):
@@ -1183,7 +1319,10 @@ def profile_view(request):
     is_artist = artist_obj is not None
     latest_artist_application = _get_artist_application_status(request.user)
     application_categories = Category.objects.order_by('category_name')
-    artist_products = Artwork.objects.filter(artist=artist_obj).order_by('title') if is_artist else Artwork.objects.none()
+    artist_products_query = Artwork.objects.filter(artist=artist_obj).order_by('title') if is_artist else Artwork.objects.none()
+    artist_products_paginator = Paginator(artist_products_query, 8)
+    artist_products_page = artist_products_paginator.get_page(request.GET.get('artist_products_page'))
+    artist_products = artist_products_page.object_list
 
     # Identify products already reviewed by this user
     reviewed_products = list(Review.objects.filter(user=request.user).values_list('product_id', flat=True))
@@ -1428,7 +1567,9 @@ def profile_view(request):
         'unread_artist_count': unread_artist_count,
         'latest_artist_application': latest_artist_application,
         'application_categories': application_categories,
-        'artist_products': artist_products
+        'artist_products': artist_products,
+        'artist_product_options': artist_products_query,
+        'artist_products_page': artist_products_page
     })
 
 @login_required
@@ -1911,12 +2052,21 @@ def artist_detail(request, artist_id):
         'category': 'category__category_name',
     }
     artworks = artworks_query.order_by('stock_order', sort_mapping.get(sort_by, '-prod_id'), '-prod_id')
+    artworks_count = artworks.count()
+    paginator = Paginator(artworks, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    artist_products_query = request.GET.copy()
+    artist_products_query.pop('page', None)
+    artist_products_querystring = artist_products_query.urlencode()
     artist_categories = Category.objects.filter(artwork__artist=artist).distinct().order_by('category_name')
     address = Address.objects.filter(user=artist.user, address_type='Default').first()
 
     return render(request, 'products/artist_detail.html', {
         'artist': artist,
-        'artworks': artworks,
+        'artworks': page_obj.object_list,
+        'artworks_count': artworks_count,
+        'page_obj': page_obj,
+        'artist_products_querystring': artist_products_querystring,
         'artist_categories': artist_categories,
         'current_sort': sort_by,
         'selected_category': selected_category,
@@ -1958,60 +2108,77 @@ def category_detail(request, cat_id):
     })
 
 def search_results(request):
+    # 1. Get Parameters
     query = (request.GET.get('q') or '').strip()
-    search_terms = [term for term in query.split() if term]
+    selected_category = request.GET.get('category', '')
+    sort_by = request.GET.get('sort', 'latest')
 
+    # 2. Fetch categories for the dropdown (Mandatory for UI)
+    search_categories = Category.objects.all().order_by('category_name')
+    selected_category_obj = None
+    if selected_category and selected_category.isdigit():
+        selected_category_obj = search_categories.filter(category_id=selected_category).first()
+
+    # 3. Base Querysets with Annotations (for popularity/sales)
+    # This ensures we have the data needed to sort correctly
+    artworks_query = Artwork.objects.select_related('artist', 'category').annotate(
+        like_count=Count('like', distinct=True),
+        sold_count=Sum('orderdetail__quantity')
+    )
     artists_query = Artist.objects.all()
-    artworks_query = Artwork.objects.select_related('artist', 'category')
 
-    if search_terms:
-        artist_filter = Q()
+    # 4. STEP 1: Search Filtering (Keyword)
+    if query:
+        search_terms = query.split()
         artwork_filter = Q()
+        artist_filter = Q()
 
         for term in search_terms:
-            artist_filter |= (
-                Q(artist_name__icontains=term) |
-                Q(artist_description__icontains=term) |
-                Q(artist_municipality__icontains=term) |
-                Q(artist_brgy__icontains=term)
-            )
-            artwork_filter |= (
-                Q(title__icontains=term) |
-                Q(description__icontains=term) |
-                Q(category__category_name__icontains=term) |
-                Q(category__category_desc__icontains=term)
-            )
-
-        artists_query = artists_query.filter(artist_filter).distinct().order_by('artist_name')
-        matched_artworks = list(artworks_query.filter(artwork_filter).distinct().order_by('category__category_name', 'title'))
+            artwork_filter |= (Q(title__icontains=term) | Q(description__icontains=term) | Q(category__category_name__icontains=term))
+            artist_filter |= (Q(artist_name__icontains=term) | Q(artist_municipality__icontains=term))
+        
+        artworks_query = artworks_query.filter(artwork_filter)
+        artists_query = artists_query.filter(artist_filter)
     else:
-        artists_query = Artist.objects.none()
-        matched_artworks = []
+        # If no query and no category, you might want to show nothing or all. 
+        # Here we allow browsing by category even if query is empty.
+        if not selected_category_obj:
+            artworks_query = Artwork.objects.none()
+            artists_query = Artist.objects.none()
 
-    grouped_artworks = []
-    grouped_lookup = {}
+    # 5. STEP 2: Category Filtering (Applies to the searched items)
+    if selected_category_obj:
+        artworks_query = artworks_query.filter(category=selected_category_obj)
+        # Usually hide general artist matches when a specific category is selected
+        if not query:
+            artists_query = Artist.objects.none()
 
-    for artwork in matched_artworks:
-        category = artwork.category
-        if not category:
-            continue
+    # 6. STEP 3: Sorting (Applies to the filtered result)
+    sort_mapping = {
+        'latest': '-prod_id',
+        'artist': 'artist__artist_name', # Sort products A-Z by Artist Name
+        'popularity': '-like_count',
+        'top_sales': '-sold_count',
+    }
+    
+    # Execute query
+    matched_artworks = artworks_query.order_by(sort_mapping.get(sort_by, '-prod_id'), '-prod_id').distinct()
+    matched_artists = artists_query.distinct().order_by('artist_name')
 
-        category_id = category.category_id
-        if category_id not in grouped_lookup:
-            grouped_lookup[category_id] = {
-                'category': category,
-                'artworks': []
-            }
-            grouped_artworks.append(grouped_lookup[category_id])
-
-        grouped_lookup[category_id]['artworks'].append(artwork)
-
-    return render(request, 'products/search_results.html', {
+    context = {
         'query': query,
-        'artists': artists_query,
-        'grouped_artworks': grouped_artworks,
-        'results_count': len(matched_artworks) + artists_query.count()
-    })
+        'artists': matched_artists,
+        'artworks': matched_artworks,
+        'results_count': matched_artworks.count() + matched_artists.count(),
+        'search_categories': search_categories, # For the loop
+        'selected_category': selected_category, # String ID for the "selected" check
+        'selected_category_obj': selected_category_obj,
+        'current_sort': sort_by,
+        'has_search_filters': bool(query or selected_category_obj),
+    }
+
+    return render(request, 'products/search_results.html', context)
+
 
 @login_required
 def confirm_order_received(request, order_id):

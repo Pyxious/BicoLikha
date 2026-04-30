@@ -2,281 +2,120 @@
 
 {% block content %}
 <style>
-    .search-page {
-        padding: 48px 0 72px;
-    }
-
-    .search-hero {
-        background: linear-gradient(135deg, #eefddb 0%, #f7f3ef 100%);
-        border: 2px solid #8d5e4a;
-        border-radius: 34px;
-        padding: 34px 38px;
-        margin-bottom: 32px;
-    }
-
-    .search-kicker {
-        display: inline-block;
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: #8d5e4a;
-        margin-bottom: 12px;
-    }
-
-    .search-title {
-        font-size: 2.4rem;
-        font-weight: 900;
-        color: #5d3a2d;
-        letter-spacing: -0.04em;
-        margin-bottom: 8px;
-    }
-
-    .search-summary {
-        color: #75584b;
-        margin: 0;
-        font-size: 0.98rem;
-    }
-
-    .search-section {
-        margin-bottom: 48px;
-    }
-
-    .section-title {
-        color: #8d5e4a;
-        font-size: 0.9rem;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        margin-bottom: 18px;
-    }
-
-    .artist-search-card {
-        background: #fff;
-        border: 1.5px solid #d8c1b6;
-        border-radius: 26px;
-        padding: 22px;
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        height: 100%;
-        text-decoration: none;
-        color: inherit;
-        transition: 0.2s ease;
-        box-shadow: 0 10px 20px rgba(93, 58, 45, 0.05);
-    }
-
-    .artist-search-card:hover {
-        transform: translateY(-4px);
-        border-color: #8d5e4a;
-    }
-
-    .artist-search-avatar {
-        width: 84px;
-        height: 84px;
-        border-radius: 24px;
-        border: 2px solid #8d5e4a;
-        background: #e9fcd9;
-        overflow: hidden;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .artist-search-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .artist-search-avatar i {
-        color: #8d5e4a;
-        font-size: 1.8rem;
-    }
-
-    .artist-search-name {
-        font-size: 1.2rem;
-        font-weight: 800;
-        color: #5d3a2d;
-        margin-bottom: 4px;
-    }
-
-    .artist-search-meta {
-        font-size: 0.86rem;
-        color: #7f6a61;
-    }
-
-    .category-block {
-        margin-bottom: 36px;
-    }
-
-    .category-block:last-child {
-        margin-bottom: 0;
-    }
-
-    .category-name {
-        font-size: 1.9rem;
-        font-weight: 900;
-        color: #5f9e40;
-        letter-spacing: -0.04em;
-        margin-bottom: 18px;
-        text-transform: lowercase;
-    }
-
-    .artwork-card {
-        text-decoration: none;
-        display: block;
-    }
-
-    .artwork-box {
-        background-color: #e9fcd9;
-        aspect-ratio: 1 / 1;
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 15px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        box-shadow: 0 8px 18px rgba(93, 58, 45, 0.05);
-    }
-
-    .artwork-box:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 22px rgba(93, 58, 45, 0.1);
-    }
-
-    .artwork-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
-
-    .art-info-container {
-        margin-top: 12px;
-        color: #5d3a2d;
-    }
-
-    .art-top-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        align-items: flex-start;
-    }
-
-    .art-name-text,
-    .art-price-text {
-        font-weight: 800;
-        font-size: 0.95rem;
-    }
-
-    .art-artist-text {
-        color: #9a8b83;
-        font-size: 0.82rem;
-        font-weight: 600;
-        display: block;
-        margin-top: 3px;
-    }
-
-    .search-empty {
-        background: #fff;
-        border: 1.5px dashed #d0b6aa;
-        border-radius: 24px;
-        padding: 40px 28px;
-        text-align: center;
-        color: #7a655a;
-    }
+    .search-page { padding: 48px 0 72px; text-align: left; }
+    .search-hero { background: linear-gradient(135deg, #eefddb 0%, #f7f3ef 100%); border: 2.1px solid #8d5e4a; border-radius: 34px; padding: 34px 38px; margin-bottom: 32px; }
+    .search-title { font-size: 2.4rem; font-weight: 900; color: #5d3a2d; margin-bottom: 8px; }
+    .search-controls { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+    .search-select { border: 1.5px solid #d8c1b6; border-radius: 999px; padding: 10px 20px; font-size: 0.88rem; font-weight: 700; color: #5d3a2d; outline: none; background: white; min-width: 180px; cursor: pointer; }
+    .search-filter-btn { border: none; background: #8d5e4a; color: #fff; border-radius: 999px; padding: 10px 28px; font-weight: 800; transition: 0.2s; }
+    .search-filter-btn:hover { background: #754b39; transform: translateY(-1px); }
+    .section-title { color: #8d5e4a; font-size: 0.9rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 22px; margin-top: 40px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .artist-search-card { background: #fff; border: 1.5px solid #d8c1b6; border-radius: 26px; padding: 22px; display: flex; align-items: center; gap: 18px; text-decoration: none; color: inherit; transition: 0.2s; box-shadow: 0 10px 20px rgba(93, 58, 45, 0.05); }
+    .artist-search-card:hover { transform: translateY(-4px); border-color: #8d5e4a; }
+    .artwork-box { background-color: #e9fcd9; aspect-ratio: 1/1; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 15px; transition: 0.2s; }
+    .artwork-box img { width: 100%; height: 100%; object-fit: contain; }
+    .art-name-text { font-weight: 800; font-size: 0.95rem; color: #5d3a2d; }
+    .art-price-text { font-weight: 800; font-size: 0.95rem; color: #8d5e4a; }
 </style>
 
 <div class="container search-page">
+    <!-- HERO SECTION -->
     <div class="search-hero">
-        <span class="search-kicker">Search Results</span>
+        <span class="small fw-bold text-uppercase" style="color: #8d5e4a; letter-spacing: 2px;">Bicolikha Search</span>
         <h1 class="search-title">
-            {% if query %}
-                Results for "{{ query }}"
-            {% else %}
-                Search the bicolikha collection
-            {% endif %}
+            {% if query %} Results for "{{ query }}" {% else %} Artwork Collection {% endif %}
         </h1>
-        <p class="search-summary">
-            {% if query %}
-                {{ results_count }} result{{ results_count|pluralize }} found across artists and artworks by category.
-            {% else %}
-                Type any word in the search bar to find artists and artworks.
-            {% endif %}
-        </p>
+        <p class="text-muted mb-0">{{ results_count }} matches found.</p>
     </div>
 
-    {% if query and results_count %}
-        {% if artists %}
-        <section class="search-section">
-            <div class="section-title">Artists</div>
-            <div class="row g-4">
-                {% for artist in artists %}
-                <div class="col-12 col-md-6">
-                    <a href="{% url 'artist_detail' artist.artist_id %}" class="artist-search-card">
-                        <div class="artist-search-avatar">
-                            {% with addr=artist.user.address_set.first %}
-                                {% if addr and addr.profile_pix %}
-                                    <img src="{{ addr.profile_pix.url }}" alt="{{ artist.artist_name }}">
-                                {% else %}
-                                    <i class="fas fa-user"></i>
-                                {% endif %}
-                            {% endwith %}
-                        </div>
-                        <div>
-                            <div class="artist-search-name">{{ artist.artist_name }}</div>
-                            <div class="artist-search-meta">
-                                {{ artist.artist_municipality|default:"Bicol" }}{% if artist.artist_municipality and artist.artist_brgy %}, {% endif %}{{ artist.artist_brgy|default:"" }}
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
+    <!-- FILTER CONTROLS (DROPDOWNS ONLY) -->
+    <div class="search-controls">
+        <form method="GET" action="{% url 'search_results' %}" class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- IMPORTANT: This keeps your search keyword alive when filtering -->
+            <input type="hidden" name="q" value="{{ query }}">
 
-        {% if grouped_artworks %}
-        <section class="search-section">
-            <div class="section-title">Artworks by Category</div>
-            {% for group in grouped_artworks %}
-            <div class="category-block">
-                <h2 class="category-name">{{ group.category.category_name }}</h2>
-                <div class="row g-4">
-                    {% for artwork in group.artworks %}
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <a href="{% url 'product_detail' artwork.prod_id %}" class="artwork-card">
-                            <div class="artwork-box">
-                                {% if artwork.image %}
-                                    <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}">
-                                {% endif %}
-                            </div>
-                            <div class="art-info-container">
-                                <div class="art-top-row">
-                                    <span class="art-name-text">{{ artwork.title }}</span>
-                                    <span class="art-price-text">P{{ artwork.price|floatformat:0 }}</span>
-                                </div>
-                                <span class="art-artist-text">{{ artwork.artist.artist_name }}</span>
-                            </div>
-                        </a>
+            <!-- Sort Dropdown -->
+            <select name="sort" class="search-select">
+                <option value="latest" {% if current_sort == 'latest' %}selected{% endif %}>Sort: Latest</option>
+                <option value="artist" {% if current_sort == 'artist' %}selected{% endif %}>Sort: Artist (A-Z)</option>
+                <option value="popularity" {% if current_sort == 'popularity' %}selected{% endif %}>Sort: Popularity</option>
+                <option value="top_sales" {% if current_sort == 'top_sales' %}selected{% endif %}>Sort: Top Sales</option>
+            </select>
+
+            <!-- Category Dropdown -->
+            <select name="category" class="search-select">
+                <option value="">All Categories</option>
+                {% for cat in search_categories %}
+                    <option value="{{ cat.category_id }}" {% if selected_category == cat.category_id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.category_name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="search-filter-btn shadow-sm">Apply</button>
+        </form>
+        
+        {% if has_search_filters %}
+            <a href="{% url 'search_results' %}?q={{ query }}" class="text-decoration-none small fw-bold text-muted px-3">Reset Filters</a>
+        {% endif %}
+    </div>
+
+    {% if results_count > 0 %}
+        <!-- ARTISTS SECTION -->
+        {% if artists %}
+        <div class="section-title">Artists</div>
+        <div class="row g-4 mb-5">
+            {% for artist in artists %}
+            <div class="col-md-6">
+                <a href="{% url 'artist_detail' artist.artist_id %}" class="artist-search-card">
+                    <div style="width: 70px; height: 70px; background: #e9fcd9; border-radius: 20px; border: 2px solid #8d5e4a; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        {% if artist.artist_image_url %}
+                            <img src="{{ artist.artist_image_url }}" style="width:100%; height:100%; object-fit:cover;">
+                        {% elif artist.user.address_set.first.profile_pix %}
+                            <img src="{{ artist.user.address_set.first.profile_pix.url }}" style="width:100%; height:100%; object-fit:cover;">
+                        {% else %}
+                            <i class="fas fa-user text-success fa-2x"></i>
+                        {% endif %}
                     </div>
-                    {% endfor %}
-                </div>
+                    <div>
+                        <div class="fw-bold fs-5">{{ artist.artist_name }}</div>
+                        <div class="small text-muted"><i class="fas fa-location-dot me-1"></i>{{ artist.artist_municipality|default:"Bicol" }}</div>
+                    </div>
+                </a>
             </div>
             {% endfor %}
-        </section>
-        {% endif %}
-    {% elif query %}
-        <div class="search-empty">
-            <h3 class="fw-bold mb-2">No matches found</h3>
-            <p class="mb-0">Try another word for an artist, artwork title, or category.</p>
         </div>
+        {% endif %}
+
+        <!-- ARTWORKS GRID -->
+        {% if artworks %}
+        <div class="section-title">Artworks</div>
+        <div class="row g-4">
+            {% for artwork in artworks %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'product_detail' artwork.prod_id %}" class="text-decoration-none">
+                    <div class="artwork-box shadow-sm mb-3">
+                        {% if artwork.image %}<img src="{{ artwork.image.url }}">{% endif %}
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="art-name-text">{{ artwork.title }}</span>
+                            <span class="art-price-text">&#8369;{{ artwork.price|floatformat:0 }}</span>
+                        </div>
+                        <span class="small text-muted">{{ artwork.artist.artist_name }}</span>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
     {% else %}
-        <div class="search-empty">
-            <h3 class="fw-bold mb-2">Start with a search word</h3>
-            <p class="mb-0">You can search artist names, product titles, descriptions, and category names.</p>
+        <!-- NO RESULTS -->
+        <div class="text-center py-5 border rounded-5 bg-light mt-4">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h3 class="fw-bold">No matches found</h3>
+            <p class="text-muted">Try using a different keyword or removing filters.</p>
         </div>
     {% endif %}
 </div>

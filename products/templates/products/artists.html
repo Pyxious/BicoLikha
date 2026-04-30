@@ -89,7 +89,9 @@
         <div class="artist-avatar">
             <!-- 2. UPDATED IMAGE LOGIC: Pulls from the linked User's Profile Picture -->
             {% with addr=artist.user.address_set.first %}
-                {% if addr and addr.profile_pix %}
+                {% if artist.artist_image_url %}
+                    <img src="{{ artist.artist_image_url }}" class="w-100 h-100" style="object-fit: cover;" alt="{{ artist.artist_name }}">
+                {% elif addr and addr.profile_pix %}
                     <img src="{{ addr.profile_pix.url }}" class="w-100 h-100" style="object-fit: cover;" alt="{{ artist.artist_name }}">
                 {% else %}
                     <i class="fas fa-user"></i>

@@ -72,6 +72,59 @@
     </div>
 </div>
 
+<!-- 3. ADD POPULAR AD MODAL -->
+<div class="modal fade" id="popularAdModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold">Add Popular Page Ad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="image-edit-container shadow-sm bg-light mb-4"
+                         onclick="document.getElementById('popularAdFileInput').click()"
+                         style="border: 2px dashed #ccc; height: 220px; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; border-radius: 15px; width: 100%;">
+
+                        <img src="" id="popularAdPreview" style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 15px;">
+
+                        <div id="popularAdPlaceholderText" class="text-center">
+                            <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-muted"></i>
+                            <p class="small fw-bold text-muted mb-0">UPLOAD AD PHOTO</p>
+                        </div>
+                    </div>
+
+                    <input type="file" name="image" id="popularAdFileInput" style="display: none;" accept="image/*" onchange="previewPopularAdImage(this)" required>
+
+                    <div class="row g-3 text-start">
+                        <div class="col-md-8">
+                            <label class="small fw-bold text-muted">Title</label>
+                            {{ popular_ad_form.title }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-muted">Display Order</label>
+                            {{ popular_ad_form.display_order }}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ popular_ad_form.is_active }}
+                                <label class="form-check-label small fw-bold text-muted">Show this ad on the Popular page</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="add_popular_ad" class="btn text-white rounded-pill px-5 fw-bold" style="background: #8d5e4a;">Upload Ad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function previewNewImage(input) {
         if (input.files && input.files[0]) {
@@ -79,6 +132,20 @@
             reader.onload = function(e) {
                 const preview = document.getElementById('addPreview');
                 const placeholder = document.getElementById('placeholderText');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function previewPopularAdImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('popularAdPreview');
+                const placeholder = document.getElementById('popularAdPlaceholderText');
                 preview.src = e.target.result;
                 preview.style.display = 'block';
                 placeholder.style.display = 'none';

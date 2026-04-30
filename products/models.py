@@ -31,6 +31,11 @@ class Artist(models.Model):
 
     class Meta:
         db_table = 'artist'
+
+    @property
+    def artist_image_url(self):
+        return f'{settings.MEDIA_URL}{self.artist_image}' if self.artist_image else ''
+
     def __str__(self): return self.artist_name or "Unknown Artist"
 
 # --- 2. USER EXTENSIONS (Address & Profile Logic) ---
@@ -79,6 +84,27 @@ class Artwork(models.Model):
         db_table = 'product'
     def __str__(self): return self.title or "Untitled"
 
+class PopularAd(models.Model):
+    ad_id = models.AutoField(primary_key=True, db_column='AD_ID')
+    title = models.CharField(max_length=255, db_column='AD_TITLE', null=True, blank=True)
+    image = models.ImageField(upload_to='popular_ads/', db_column='AD_IMAGE')
+    is_active = models.BooleanField(default=True, db_column='IS_ACTIVE')
+    display_order = models.PositiveIntegerField(default=0, db_column='DISPLAY_ORDER')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='CREATED_AT')
+
+    class Meta:
+        db_table = 'popular_ads'
+        ordering = ['display_order', '-created_at']
+
+    def __str__(self):
+        return self.title or f"Popular ad {self.ad_id}"
+
+    def delete(self, *args, **kwargs):
+        image = self.image
+        super().delete(*args, **kwargs)
+        if image:
+            image.delete(save=False)
+
 class SupplyInventory(models.Model):
     supply_id = models.AutoField(primary_key=True, db_column='SUPPLY_ID')
     product = models.ForeignKey(Artwork, on_delete=models.CASCADE, db_column='PROD_ID')
@@ -92,12 +118,17 @@ class ArtistApplication(models.Model):
     application_id = models.AutoField(primary_key=True, db_column='APPLICATION_ID')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='USER_ID')
     artist_name = models.CharField(max_length=255, db_column='ARTIST_NAME')
+    artist_image = models.CharField(max_length=255, db_column='ARTIST_IMAGE', null=True, blank=True)
     application_status = models.CharField(max_length=50, db_column='APPLICATION_STATUS', default='Pending')
     date_submitted = models.DateTimeField(auto_now_add=True, db_column='DATE_SUBMITTED')
     date_reviewed = models.DateTimeField(null=True, blank=True, db_column='DATE_REVIEWED')
 
     class Meta:
         db_table = 'artist_application'
+
+    @property
+    def artist_image_url(self):
+        return f'{settings.MEDIA_URL}{self.artist_image}' if self.artist_image else ''
 
 class ArtistApplicationProduct(models.Model):
     application_product_id = models.AutoField(primary_key=True, db_column='APPLICATION_PRODUCT_ID')

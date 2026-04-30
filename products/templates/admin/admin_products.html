@@ -40,6 +40,11 @@
     .submission-product-table td:last-child { border-right: 1px solid #eee; border-radius: 0 12px 12px 0; }
     .submission-thumb { width: 54px; height: 54px; border-radius: 12px; background: #f8f5f2; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #8d5e4a; }
     .submission-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .popular-ad-card { background: white; border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; height: 100%; }
+    .popular-ad-thumb { background: var(--light-green); aspect-ratio: 16 / 7; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--nav-brown); }
+    .popular-ad-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .popular-ad-meta { padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .popular-ad-empty { border: 1.5px dashed #d8c1b6; border-radius: 16px; min-height: 150px; display: flex; align-items: center; justify-content: center; color: #9a8b83; background: #fffaf6; font-weight: 700; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 text-start">
@@ -47,6 +52,7 @@
         
     </div>
     <div class="d-flex gap-2">
+        <button class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#popularAdModal">+ Popular Ad</button>
         <button class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#categoryModal">+ Category</button>
         <button class="btn-add-prod shadow-sm" data-bs-toggle="modal" data-bs-target="#productModal">+ Add Product</button>
     </div>
@@ -107,7 +113,7 @@
 
 <!-- STOCK ADJUSTMENT REQUESTS -->
 {% if pending_stock_adjustments %}
-<div class="bg-white border rounded-4 shadow-sm mb-5 text-start" id="product-submissions">
+<div class="bg-white border rounded-4 shadow-sm mb-5 text-start" id="stock-adjustments">
     <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
         <div>
             <h6 class="fw-bold m-0">Pending Stock Adjustment Requests</h6>
@@ -165,7 +171,7 @@
 {% endif %}
 
 <!-- ARTIST PRODUCT SUBMISSIONS -->
-<div class="bg-white border rounded-4 shadow-sm mb-5 text-start">
+<div class="bg-white border rounded-4 shadow-sm mb-5 text-start" id="product-submissions">
     <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <h6 class="fw-bold m-0">Artist Product Submissions</h6>
@@ -204,6 +210,69 @@
         </div>
         {% else %}
         <div class="text-muted small p-3">No {{ product_submission_status|lower }} product submissions.</div>
+        {% endif %}
+        {% if product_submissions_page.paginator.num_pages > 1 %}
+        <div class="border-top mt-3 pt-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="text-muted small">Page {{ product_submissions_page.number }} of {{ product_submissions_page.paginator.num_pages }}</div>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if product_submissions_page.has_previous %}
+                <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if submission_pagination_querystring %}{{ submission_pagination_querystring }}&{% endif %}submission_page={{ product_submissions_page.previous_page_number }}#product-submissions">Previous</a>
+                {% endif %}
+                {% for page_num in product_submissions_page.paginator.page_range %}
+                    {% if page_num == product_submissions_page.number %}
+                    <span class="btn btn-sm rounded-pill px-3 text-white" style="background:#8d5e4a;">{{ page_num }}</span>
+                    {% elif page_num >= product_submissions_page.number|add:'-2' and page_num <= product_submissions_page.number|add:'2' %}
+                    <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if submission_pagination_querystring %}{{ submission_pagination_querystring }}&{% endif %}submission_page={{ page_num }}#product-submissions">{{ page_num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if product_submissions_page.has_next %}
+                <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="?{% if submission_pagination_querystring %}{{ submission_pagination_querystring }}&{% endif %}submission_page={{ product_submissions_page.next_page_number }}#product-submissions">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- POPULAR PAGE ADS -->
+<div class="bg-white border rounded-4 shadow-sm mb-5 text-start" id="popular-ads">
+    <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h6 class="fw-bold m-0">Popular Page Ads</h6>
+            <div class="text-muted small">Upload photos for the ad placeholder on the Popular page. Multiple active photos rotate automatically.</div>
+        </div>
+        <button class="btn-add-prod shadow-sm" data-bs-toggle="modal" data-bs-target="#popularAdModal">+ Add Ad Photo</button>
+    </div>
+    <div class="p-3">
+        {% if popular_ads %}
+        <div class="row g-3">
+            {% for ad in popular_ads %}
+            <div class="col-md-4">
+                <div class="popular-ad-card shadow-sm">
+                    <div class="popular-ad-thumb">
+                        {% if ad.image %}
+                            <img src="{{ ad.image.url }}" alt="{{ ad.title|default:'Popular page ad' }}">
+                        {% else %}
+                            <i class="fas fa-image fa-2x"></i>
+                        {% endif %}
+                    </div>
+                    <div class="popular-ad-meta">
+                        <div>
+                            <div class="fw-bold" style="color: var(--text-brown);">{{ ad.title|default:"Untitled ad" }}</div>
+                            <div class="text-muted small">Order {{ ad.display_order }} {% if ad.is_active %}active{% else %}hidden{% endif %}</div>
+                        </div>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="ad_id" value="{{ ad.ad_id }}">
+                            <button type="submit" name="delete_popular_ad" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Remove this ad photo?')">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="popular-ad-empty">No ad photos uploaded yet.</div>
         {% endif %}
     </div>
 </div>

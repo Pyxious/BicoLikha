@@ -425,6 +425,39 @@ color: #5d3a2d;
 font-weight: 900;
 margin-bottom: 6px;
 }
+.artist-profile-upload {
+border: 1.5px dashed #d7c2b8;
+border-radius: 22px;
+background: #fff;
+padding: 18px;
+display: flex;
+align-items: center;
+gap: 18px;
+height: 100%;
+}
+.artist-profile-preview {
+width: 86px;
+height: 86px;
+border-radius: 22px;
+border: 2px solid #8d5e4a;
+background: #e9fcd9;
+overflow: hidden;
+display: flex;
+align-items: center;
+justify-content: center;
+color: #8d5e4a;
+font-size: 1.6rem;
+flex-shrink: 0;
+}
+.artist-profile-preview img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+}
+.artist-profile-file {
+font-size: 0.84rem;
+color: #5d3a2d;
+}
 .artist-product-list-card {
 display: grid;
 grid-template-columns: 88px minmax(0, 1fr) auto;
@@ -820,6 +853,60 @@ flex-shrink: 0;
 background: #f4e8e0;
 color: #8d5e4a;
 }
+.notification-empty,
+.profile-pagination {
+border: 1.5px dashed #d8c1b6;
+border-radius: 20px;
+background: #fffaf7;
+color: #8f7c72;
+}
+.notification-empty {
+padding: 42px 24px;
+text-align: center;
+}
+.notification-empty i {
+color: #b98a76;
+font-size: 1.7rem;
+margin-bottom: 12px;
+}
+.notification-empty-title {
+color: #5d3a2d;
+font-weight: 900;
+margin-bottom: 6px;
+}
+.profile-pagination {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+padding: 14px 16px;
+margin-top: 14px;
+}
+.profile-page-link,
+.profile-page-current {
+min-width: 38px;
+height: 38px;
+border-radius: 999px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+text-decoration: none;
+font-size: 0.82rem;
+font-weight: 800;
+}
+.profile-page-link {
+border: 1.5px solid #d8c1b6;
+color: #8d5e4a;
+background: #fff;
+}
+.profile-page-link:hover {
+background: #f8f1ec;
+color: #754b39;
+}
+.profile-page-current {
+background: #8d5e4a;
+color: #fff;
+}
 .artist-message-card {
 border-radius: 20px;
 border: 1.5px solid #eadfd8;
@@ -1031,10 +1118,7 @@ min-width: 0;
             {% endif %}
         </nav>
 
-        <form action="{% url 'logout_view' %}" method="post" class="mt-auto">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-logout-pill">LOGOUT</button>
-        </form>
+        <button type="button" class="btn btn-logout-pill mt-auto" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">LOGOUT</button>
     </div>
 
     <!-- CONTENT AREA -->
@@ -1156,6 +1240,18 @@ min-width: 0;
                             <label class="small fw-bold text-muted">Applicant Account</label>
                             <input type="text" class="bicol-input" value="{{ user.email }}" readonly>
                         </div>
+                        <div class="col-12">
+                            <label class="small fw-bold text-muted">Artist Profile Photo</label>
+                            <div class="artist-profile-upload">
+                                <div class="artist-profile-preview" id="artistProfilePreview">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="file" name="artist_image" id="artist_image_input" class="form-control artist-profile-file" accept="image/*" onchange="previewArtistProfileImage(this)">
+                                    <div class="artist-help-text mb-0 mt-2">This will be used as your public artist photo after approval.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
@@ -1212,7 +1308,7 @@ min-width: 0;
                             <label class="small fw-bold text-muted">Product Name</label>
                             <select name="product_id" class="bicol-input mb-0" required>
                                 <option value="">Select product</option>
-                                {% for product in artist_products %}
+                                {% for product in artist_product_options %}
                                 <option value="{{ product.prod_id }}">{{ product.title }} - current stock: {{ product.stock_qty|default:0 }}</option>
                                 {% endfor %}
                             </select>
@@ -1252,6 +1348,26 @@ min-width: 0;
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if artist_products_page.paginator.num_pages > 1 %}
+                <div class="profile-pagination">
+                    <div class="small fw-bold">Page {{ artist_products_page.number }} of {{ artist_products_page.paginator.num_pages }}</div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% if artist_products_page.has_previous %}
+                        <a class="profile-page-link" href="?tab=artist_products&artist_products_page={{ artist_products_page.previous_page_number }}">Prev</a>
+                        {% endif %}
+                        {% for page_num in artist_products_page.paginator.page_range %}
+                            {% if page_num == artist_products_page.number %}
+                            <span class="profile-page-current">{{ page_num }}</span>
+                            {% elif page_num >= artist_products_page.number|add:'-2' and page_num <= artist_products_page.number|add:'2' %}
+                            <a class="profile-page-link" href="?tab=artist_products&artist_products_page={{ page_num }}">{{ page_num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        {% if artist_products_page.has_next %}
+                        <a class="profile-page-link" href="?tab=artist_products&artist_products_page={{ artist_products_page.next_page_number }}">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 {% else %}
                 <div class="artist-empty-products">
                     <i class="fas fa-box-open"></i>
@@ -1396,6 +1512,12 @@ min-width: 0;
                     </div>
                 </div>
             </a>
+            {% empty %}
+            <div class="notification-empty">
+                <i class="far fa-bell"></i>
+                <div class="notification-empty-title">No notifications yet</div>
+                <div class="small">Order updates and artist status messages will appear here.</div>
+            </div>
             {% endfor %}
 
         {% elif active_tab == 'messages' %}
@@ -1489,6 +1611,24 @@ min-width: 0;
 </div>
 </div>
 <!-- ================= MODALS ================= -->
+<div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content text-center p-4">
+<div class="modal-body">
+<i class="fas fa-right-from-bracket fa-3x mb-3" style="color:#8d5e4a;"></i>
+<h5 class="fw-bold" style="color:#5d3a2d;">Are you sure you want to logout?</h5>
+<p class="text-muted small mb-4">You can sign back in anytime.</p>
+<form action="{% url 'logout_view' %}" method="post">
+{% csrf_token %}
+<div class="d-flex gap-2">
+<button type="button" class="btn btn-light w-50 rounded-pill border" data-bs-dismiss="modal">Stay Logged In</button>
+<button type="submit" class="btn w-50 rounded-pill text-white fw-bold" style="background:#8d5e4a;">Logout</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
 {% if active_tab == 'artist_application' and not is_artist or active_tab == 'artist_products' and is_artist %}
 {% if not latest_artist_application or latest_artist_application.application_status != 'Pending' %}
 <div class="modal fade artist-application-modal" id="artistProductModal" tabindex="-1" aria-hidden="true">
@@ -1730,6 +1870,16 @@ document.getElementById('sidePreview').src = e.target.result;
 document.getElementById('sidePreview').style.display = 'block';
 if(document.getElementById('sidePlaceholder')) document.getElementById('sidePlaceholder').style.display = 'none';
 document.getElementById('saveChangesBtn').disabled = false;
+}
+reader.readAsDataURL(input.files[0]);
+}
+}
+
+function previewArtistProfileImage(input) {
+if (input.files && input.files[0]) {
+var reader = new FileReader();
+reader.onload = function(e) {
+document.getElementById('artistProfilePreview').innerHTML = '<img src="' + e.target.result + '" alt="Artist profile preview">';
 }
 reader.readAsDataURL(input.files[0]);
 }
